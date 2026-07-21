@@ -11,19 +11,29 @@ import {
   triggerDeepBell,
   triggerDrone,
   triggerIndustrial,
-  triggerGlitch
+  triggerGlitch,
+  createContinuousEmitterOuroPreto
 } from './generators/ouro-preto.js';
 import {
   triggerChicagoRail,
   triggerChicagoWind,
   triggerChicagoFoghorn,
-  triggerChicagoBridge
+  triggerChicagoBridge,
+  triggerChicagoSteam,
+  createContinuousEmitterChicago
 } from './generators/chicago.js';
 import {
   triggerShanghaiGong,
   triggerShanghaiRiver,
-  triggerShanghaiMaglev
+  triggerShanghaiMaglev,
+  triggerShanghaiCicadas,
+  triggerShanghaiConstructionDrums,
+  createContinuousEmitterShanghai
 } from './generators/shanghai.js';
+
+import { calculateHaversineMeters } from '../spatial.js';
+
+
 
 /**
  * Pure Procedural Spatial & Modal Audio Engine for Sino Cicatrizado.
@@ -47,7 +57,12 @@ export class WebAudioEngine extends AbstractAudioEngine {
 
     this.currentCityProfile = 'ouro_preto';
     this.continuousDrone = null;
+    this.proximityEmitters = [];
+    this.lastCoords = null;
+    this.lastCoordsTime = null;
+    this.activeNodes = [];
   }
+
 
   setCityAcousticProfile(cityKey) {
     this.currentCityProfile = cityKey || 'ouro_preto';
@@ -183,21 +198,29 @@ export class WebAudioEngine extends AbstractAudioEngine {
     harmOsc1.connect(harmGain);
     harmOsc2.connect(harmGain);
 
-    // 3. Ultra-slow LFO Filter Sweep (0.015 Hz = 66s cycle)
+    // 3. Dual Out-of-Phase LFO Filter Sweep (0.011 Hz & 0.017 Hz polyrhythm)
     const droneFilter = this.ctx.createBiquadFilter();
     droneFilter.type = 'lowpass';
-    const initialCutoff = this.currentCityProfile === 'chicago' ? 550.0 : 380.0;
+    const initialCutoff = this.currentCityProfile === 'chicago' ? 550.0 : (this.currentCityProfile === 'shanghai' ? 420.0 : 380.0);
     droneFilter.frequency.setValueAtTime(initialCutoff, now);
     droneFilter.Q.setValueAtTime(2.5, now);
 
-    const lfo = this.ctx.createOscillator();
-    const lfoGain = this.ctx.createGain();
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(0.015, now);
-    lfoGain.gain.setValueAtTime(160.0, now); // Sweeps cutoff between 220Hz and 540Hz
+    const lfo1 = this.ctx.createOscillator();
+    const lfoGain1 = this.ctx.createGain();
+    lfo1.type = 'sine';
+    lfo1.frequency.setValueAtTime(0.011, now);
+    lfoGain1.gain.setValueAtTime(110.0, now);
 
-    lfo.connect(lfoGain);
-    lfoGain.connect(droneFilter.frequency);
+    const lfo2 = this.ctx.createOscillator();
+    const lfoGain2 = this.ctx.createGain();
+    lfo2.type = 'triangle';
+    lfo2.frequency.setValueAtTime(0.017, now);
+    lfoGain2.gain.setValueAtTime(70.0, now);
+
+    lfo1.connect(lfoGain1);
+    lfoGain1.connect(droneFilter.frequency);
+    lfo2.connect(lfoGain2);
+    lfoGain2.connect(droneFilter.frequency);
 
     subGain.connect(droneFilter);
     harmGain.connect(droneFilter);
@@ -212,7 +235,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
     subOsc2.start(now);
     harmOsc1.start(now);
     harmOsc2.start(now);
-    lfo.start(now);
+    lfo1.start(now);
+    lfo2.start(now);
 
     this.continuousDrone = {
       subOsc1,
@@ -220,9 +244,11 @@ export class WebAudioEngine extends AbstractAudioEngine {
       harmOsc1,
       harmOsc2,
       droneFilter,
-      lfo,
+      lfo1,
+      lfo2,
       droneMasterGain,
-      baseFreq
+      baseFreq,
+      targetCutoff: initialCutoff
     };
   }
 
@@ -233,6 +259,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
     const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'shanghai' ? 420.0 : 380.0);
 
     const d = this.continuousDrone;
+    d.targetCutoff = targetCutoff;
+    d.baseFreq = baseFreq;
     try {
       d.subOsc1.frequency.exponentialRampToValueAtTime(baseFreq, now + 4.0);
       d.subOsc2.frequency.exponentialRampToValueAtTime(baseFreq + 0.35, now + 4.0);
@@ -240,7 +268,98 @@ export class WebAudioEngine extends AbstractAudioEngine {
       d.harmOsc2.frequency.exponentialRampToValueAtTime(baseFreq * 3.0, now + 4.0);
       d.droneFilter.frequency.exponentialRampToValueAtTime(targetCutoff, now + 4.0);
     } catch (_) {}
+
+    // Refresh proximity emitters for new city
+    if (this.activeNodes && this.activeNodes.length > 0) {
+      this.setProximityNodes(this.activeNodes);
+    }
   }
+
+  // ponytail: Dynamic Somatic Movement & Proximity Attenuation Update
+  updateSomaticPosition(coords) {
+    if (!this.ctx || !coords) return;
+    const now = this.ctx.currentTime;
+
+    // Calculate movement velocity (meters per second)
+    let speedMps = 0;
+    if (this.lastCoords && this.lastCoordsTime) {
+      const distMeters = calculateHaversineMeters(this.lastCoords, coords);
+      const dt = Math.max(0.1, now - this.lastCoordsTime);
+      speedMps = distMeters / dt;
+    }
+    this.lastCoords = coords;
+    this.lastCoordsTime = now;
+
+    // 1. Modulate background drone brightness based on movement speed
+    if (this.continuousDrone) {
+      const speedBoost = Math.min(speedMps * 25.0, 300.0); // up to +300Hz brightness
+      const targetFreq = Math.max(100.0, this.continuousDrone.targetCutoff + speedBoost);
+      try {
+        this.continuousDrone.droneFilter.frequency.setTargetAtTime(targetFreq, now, 0.5);
+      } catch (_) {}
+    }
+
+    // 2. Update Proximity Attenuation for Active Continuous Emitters
+    this.proximityEmitters.forEach((emitter) => {
+      if (!emitter.coords || !emitter.instance || !emitter.instance.masterGain) return;
+      const dist = calculateHaversineMeters(coords, emitter.coords);
+      const maxRange = emitter.maxRange || 300.0; // 300 meters ambient radius
+      let gainNorm = 0;
+      if (dist < maxRange) {
+        gainNorm = Math.pow(1.0 - (dist / maxRange), 2); // Quadratic proximity curve
+      }
+      const targetGain = gainNorm * (emitter.maxGain || 0.45);
+      try {
+        emitter.instance.masterGain.gain.setTargetAtTime(targetGain, now, 0.3);
+      } catch (_) {}
+    });
+  }
+
+  // Setup/Refresh Continuous Proximity Emitters anchored to active city nodes
+  setProximityNodes(nodesList = []) {
+    this.activeNodes = nodesList;
+    if (!this.ctx) return;
+
+    // Stop and clear previous emitters
+    this.proximityEmitters.forEach((e) => {
+      if (e.instance && typeof e.instance.stop === 'function') {
+        e.instance.stop();
+      }
+    });
+    this.proximityEmitters = [];
+
+    if (!nodesList || nodesList.length === 0) return;
+
+    // Select top 3 nodes as continuous ambient sound anchors
+    const anchorNodes = nodesList.slice(0, 3);
+    anchorNodes.forEach((node, idx) => {
+      if (!node.coords) return;
+      let emitterInstance = null;
+
+      if (this.currentCityProfile === 'chicago') {
+        emitterInstance = createContinuousEmitterChicago(this, { baseFrequency: 220 + idx * 40 });
+      } else if (this.currentCityProfile === 'shanghai') {
+        emitterInstance = createContinuousEmitterShanghai(this, { baseFrequency: 65 + idx * 10 });
+      } else {
+        emitterInstance = createContinuousEmitterOuroPreto(this, { baseFrequency: 55 + idx * 15 });
+      }
+
+      if (emitterInstance) {
+        this.proximityEmitters.push({
+          nodeId: node.id,
+          coords: node.coords,
+          maxRange: 350.0,
+          maxGain: 0.4,
+          instance: emitterInstance
+        });
+      }
+    });
+
+    if (this.lastCoords) {
+      this.updateSomaticPosition(this.lastCoords);
+    }
+  }
+
 
   // Reflector DSP chain delegation
   applyReflectorDSPChain(sourceNode, params = {}, triggerTime = 0, decay = 2.0) {
@@ -345,6 +464,14 @@ export class WebAudioEngine extends AbstractAudioEngine {
       case 'maglev':
         triggerShanghaiMaglev(this, params, triggerTime, delaySeconds);
         break;
+      case 'shanghai_cicadas':
+      case 'cicadas':
+        triggerShanghaiCicadas(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_construction':
+      case 'construction_drums':
+        triggerShanghaiConstructionDrums(this, params, triggerTime, delaySeconds);
+        break;
       case 'chicago_rail':
       case 'rail':
         triggerChicagoRail(this, params, triggerTime, delaySeconds);
@@ -361,6 +488,11 @@ export class WebAudioEngine extends AbstractAudioEngine {
       case 'bridge':
         triggerChicagoBridge(this, params, triggerTime, delaySeconds);
         break;
+      case 'chicago_steam':
+      case 'steam':
+        triggerChicagoSteam(this, params, triggerTime, delaySeconds);
+        break;
+
       case 'bell_deep':
         triggerDeepBell(this, params, triggerTime, delaySeconds);
         break;

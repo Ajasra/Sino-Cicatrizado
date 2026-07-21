@@ -74,21 +74,32 @@ ratios.forEach((ratio, idx) => {
 
 ## 4. Sound Archetype Taxonomy
 
-The sound engine contains 11 procedural sound generators tailored to city acoustic profiles:
+The sound engine contains **6 procedural sound generators for each city** (a balanced mix of discrete triggers and continuous proximity-based emitters):
 
-| Archetype Key | Carrier Wave | Synthesis Method & DSP Signature | Primary Acoustic Profile |
-| :--- | :--- | :--- | :--- |
-| **`bell_sacred`** | `sine` | 5-partial inharmonic additive synthesis with exponential damping | Ouro Preto Church Towers |
-| **`bell_deep`** | `sine` / `triangle` | Low-frequency sub-hum ($55\text{Hz} - 140\text{Hz}$) with warm lowpass filtering | Imperial Monasteries & Crypts |
-| **`drone`** | `sawtooth` | Dual detuned lowpass filtered oscillators with slow LFO phase chorus | Mountain Valleys & Caverns |
-| **`industrial`** | `sawtooth` / `square` | FM synthesis with high modulation index (`fmIndex` up to $10.0$) | Silver Mines & Pickaxe Strikes |
-| **`glitch`** | `square` | Rapid frequency modulation leaps and 2-bit quantization artifacts | Terminal Scar Trauma (> 3.0) |
-| **`shanghai_gong`** | `sine` / `triangle` | Eastern Gong ratios ($[0.5, 1.0, 1.12, 1.62, 2.38, 3.14]$) with pitch bend | Jing'an Temple & The Bund |
-| **`shanghai_river`**| `sawtooth` | Deep vessel foghorn ($85\text{Hz}$) with slow $0.2\text{Hz}$ water chorus LFO | Huangpu River Vessels |
-| **`shanghai_maglev`**| `sawtooth` / `square` | Bandpass filtered soaring frequency sweep ($350\text{Hz} \to 680\text{Hz}$) | High-Speed Maglev Rail |
-| **`chicago_rail`** | `sawtooth` / `square` | High FM iron friction with bandpass filter sweep | Elevated L-Train Tracks |
-| **`chicago_wind`** | Noise / `sine` | Lowpass filtered wind canyon atmospheric swell | Lake Michigan Shoreline |
-| **`chicago_foghorn`**| `square` | Dual detuned lowpass brass vessel horn ($110\text{Hz}$) | Chicago Harbor & Riverwalk |
+### Ouro Preto (6 Generators)
+1. **`bell_sacred`** *(Discrete)*: 5-partial inharmonic additive synthesis with exponential damping (Colonial Bronze Towers).
+2. **`bell_deep`** *(Discrete)*: Sub-hum ($55\text{Hz} - 140\text{Hz}$) with warm lowpass filtering (Imperial Crypts).
+3. **`industrial`** *(Discrete)*: High FM modulation index (`fmIndex` up to $10.0$) (Silver Mine Pickaxe Strikes).
+4. **`glitch`** *(Discrete)*: Rapid FM leaps and 2-bit quantization artifacts (Scar Trauma).
+5. **`createContinuousEmitterOuroPretoMine`** *(Continuous Proximity)*: Subterranean mine sub-hum ambient emitter.
+6. **`createContinuousEmitterOuroPretoDrone`** *(Continuous Proximity)*: Mountain valley flux drone ambient emitter.
+
+### Chicago (6 Generators)
+1. **`chicago_rail`** *(Discrete)*: High FM iron friction with bandpass filter sweep (Elevated L-Train Tracks).
+2. **`chicago_foghorn`** *(Discrete)*: Dual detuned lowpass brass vessel horn ($110\text{Hz}$) (Chicago Harbor & Riverwalk).
+3. **`chicago_bridge`** *(Discrete)*: Steel drawbridge iron groan and sub-harmonic thud (Chicago River Bridges).
+4. **`chicago_steam`** *(Discrete)*: Subway vent steam hiss and thermal pressure release.
+5. **`createContinuousEmitterChicagoWind`** *(Continuous Proximity)*: Skyscraper wind canyon howling noise & whistle emitter.
+6. **`createContinuousEmitterChicagoLake`** *(Continuous Proximity)*: Lake Michigan shoreline & water drift ambient emitter.
+
+### Shanghai (6 Generators)
+1. **`shanghai_gong`** *(Discrete)*: Eastern Gong ratios ($[0.5, 1.0, 1.12, 1.62, 2.38, 3.14]$) with pitch bend (Jing'an Temple).
+2. **`shanghai_maglev`** *(Discrete)*: Bandpass filtered soaring frequency sweep ($350\text{Hz} \to 680\text{Hz}$) (High-Speed Maglev Rail).
+3. **`shanghai_cicadas`** *(Discrete)*: Summer bamboo & Yuyuan Garden high-frequency cicada swarm with $12\text{ Hz}$ wing tremolo.
+4. **`shanghai_construction`** *(Discrete)*: Pudong skyscraper heavy construction piling drums & metallic impacts.
+5. **`createContinuousEmitterShanghaiRiver`** *(Continuous Proximity)*: Huangpu river vessel foghorn & water drift ambient emitter.
+6. **`createContinuousEmitterShanghaiCyber`** *(Continuous Proximity)*: Bund neon & urban electromagnetic resonance ambient emitter.
+
 
 ---
 
@@ -147,10 +158,18 @@ gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay); // expo
 
 ---
 
-## 8. AudioContext Lifecycle & Unlocking Protocol
+## 9. Continuous Drone Evolution & Somatic Proximity Attenuation
 
-Browser autoplay policies prevent Web Audio output prior to user interaction ([audio-context-manager.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/audio-context-manager.js)):
+### 9.1 Polyrhythmic Dual-LFO Background Drone
+The global background drone (`startContinuousDrone`) uses two asynchronous, out-of-phase LFOs controlling lowpass filter cutoff frequency to generate evolving non-repeating acoustic movement:
+- **LFO 1**: $0.011\text{ Hz}$ sine wave ($\pm 110\text{ Hz}$ cutoff swing)
+- **LFO 2**: $0.017\text{ Hz}$ triangle wave ($\pm 70\text{ Hz}$ cutoff swing)
 
-1. **Overlay Membrane Gate**: Sound playback remains suspended until the user taps the **"UNLOCK AUDIO MEMBRANE"** button.
-2. **Context Resumption**: Calling `AudioContext.resume()` unlocks the audio hardware.
-3. **Automatic Cleanup**: Every triggered sound schedules node disconnection and garbage collection via `scheduleCleanup()` to prevent memory leaks during long-running performance sessions.
+### 9.2 Somatic Velocity Brightness Modulation
+When the somatic node moves (GPS updates or map location taps), movement velocity $v = \frac{\Delta \text{dist}}{\Delta t}$ dynamically brightens the background drone filter cutoff:
+$$\text{Cutoff}_{\text{target}} = \text{Cutoff}_{\text{base}} + \min(v \cdot 25.0, \; 300\text{ Hz})$$
+
+### 9.3 Continuous Spatial Proximity Emitters
+Continuous sound generators (e.g. Chicago Wind Canyon, Shanghai River Drift, Ouro Preto Sub-Mine Hum) are anchored to nearby active map nodes. Gain attenuates dynamically according to a quadratic inverse-distance curve:
+$$\text{Gain}(d) = \text{clamp}\left(1 - \frac{d}{350\text{ m}}, \; 0, \; 1\right)^2 \cdot \text{Gain}_{\text{max}}$$
+

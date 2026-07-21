@@ -225,3 +225,133 @@ export function triggerChicagoBridge(engine, params, triggerTime, delaySeconds) 
 
   engine.scheduleCleanup([mainGainNode, waveShaper], delaySeconds + decay + 0.5);
 }
+
+// E. Subway Vent Steam Hiss & Pressure Release
+export function triggerChicagoSteam(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const decay = params.decay || 1.2;
+  const gainVal = params.gain !== undefined ? params.gain : 0.75;
+
+  const mainGainNode = ctx.createGain();
+  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.05);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+  const noiseBuffer = createNoiseBuffer(ctx, decay);
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.setValueAtTime(1800.0, triggerTime);
+  filter.frequency.exponentialRampToValueAtTime(600.0, triggerTime + decay);
+
+  noiseSource.connect(filter);
+  filter.connect(mainGainNode);
+  mainGainNode.connect(engine.masterGain);
+  if (engine.convolverWindCanyon) {
+    mainGainNode.connect(engine.convolverWindCanyon);
+  }
+
+  noiseSource.start(triggerTime);
+  engine.scheduleCleanup([mainGainNode, filter], delaySeconds + decay + 0.5);
+}
+
+// F. Continuous Proximity Wind Tunnel Emitter for Chicago Skyscraper Canyons
+export function createContinuousEmitterChicagoWind(engine, params = {}) {
+  if (!engine.ctx) return null;
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, now);
+
+  const noiseBuffer = createNoiseBuffer(ctx, 3.0);
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+  noiseSource.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(450.0, now);
+  filter.Q.setValueAtTime(4.0, now);
+
+  const whistleOsc = ctx.createOscillator();
+  whistleOsc.type = 'sine';
+  whistleOsc.frequency.setValueAtTime(220.0, now);
+
+  const whistleGain = ctx.createGain();
+  whistleGain.gain.setValueAtTime(0.15, now);
+
+  noiseSource.connect(filter);
+  filter.connect(masterGain);
+  whistleOsc.connect(whistleGain);
+  whistleGain.connect(masterGain);
+
+  masterGain.connect(engine.masterGain);
+  if (engine.convolverWindCanyon) {
+    masterGain.connect(engine.convolverWindCanyon);
+  }
+
+  noiseSource.start(now);
+  whistleOsc.start(now);
+
+  return {
+    masterGain,
+    filter,
+    stop: () => {
+      try {
+        noiseSource.stop();
+        whistleOsc.stop();
+        masterGain.disconnect();
+      } catch (_) {}
+    }
+  };
+}
+
+// Alias for backwards compatibility
+export const createContinuousEmitterChicago = createContinuousEmitterChicagoWind;
+
+// G. Continuous Proximity Lake Michigan Shore & Water Drift Emitter
+export function createContinuousEmitterChicagoLake(engine, params = {}) {
+  if (!engine.ctx) return null;
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, now);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(260.0, now);
+
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  osc1.type = 'sine';
+  osc2.type = 'triangle';
+  osc1.frequency.setValueAtTime(110.0, now);
+  osc2.frequency.setValueAtTime(165.0, now);
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(masterGain);
+  masterGain.connect(engine.masterGain);
+
+  osc1.start(now);
+  osc2.start(now);
+
+  return {
+    masterGain,
+    filter,
+    stop: () => {
+      try {
+        osc1.stop();
+        osc2.stop();
+        masterGain.disconnect();
+      } catch (_) {}
+    }
+  };
+}
+
+

@@ -8,11 +8,13 @@ SONIC IDENTITY & ACOUSTIC ARCHETYPES:
 - Bund Custom House Clock & Jing'an / Longhua Temples: Historical bronze clock tolls and Buddhist temple gongs → use soundType: "shanghai_gong" (deep bronze gong fundamental 160–340 Hz, harmonicity: 1.618, decay: 4.0–10.0s).
 - Huangpu River & Maritime Traffic: Deep vessel signals reflecting off river water → use soundType: "shanghai_river" (deep 75–110 Hz sub-bass horn with water chorus modulation, lowpass filterCutoff 300–600 Hz).
 - Shanghai Maglev & High-Tech Metro: Electromagnetic high-speed rail glides → use soundType: "shanghai_maglev" (high-frequency FM sweep 350–650 Hz, fmIndex: 4.0–8.0, filterCutoff: 2500–4000 Hz).
-- Oriental Pearl & Lujiazui Megatowers: Crystalline digital reflections, high-density urban signals → use soundType: "glitch" or "industrial" (bitDepth: 4–12, high filterCutoff).
+- Summer Bamboo Gardens: High-frequency insect tremolo → use soundType: "shanghai_cicadas" (4200 Hz bandpass with 12 Hz tremolo).
+- Pudong Skyscraper Construction: Heavy piling drums & metallic impact → use soundType: "shanghai_construction" (90 Hz pitch drop sub-impact).
 
 You MUST return ONLY a valid JSON object matching the following schema without markdown formatting or commentary:
 {
-  "soundType": "shanghai_gong" | "shanghai_river" | "shanghai_maglev" | "industrial" | "glitch" | "drone" | "bell_sacred",
+  "soundType": "shanghai_gong" | "shanghai_river" | "shanghai_maglev" | "shanghai_cicadas" | "shanghai_construction" | "industrial" | "glitch" | "drone" | "bell_sacred",
+
   "carrierType": "sine" | "triangle" | "sawtooth",
   "baseFrequency": number between 55.0 and 880.0,
   "harmonicity": number between 0.5 and 4.0,

@@ -288,3 +288,104 @@ export function triggerSacredBell(engine, params, triggerTime, delaySeconds) {
 
   engine.scheduleCleanup([bellGainNode, filter], delaySeconds + decay + 1.0);
 }
+
+// 6. Continuous Proximity Sub-Hum Emitter for Ouro Preto Mine Resonances
+export function createContinuousEmitterOuroPretoMine(engine, params = {}) {
+  if (!engine.ctx) return null;
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  const baseFreq = params.baseFrequency || 55.0;
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, now);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(320.0, now);
+  filter.Q.setValueAtTime(2.0, now);
+
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  osc1.type = 'triangle';
+  osc2.type = 'sine';
+  osc1.frequency.setValueAtTime(baseFreq, now);
+  osc2.frequency.setValueAtTime(baseFreq * 1.5, now);
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(masterGain);
+  masterGain.connect(engine.masterGain);
+  if (engine.convolverMine) {
+    masterGain.connect(engine.convolverMine);
+  }
+
+  osc1.start(now);
+  osc2.start(now);
+
+  return {
+    masterGain,
+    filter,
+    stop: () => {
+      try {
+        osc1.stop();
+        osc2.stop();
+        masterGain.disconnect();
+      } catch (_) {}
+    }
+  };
+}
+
+// Alias for backwards compatibility
+export const createContinuousEmitterOuroPreto = createContinuousEmitterOuroPretoMine;
+
+// 7. Continuous Proximity Mountain Valley Flux Drone Emitter
+export function createContinuousEmitterOuroPretoDrone(engine, params = {}) {
+  if (!engine.ctx) return null;
+  const ctx = engine.ctx;
+  const now = ctx.currentTime;
+  const baseFreq = params.baseFrequency || 65.0;
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, now);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(480.0, now);
+
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  lfo.frequency.setValueAtTime(0.12, now);
+  lfoGain.gain.setValueAtTime(150.0, now);
+  lfo.connect(lfoGain);
+  lfoGain.connect(filter.frequency);
+
+  const oscs = [0.997, 1.0, 1.003, 2.0].map((ratio) => {
+    const osc = ctx.createOscillator();
+    osc.type = ratio > 1.5 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(baseFreq * ratio, now);
+    osc.connect(filter);
+    osc.start(now);
+    return osc;
+  });
+
+  filter.connect(masterGain);
+  masterGain.connect(engine.masterGain);
+  if (engine.convolverValley) {
+    masterGain.connect(engine.convolverValley);
+  }
+  lfo.start(now);
+
+  return {
+    masterGain,
+    filter,
+    stop: () => {
+      try {
+        lfo.stop();
+        oscs.forEach((o) => o.stop());
+        masterGain.disconnect();
+      } catch (_) {}
+    }
+  };
+}
+
+

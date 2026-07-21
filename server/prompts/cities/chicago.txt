@@ -8,10 +8,12 @@ SONIC IDENTITY & ACOUSTIC ARCHETYPES:
 - Chicago River Steel Bridges & Elevated L-Train: Metallic beam collisions and elevated rail squeals → use soundType: "chicago_bridge" or "chicago_rail" (metallic beam resonance, 146–320 Hz, fmIndex: 3.0–7.0).
 - Lake Michigan Wind Canyon: Atmospheric wind corridor reverberations → use soundType: "chicago_wind" or "drone" (wide atmospheric reverb, lowpass filterCutoff 600–1200 Hz).
 - Harbor Foghorns & Maritime Signals: Deep lake foghorn warnings → use soundType: "chicago_foghorn" (deep sub-bass horn 70–120 Hz, long decay).
+- Subway Vents & Thermal Infrastructure: Highpass steam hiss → use soundType: "chicago_steam" (1800 Hz highpass steam pressure release).
 
 You MUST return ONLY a valid JSON object matching the following schema without markdown formatting or commentary:
 {
-  "soundType": "chicago_bridge" | "chicago_rail" | "chicago_wind" | "chicago_foghorn" | "industrial" | "drone" | "bell_deep",
+  "soundType": "chicago_bridge" | "chicago_rail" | "chicago_wind" | "chicago_foghorn" | "chicago_steam" | "industrial" | "drone" | "bell_deep",
+
   "carrierType": "sine" | "triangle" | "sawtooth",
   "baseFrequency": number between 55.0 and 880.0,
   "harmonicity": number between 0.5 and 4.0,

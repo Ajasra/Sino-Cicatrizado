@@ -293,6 +293,9 @@ class SinoCicatrizadoApp {
     this.currentSomaticCoords = coords;
     this.mapView.updateSomaticNode(coords);
     this.nodeSequencer.setSomaticCoords(coords);
+    if (this.audioEngine && typeof this.audioEngine.updateSomaticPosition === 'function') {
+      this.audioEngine.updateSomaticPosition(coords);
+    }
 
     const pillGps = document.getElementById('pill-gps');
     if (pillGps) {
@@ -324,6 +327,9 @@ class SinoCicatrizadoApp {
 
       this.mapView.updateNodes(this.nodesList);
       this.nodeSequencer.setNodes(this.nodesList);
+      if (this.audioEngine && typeof this.audioEngine.setProximityNodes === 'function') {
+        this.audioEngine.setProximityNodes(this.nodesList);
+      }
 
       const pillNodes = document.getElementById('pill-nodes');
       if (pillNodes) pillNodes.textContent = `NODES: ${this.nodesList.length}`;
@@ -331,6 +337,7 @@ class SinoCicatrizadoApp {
       console.error('[API] Error fetching nodes:', err);
     }
   }
+
 
 
   handleServerMessage(msg) {
