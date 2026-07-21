@@ -2,13 +2,23 @@ import { AbstractAudioEngine } from './abstract-engine.js';
 import { AudioContextManager } from './audio-context-manager.js';
 import { CLIENT_CONFIG } from '../config.js';
 
+/**
+ * Pure Procedural Spatial & Modal Audio Engine for Sino Cicatrizado.
+ * 100% procedurally synthesized in real time — 0 external audio samples / files.
+ */
 export class WebAudioEngine extends AbstractAudioEngine {
   constructor() {
     super();
     this.ctx = null;
     this.bitCrusher = null;
     this.masterGain = null;
+    this.limiter = null;
     this.currentBits = 16;
+
+    // Procedural Convolver Space Nodes
+    this.convolverCathedral = null;
+    this.convolverMine = null;
+    this.convolverValley = null;
   }
 
   async init() {
@@ -24,13 +34,72 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.limiter.attack.value = 0.003;   // 3ms — catches transients
     this.limiter.release.value = 0.25;   // 250ms — preserves bell tails
 
-    // ponytail: direct path by default — bitcrusher only inserted when battery < 50%
+    // Connect masterGain through limiter to destination
     this.masterGain.connect(this.limiter);
     this.limiter.connect(this.ctx.destination);
+
+    // -------------------------------------------------------------------------
+    // 100% Procedural Convolver Impulse Response Generation (No Audio Files)
+    // -------------------------------------------------------------------------
+
+    // Cathedral / Church Tower Space (3.2s warm exponential decay)
+    this.convolverCathedral = this.ctx.createConvolver();
+    this.convolverCathedral.buffer = this.createProceduralImpulseResponse(3.2, 3.2);
+    const cathedralGain = this.ctx.createGain();
+    cathedralGain.gain.setValueAtTime(0.30, this.ctx.currentTime);
+    this.convolverCathedral.connect(cathedralGain);
+    cathedralGain.connect(this.masterGain);
+
+    // Mine / Subterranean Chamber Space (1.4s dense metallic early reflections)
+    this.convolverMine = this.ctx.createConvolver();
+    this.convolverMine.buffer = this.createProceduralImpulseResponse(1.4, 4.8, { metalRing: true });
+    const mineGain = this.ctx.createGain();
+    mineGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+    this.convolverMine.connect(mineGain);
+    mineGain.connect(this.masterGain);
+
+    // Mountain Valley Space (5.0s long diffuse tail)
+    this.convolverValley = this.ctx.createConvolver();
+    this.convolverValley.buffer = this.createProceduralImpulseResponse(5.0, 2.2);
+    const valleyGain = this.ctx.createGain();
+    valleyGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    this.convolverValley.connect(valleyGain);
+    valleyGain.connect(this.masterGain);
   }
 
   async resume() {
     return await AudioContextManager.ensureResumed();
+  }
+
+  /**
+   * Generates a 100% procedural stereo Impulse Response AudioBuffer directly in JavaScript.
+   */
+  createProceduralImpulseResponse(durationSeconds = 2.0, decayRate = 3.0, options = {}) {
+    const sampleRate = this.ctx.sampleRate;
+    const length = Math.max(1, Math.round(sampleRate * durationSeconds));
+    const buffer = this.ctx.createBuffer(2, length, sampleRate);
+    const left = buffer.getChannelData(0);
+    const right = buffer.getChannelData(1);
+
+    for (let i = 0; i < length; i++) {
+      const t = i / length;
+      const envelope = Math.exp(-t * decayRate);
+
+      let nL = (Math.random() * 2 - 1);
+      let nR = (Math.random() * 2 - 1);
+
+      if (options.metalRing) {
+        // Metallic modal comb ringing for subterranean mine acoustics
+        const ring = Math.sin(i * 0.08) * 0.35 + Math.sin(i * 0.21) * 0.2;
+        nL = nL * 0.6 + ring;
+        nR = nR * 0.6 + ring;
+      }
+
+      left[i] = nL * envelope;
+      right[i] = nR * envelope;
+    }
+
+    return buffer;
   }
 
   updateBatteryLevel(batteryLevel) {
@@ -116,53 +185,67 @@ export class WebAudioEngine extends AbstractAudioEngine {
     }
   }
 
-  // 1. Deep Atmospheric Drone Bell (Sub-bass, long 6-12s decay, detuned beating)
+  // 1. Deep Atmospheric Bronze Bell (Physical Modal Synthesis + Cathedral Convolver)
   triggerDeepBell(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || 110.0;
     const decay = params.decay || 6.0;
     const gainVal = params.gain !== undefined ? params.gain : 1.0;
-    const partialRatios = CLIENT_CONFIG.AUDIO.DEEP_BELL_PARTIALS || [0.5, 1.0, 1.004, 1.414, 2.76];
 
-    // Master envelope: peak at 1.0, gainVal applied per-partial only (prevent double-gain squaring)
+    // Physical bronze modal frequency ratios: Hum, Prime, Tierce (minor 3rd), Quint, Nominal, Supernominal
+    const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
+
     const gainNode = this.ctx.createGain();
     gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.1);
+    gainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.08);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
     const cutoff = params.filterCutoff || 800.0;
     filter.frequency.setValueAtTime(cutoff, triggerTime);
-    filter.frequency.exponentialRampToValueAtTime(120.0, triggerTime + decay);
-    filter.Q.setValueAtTime(2.5, triggerTime);
+    filter.frequency.exponentialRampToValueAtTime(140.0, triggerTime + decay);
+    filter.Q.setValueAtTime(2.2, triggerTime);
 
-    partialRatios.forEach((ratio, idx) => {
-      const osc = this.ctx.createOscillator();
+    modalRatios.forEach((ratio, idx) => {
+      // Twin detuned oscillators for physical acoustic beating (cast metal warble)
+      const oscA = this.ctx.createOscillator();
+      const oscB = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
 
-      osc.type = params.carrierType || 'sine';
-      osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+      const freq = baseFreq * ratio;
+      const detuneHz = idx === 0 ? 0.0 : 0.35 * (idx % 2 === 0 ? 1 : -1);
 
-      // gainVal applied here once — spatial distance attenuation is perceptually correct
-      const partialAmp = (1.0 / (idx * 0.8 + 1)) * gainVal;
+      oscA.type = params.carrierType || 'sine';
+      oscB.type = params.carrierType || 'sine';
+
+      oscA.frequency.setValueAtTime(freq, triggerTime);
+      oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
+
+      const partialAmp = (1.0 / (idx * 0.75 + 1)) * gainVal * 0.5;
       oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
-      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.08);
-      oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (idx === 0 ? 0.8 : ratio)));
+      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.06);
+      oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (idx === 0 ? 0.75 : ratio)));
 
-      osc.connect(oscGain);
+      oscA.connect(oscGain);
+      oscB.connect(oscGain);
       oscGain.connect(gainNode);
 
-      osc.start(triggerTime);
-      osc.stop(triggerTime + decay + 0.6);
+      oscA.start(triggerTime);
+      oscB.start(triggerTime);
+      oscA.stop(triggerTime + decay + 0.6);
+      oscB.stop(triggerTime + decay + 0.6);
     });
 
     gainNode.connect(filter);
     filter.connect(this.masterGain);
+    if (this.convolverCathedral) {
+      filter.connect(this.convolverCathedral);
+    }
 
     this.scheduleCleanup([gainNode, filter], delaySeconds + decay + 1.0);
   }
 
-  // 2. Continuous Sub-Bass Flux Drone (Layered saw/triangle, LFO lowpass modulation)
+  // 2. Continuous Sub-Bass Flux Drone (Procedural Mountain Valley Convolver)
   triggerDrone(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || 65.0;
     const decay = params.decay || 8.0;
@@ -208,11 +291,14 @@ export class WebAudioEngine extends AbstractAudioEngine {
 
     droneGainNode.connect(filter);
     filter.connect(this.masterGain);
+    if (this.convolverValley) {
+      filter.connect(this.convolverValley);
+    }
 
     this.scheduleCleanup([droneGainNode, filter, lfoGain], delaySeconds + decay + 1.0);
   }
 
-  // 3. Industrial Somatic Friction (FM Synthesis + High-Q Resonant Noise Burst + Distortion Drive)
+  // 3. Industrial Somatic Friction (FM Synthesis + Metallic Noise Strike + Mine Chamber Convolver)
   triggerIndustrial(params, triggerTime, delaySeconds) {
     const carrierFreq = params.baseFrequency || 140.0;
     const fmRatio = params.harmonicity || 2.71;
@@ -270,6 +356,9 @@ export class WebAudioEngine extends AbstractAudioEngine {
     noiseGain.connect(mainGainNode);
     mainGainNode.connect(waveShaper);
     waveShaper.connect(this.masterGain);
+    if (this.convolverMine) {
+      waveShaper.connect(this.convolverMine);
+    }
 
     carrier.start(triggerTime);
     carrier.stop(triggerTime + decay + 0.1);
@@ -277,7 +366,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.scheduleCleanup([mainGainNode, noiseGain, noiseFilter, waveShaper], delaySeconds + decay + 0.5);
   }
 
-  // 4. Forensic Glitch (Ring Modulation multiplier + micro-stutter bursts)
+  // 4. Forensic Glitch (Ring Modulation multiplier + micro-stutter bursts + Mine Convolver)
   triggerGlitch(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || 330.0;
     const decay = params.decay || 0.4;
@@ -322,18 +411,22 @@ export class WebAudioEngine extends AbstractAudioEngine {
     noiseSource.start(triggerTime);
 
     glitchGain.connect(this.masterGain);
+    if (this.convolverMine) {
+      glitchGain.connect(this.convolverMine);
+    }
 
     this.scheduleCleanup([glitchGain, ringGain, noiseFilter], delaySeconds + decay + 0.5);
   }
 
-  // 5. Classic Sacred Bronze Bell
+  // 5. Classic Sacred Bronze Bell (Physical Modal Synthesis + Cathedral Convolver)
   triggerSacredBell(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || CLIENT_CONFIG.AUDIO.DEFAULT_FREQUENCY_HZ;
     const decay = params.decay || 1.5;
     const gainVal = params.gain !== undefined ? params.gain : 1.0;
-    const partialRatios = CLIENT_CONFIG.AUDIO.INHARMONIC_PARTIALS;
 
-    // Master envelope at 1.0 — gainVal applied per-partial only
+    // Physical colonial bronze bell modal ratios (Hum, Prime, Tierce minor 3rd, Quint, Nominal, Supernominal)
+    const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
+
     const bellGainNode = this.ctx.createGain();
     bellGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
     bellGainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.05);
@@ -344,28 +437,41 @@ export class WebAudioEngine extends AbstractAudioEngine {
     filter.frequency.setValueAtTime(params.filterCutoff || 1200, triggerTime);
     filter.Q.setValueAtTime(1.5, triggerTime);
 
-    partialRatios.forEach((ratio, idx) => {
-      const osc = this.ctx.createOscillator();
+    modalRatios.forEach((ratio, idx) => {
+      // Twin detuned oscillators for physical acoustic beating
+      const oscA = this.ctx.createOscillator();
+      const oscB = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
 
-      osc.type = params.carrierType || 'sine';
-      osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+      const freq = baseFreq * ratio;
+      const detuneHz = idx === 0 ? 0.0 : 0.35 * (idx % 2 === 0 ? 1 : -1);
 
-      // gainVal applied once here for spatial attenuation
-      const partialAmp = (1.0 / (idx + 1)) * gainVal;
+      oscA.type = params.carrierType || 'sine';
+      oscB.type = params.carrierType || 'sine';
+
+      oscA.frequency.setValueAtTime(freq, triggerTime);
+      oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
+
+      const partialAmp = (1.0 / (idx + 1)) * gainVal * 0.5;
       oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
       oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.05);
       oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay / ratio);
 
-      osc.connect(oscGain);
+      oscA.connect(oscGain);
+      oscB.connect(oscGain);
       oscGain.connect(bellGainNode);
 
-      osc.start(triggerTime);
-      osc.stop(triggerTime + decay + 0.6);
+      oscA.start(triggerTime);
+      oscB.start(triggerTime);
+      oscA.stop(triggerTime + decay + 0.6);
+      oscB.stop(triggerTime + decay + 0.6);
     });
 
     bellGainNode.connect(filter);
     filter.connect(this.masterGain);
+    if (this.convolverCathedral) {
+      filter.connect(this.convolverCathedral);
+    }
 
     this.scheduleCleanup([bellGainNode, filter], delaySeconds + decay + 1.0);
   }
