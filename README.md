@@ -35,11 +35,14 @@ c:\Users\user\Desktop\ASC\The Scarred Bell\
 │   ├── PRD.md                # Product Requirement Document
 │   ├── TS.md                 # Technical Specification Document
 │   ├── SPEC.md               # Master Consolidated System Specification
-│   ├── SCARRING_SYSTEM.md    # Comprehensive Cybernetic Scarring System Specification
 │   ├── IMPLEMENTATION.md     # Architectural Blueprint & Component Roadmap
 │   ├── DEV_PRACTICES.md      # Development Standards & Directory Layout Rules
 │   ├── Audio Research.md     # Spectralism & Acoustic Resistance Foundations
-│   └── SETUP.md              # Comprehensive Setup, Installation & Developer Guide
+│   ├── SETUP.md              # Comprehensive Setup, Installation & Developer Guide
+│   └── systems/              # Detailed Cybernetic Subsystem Specifications
+│       ├── SCARRING_SYSTEM.md       # Cybernetic Scarring System Specification
+│       ├── SOMATIC_NODES_SYSTEM.md  # Somatic Nodes (Type 3 Mobile Clients) Specification
+│       └── REFLECTOR_NODES_SYSTEM.md# Reflector Nodes (Type 2 User Reflectors) Specification
 ├── data/                     # Persistent Data Storage
 │   ├── scarred_bell.db       # Local SQLite Database (WAL Mode)
 │   └── scarred_twin.json     # Immutable ASC 2026 Snapshot
