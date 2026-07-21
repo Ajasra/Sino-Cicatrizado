@@ -138,8 +138,64 @@ Expected Output:
 
 ---
 
-## 7. Troubleshooting
+## 7. Production Deployment & Nginx HTTPS Setup
+
+For production deployments and full mobile hardware sensor access (GPS, DeviceOrientation, DeviceMotion), serve the application over HTTPS using **Nginx** as a reverse proxy. Nginx handles SSL termination (via Let's Encrypt / Certbot) and proxies both standard HTTP traffic and real-time WebSocket (`wss://`) upgrades to Node.js.
+
+### 7.1 Sample Nginx Server Configuration (`/etc/nginx/sites-available/scarred-bell`)
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    # Redirect all HTTP requests to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+
+    # SSL Certificate Configuration (Let's Encrypt / Certbot)
+    ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+    # Recommended SSL Security Settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    location / {
+        # Forward requests to local Node.js process (PORT=3000)
+        proxy_pass http://127.0.0.1:3000;
+        
+        # Enable WebSocket reverse proxy upgrades
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        
+        # Preserve original client headers & IP
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket timeouts (keep connection open during idle periods)
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+}
+```
+
+### 7.2 Key Nginx Directives Explained
+- **`proxy_http_version 1.1;` & `proxy_set_header Upgrade ...`**: Required for Nginx to handle the HTTP -> WebSocket upgrade handshake (`ws://` / `wss://`).
+- **`proxy_read_timeout 86400s;`**: Prevents Nginx from dropping idle WebSocket client connections after the default 60-second timeout.
+- **Offloaded SSL**: Node runs locally on HTTP (`http://127.0.0.1:3000`) with zero SSL boilerplate, while Nginx handles HTTPS & automated Certbot renewals.
+
+---
+
+## 8. Troubleshooting
 
 - **No Sound Output**: Browsers block audio until user interaction occurs. Ensure you clicked **ENTER CAMPANILE / PERMITIR O SOM**.
 - **Database Locked Error**: The database operates under WAL mode (`PRAGMA journal_mode = WAL;`). If another process locks the file, delete `data/scarred_bell.db-wal` or restart the server.
-- **WebSocket Connection Failed**: Check if a firewall is blocking port 3000.
+- **WebSocket Connection Failed**: Check if a firewall is blocking port 3000, or verify `Upgrade` headers if using Nginx.
+
