@@ -45,12 +45,14 @@ Rather than treating all participants identically, each user possesses a unique,
 | Signature Parameter | Range / Values | Description |
 | :--- | :--- | :--- |
 | **`weightMultiplier` ($w_{\text{soma}}$)** | `0.5` to `1.8` | Scales individual scarring intensity per participant. |
-| **`pitchDir`** | `+1` or `-1` | Determines whether microtonal pitch sways upward or downward. |
-| **`filterDir`** | `+1` or `-1` | Determines whether resonance shifts brighter ($+1$) or darker ($-1$). |
-| **`fmWeight`** | `0.5` to `2.0` | Controls participant sensitivity for creating harsh FM overtones. |
-| **`decayDir`** | `+1` or `-1` | Determines whether envelope decay lengthens ($+1$) or shortens ($-1$). |
+| **`pitchDir`** | `+1` or `-1` | Pulls fundamental note pitch upward ($+1$) or downward ($-1$). |
+| **`filterDir`** | `+1` or `-1` | Shifts lowpass filter resonance brighter ($+1$) or darker ($-1$). |
+| **`decayDir`** | `+1` or `-1` | Lengthens envelope decay ($+1$) or shortens decay ($-1$). |
+| **`harmDir`** | `+1` or `-1` | Increases harmonic octave overtones ($+1$) or sub-harmonic tones ($-1$). |
+| **`fmDir`** | `+1` or `-1` | Increases FM distortion overtones ($+1$) or smooths tone toward pure sine ($-1$). |
+| **`fmWeight`** | `0.5` to `2.0` | Controls participant sensitivity multiplier for FM distortion shifts. |
 
-*Result*: Every bell node retains a composite physical fingerprint reflecting the unique combination of participants who spent time near it.
+*Result*: Parameters change in **any direction** (both positive and negative) based on participant signatures rather than monotonically growing to a single fixed limit. Every bell node retains a composite physical fingerprint reflecting the unique combination of participants who spent time near it.
 
 ---
 
