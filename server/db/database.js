@@ -38,17 +38,28 @@ export function getDatabaseConnection() {
       euclidean_density INTEGER DEFAULT 3,
       euclidean_steps INTEGER DEFAULT 8,
       echo_probability REAL DEFAULT 0.7,
+      sound_type TEXT DEFAULT 'bell_deep',
+      fm_index REAL DEFAULT 0.0,
+      filter_cutoff REAL DEFAULT 1200.0,
+      bit_depth INTEGER DEFAULT 16,
+      carrier_type TEXT DEFAULT 'sine',
       scar_index REAL DEFAULT 0.0,
       interaction_count INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // Migration helper for existing table
-  try {
-    dbInstance.exec(`ALTER TABLE nodes ADD COLUMN echo_probability REAL DEFAULT 0.7;`);
-  } catch (e) {
-    // Column already exists
+  // Safe migrations for tables created before new columns were added
+  const migrations = [
+    `ALTER TABLE nodes ADD COLUMN echo_probability REAL DEFAULT 0.7;`,
+    `ALTER TABLE nodes ADD COLUMN sound_type TEXT DEFAULT 'bell_deep';`,
+    `ALTER TABLE nodes ADD COLUMN fm_index REAL DEFAULT 0.0;`,
+    `ALTER TABLE nodes ADD COLUMN filter_cutoff REAL DEFAULT 1200.0;`,
+    `ALTER TABLE nodes ADD COLUMN bit_depth INTEGER DEFAULT 16;`,
+    `ALTER TABLE nodes ADD COLUMN carrier_type TEXT DEFAULT 'sine';`
+  ];
+  for (const sql of migrations) {
+    try { dbInstance.exec(sql); } catch (e) { /* column already exists */ }
   }
 
   // Seed default Ouro Preto historical towers if table is empty
@@ -67,17 +78,22 @@ function seedInitialTowers(db) {
     const snapshotNodes = JSON.parse(snapshotRaw);
 
     const insertStmt = db.prepare(`
-      INSERT INTO nodes (
+      INSERT OR REPLACE INTO nodes (
         node_id, node_type, city, name, lat, lng, alt,
-        base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps, scar_index, interaction_count
+        base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
+        echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
+        scar_index, interaction_count
       ) VALUES (
         @nodeId, @nodeType, @city, @name, @lat, @lng, @alt,
-        @baseFrequency, @harmonicity, @decay, @gain, @euclideanDensity, @euclideanSteps, @scarIndex, @interactionCount
+        @baseFrequency, @harmonicity, @decay, @gain, @euclideanDensity, @euclideanSteps,
+        @echoProbability, @soundType, @fmIndex, @filterCutoff, @bitDepth, @carrierType,
+        @scarIndex, @interactionCount
       )
     `);
 
     const insertMany = db.transaction((nodes) => {
       for (const node of nodes) {
+        const sv = node.stateVector;
         insertStmt.run({
           nodeId: node.nodeId,
           nodeType: node.nodeType,
@@ -86,12 +102,18 @@ function seedInitialTowers(db) {
           lat: node.coordinates.lat,
           lng: node.coordinates.lng,
           alt: node.coordinates.alt || 0.0,
-          baseFrequency: node.stateVector.baseFrequency,
-          harmonicity: node.stateVector.harmonicity,
-          decay: node.stateVector.decay,
-          gain: node.stateVector.gain,
-          euclideanDensity: node.stateVector.euclideanDensity,
-          euclideanSteps: node.stateVector.euclideanSteps,
+          baseFrequency: sv.baseFrequency,
+          harmonicity: sv.harmonicity,
+          decay: sv.decay,
+          gain: sv.gain,
+          euclideanDensity: sv.euclideanDensity,
+          euclideanSteps: sv.euclideanSteps || 8,
+          echoProbability: sv.echoProbability || 0.7,
+          soundType: sv.soundType || 'bell_deep',
+          fmIndex: sv.fmIndex || 0.0,
+          filterCutoff: sv.filterCutoff || 1200.0,
+          bitDepth: sv.bitDepth || 16,
+          carrierType: sv.carrierType || 'sine',
           scarIndex: node.scarIndex || 0.0,
           interactionCount: node.interactionCount || 0
         });
@@ -100,20 +122,6 @@ function seedInitialTowers(db) {
 
     insertMany(snapshotNodes);
     console.log(`[DB] Successfully seeded ${snapshotNodes.length} historical towers.`);
-  } else if (result.count > 0 && fs.existsSync(CONFIG.TWIN_SNAPSHOT_PATH)) {
-    // Update existing towers to rare solemn rhythm density
-    try {
-      const snapshotRaw = fs.readFileSync(CONFIG.TWIN_SNAPSHOT_PATH, 'utf-8');
-      const snapshotNodes = JSON.parse(snapshotRaw);
-      const updateStmt = db.prepare(`
-        UPDATE nodes SET euclidean_density = ?, euclidean_steps = ? WHERE node_id = ?
-      `);
-      for (const node of snapshotNodes) {
-        updateStmt.run(node.stateVector.euclideanDensity, node.stateVector.euclideanSteps, node.nodeId);
-      }
-    } catch (e) {
-      // Ignore DB update error if snapshot unreadable
-    }
   }
 }
 
@@ -133,13 +141,18 @@ export function getAllNodes(city = CONFIG.DEFAULT_CITY) {
       alt: row.alt
     },
     stateVector: {
+      soundType: row.sound_type || 'bell_deep',
+      carrierType: row.carrier_type || 'sine',
       baseFrequency: row.base_frequency,
       harmonicity: row.harmonicity,
       decay: row.decay,
       gain: row.gain,
       euclideanDensity: row.euclidean_density,
       euclideanSteps: row.euclidean_steps,
-      echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7
+      echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7,
+      fmIndex: row.fm_index !== undefined ? row.fm_index : 0.0,
+      filterCutoff: row.filter_cutoff !== undefined ? row.filter_cutoff : 1200.0,
+      bitDepth: row.bit_depth !== undefined ? row.bit_depth : 16
     },
     scarIndex: row.scar_index,
     interactionCount: row.interaction_count,
@@ -160,13 +173,18 @@ export function getNodeById(nodeId) {
     name: row.name,
     coordinates: { lat: row.lat, lng: row.lng, alt: row.alt },
     stateVector: {
+      soundType: row.sound_type || 'bell_deep',
+      carrierType: row.carrier_type || 'sine',
       baseFrequency: row.base_frequency,
       harmonicity: row.harmonicity,
       decay: row.decay,
       gain: row.gain,
       euclideanDensity: row.euclidean_density,
       euclideanSteps: row.euclidean_steps,
-      echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7
+      echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7,
+      fmIndex: row.fm_index !== undefined ? row.fm_index : 0.0,
+      filterCutoff: row.filter_cutoff !== undefined ? row.filter_cutoff : 1200.0,
+      bitDepth: row.bit_depth !== undefined ? row.bit_depth : 16
     },
     scarIndex: row.scar_index,
     interactionCount: row.interaction_count,
@@ -176,29 +194,41 @@ export function getNodeById(nodeId) {
 
 export function saveReflectorNode(node) {
   const db = getDatabaseConnection();
+  const sv = node.stateVector || {};
   const stmt = db.prepare(`
     INSERT INTO nodes (
       node_id, node_type, city, name, lat, lng, alt,
-      base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps, scar_index, interaction_count
+      base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
+      echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
+      scar_index, interaction_count
     ) VALUES (
-      ?, 'REFLECTOR', ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?
     )
   `);
 
   stmt.run(
     node.nodeId,
+    node.nodeType || 'REFLECTOR',
     node.city || CONFIG.DEFAULT_CITY,
     node.name || 'Static Reflector Deposit',
     node.coordinates.lat,
     node.coordinates.lng,
     node.coordinates.alt || 0.0,
-    node.stateVector.baseFrequency,
-    node.stateVector.harmonicity,
-    node.stateVector.decay,
-    node.stateVector.gain,
-    node.stateVector.euclideanDensity,
-    node.stateVector.euclideanSteps || 8,
+    sv.baseFrequency,
+    sv.harmonicity,
+    sv.decay,
+    sv.gain,
+    sv.euclideanDensity,
+    sv.euclideanSteps || 8,
+    sv.echoProbability || 0.7,
+    sv.soundType || 'bell_deep',
+    sv.fmIndex || 0.0,
+    sv.filterCutoff || 1200.0,
+    sv.bitDepth || 16,
+    sv.carrierType || 'sine',
     node.scarIndex || 0.0,
     node.interactionCount || 0
   );

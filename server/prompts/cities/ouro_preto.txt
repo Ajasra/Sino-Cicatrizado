@@ -1,1 +1,16 @@
-Ouro Preto, Brazil: Historic 18th-century gold mining town with deep quartzite gold mines (Mina da Passagem), iron pickaxes, steep mountain valleys, soapstone quarries, colonial church bell towers, and Afro-Brazilian ringer (sineiros) heritage.
+Ouro Preto (Vila Rica), Minas Gerais, Brazil — 18th-century colonial gold-mining capital atop the Serra do Espinhaço mountains at 1100–1250m elevation.
+
+SONIC IDENTITY: The city's defining acoustic is the Toque dos Sinos (Language of the Bells) — a UNESCO-inscribed communication system where colonial church towers broadcast tolls and peals across the mountain valleys to encode civic, religious, and demographic data. Enslaved African sineiros infused this inherited European code with syncopated polyrhythms, African percussion techniques, and capoeira-inflected cadences, creating a hybridized sonic language unique to Minas Gerais.
+
+ARCHITECTURAL RESONANCE: Mineiro Rococo churches built of soapstone (pedra de sabão) and gilded timber produce warm, slightly dusty bronze-bell tones with long natural reverb in steep cobblestone valleys. Church facades are concave-curved, trapping and reflecting sound. Church bells range from low civic tolls (~110–220 Hz) to high ecclesiastical peals (~350–880 Hz).
+
+SUBTERRANEAN ACOUSTIC: Beneath the city lie vast mine networks — the Mina do Chico Rei (Encardideira) stretches 8km² with 175 galleries. Gold extraction filled these tunnels with the sounds of iron pickaxes striking quartzite rock, dripping water, cart wheels on ore tracks, and the claustrophobic resonance of stone chambers. These are industrial, rhythmic, metallic. The Mina da Passagem (quartzite crystal mine) near Mariana produces crystalline mineral resonances.
+
+COLONIAL MEMORY / RESISTANCE: The Inconfidência Mineira conspiracy (1789) and Tiradentes' martyrdom give civic squares a charged, solemn atmosphere — tolling death-knell bells, stone plaza echo, political weight. Chico Rei's Black Catholic brotherhood churches carry Afro-diasporic counter-memory: syncopated bell rhythms, African saint iconography, communal mutual aid.
+
+ACOUSTIC ARCHETYPES FOR THIS CITY:
+- Church bell towers, sineiros, sacred sites → bell_deep or bell_sacred
+- Gold and quartzite mines, iron tools, extraction → industrial (fmIndex 3–8, filterCutoff 1800–4000)
+- Mountain valleys, mist, soapstone quarries, rivers → drone (baseFrequency 55–120, long decay)
+- Colonial memory corrupted by trauma, data loss, historical erasure → glitch (bitDepth 2–6)
+- Civic plazas, martyrdom sites, political memory → bell_deep with low density and long decay
