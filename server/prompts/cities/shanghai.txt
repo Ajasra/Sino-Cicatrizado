@@ -1,0 +1,13 @@
+Shanghai, China — Global metropolis on the Huangpu River and Yangtze River Delta, defined by a dual acoustic personality: historical European colonial waterfront architecture on The Bund contrasted with hyper-futuristic glass-steel megatowers in Lujiazui and high-speed transit networks.
+
+SONIC IDENTITY: Shanghai's soundscape is characterized by maritime river traffic (deep ferry horns, heavy cargo vessel signals reflecting off water), historical bronze clock tolls and Buddhist temple gongs, high-speed electromagnetic Maglev rail glides, and crystalline digital reflections bouncing across megatowers.
+
+ARCHITECTURAL & MARITIME RESONANCE: The Huangpu River forms a wide acoustic sound canyon. Heavy vessel horns (~75–120 Hz) carry lowpass water reflections. The Bund Custom House clock tower broadcasts Westminster chimes infused with eastern bronze gong overtones across the river. Jing'an Temple and Longhua Temple generate deep sacred bronze and copper gong reverberations (~180–350 Hz).
+
+HIGH-SPEED & FUTURISTIC TRANSIT: The Shanghai Maglev and extensive Metro network produce smooth, high-frequency electromagnetic glides (350–880 Hz FM sweeps) and high-density urban transit hums.
+
+ACOUSTIC ARCHETYPES FOR THIS CITY:
+- The Bund Custom House & Jing'an Temple → shanghai_gong or bell_sacred (deep bronze gong fundamental with shimmering pitch-bent overtones)
+- Huangpu River & Ferry Terminals → shanghai_river (deep 75–110 Hz sub vessel horns with water chorus modulation)
+- Shanghai Maglev & High-Tech Metro → shanghai_maglev (sweeping electromagnetic FM glide)
+- Oriental Pearl & Shanghai Tower Megatowers → glitch or shanghai_cyber (crystalline digital reflection, high bitDepth precision)

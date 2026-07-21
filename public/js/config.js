@@ -89,8 +89,16 @@ export const CLIENT_CONFIG = {
       country: 'USA',
       center: { lat: 41.8818, lng: -87.6231, zoom: 14 },
       description: 'Windy lakefront, steel bridges & industrial L-train resonance'
+    },
+    shanghai: {
+      key: 'shanghai',
+      name: 'Shanghai',
+      country: 'China',
+      center: { lat: 31.2304, lng: 121.4737, zoom: 14 },
+      description: 'Huangpu River ferries, Bund custom clock, temple gongs & Maglev resonance'
     }
   },
+
   OURO_PRETO_CENTER: {
     lat: -20.3856,
     lng: -43.5035,

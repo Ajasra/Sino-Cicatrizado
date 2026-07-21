@@ -4,21 +4,27 @@ import { getAllNodes, getDatabaseConnection } from '../server/db/database.js';
 console.log('[TEST] Initializing DB...');
 getDatabaseConnection();
 
-console.log('[TEST] Testing getAllNodes("ouro_preto")...');
+console.log('\n--- OURO PRETO ---');
 const ouroNodes = getAllNodes('ouro_preto');
-console.log(`[TEST] Ouro Preto nodes count: ${ouroNodes.length}`);
+console.log(`Ouro Preto nodes count: ${ouroNodes.length}`);
 
-console.log('[TEST] Testing getAllNodes("chicago")...');
+console.log('\n--- CHICAGO ---');
 const chicagoNodes = getAllNodes('chicago');
-console.log(`[TEST] Chicago nodes count: ${chicagoNodes.length}`);
-
+console.log(`Chicago nodes count: ${chicagoNodes.length}`);
 chicagoNodes.forEach((n, idx) => {
-  console.log(`  ${idx + 1}. [${n.nodeType}] ${n.name} - Sound: ${n.stateVector.soundType}, Freq: ${n.stateVector.baseFrequency}Hz, Lat: ${n.coordinates.lat}, Lng: ${n.coordinates.lng}`);
+  console.log(`  ${idx + 1}. [${n.nodeType}] ${n.name} - Sound: ${n.stateVector.soundType}, Freq: ${n.stateVector.baseFrequency}Hz`);
 });
 
-if (chicagoNodes.length >= 6) {
-  console.log('\n[SUCCESS] Chicago towers seeded successfully and queryable!');
+console.log('\n--- SHANGHAI ---');
+const shanghaiNodes = getAllNodes('shanghai');
+console.log(`Shanghai nodes count: ${shanghaiNodes.length}`);
+shanghaiNodes.forEach((n, idx) => {
+  console.log(`  ${idx + 1}. [${n.nodeType}] ${n.name} - Sound: ${n.stateVector.soundType}, Freq: ${n.stateVector.baseFrequency}Hz`);
+});
+
+if (ouroNodes.length >= 1 && chicagoNodes.length >= 6 && shanghaiNodes.length >= 6) {
+  console.log('\n[SUCCESS] Ouro Preto, Chicago, and Shanghai towers verified!');
 } else {
-  console.error('\n[FAIL] Chicago towers count mismatch');
+  console.error('\n[FAIL] Node count mismatch');
   process.exit(1);
 }

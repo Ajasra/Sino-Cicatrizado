@@ -204,7 +204,13 @@ export class WebAudioEngine extends AbstractAudioEngine {
     let soundType = params.soundType;
 
     if (!soundType) {
-      soundType = this.currentCityProfile === 'chicago' ? 'chicago_foghorn' : 'bell_sacred';
+      if (this.currentCityProfile === 'shanghai') {
+        soundType = 'shanghai_gong';
+      } else if (this.currentCityProfile === 'chicago') {
+        soundType = 'chicago_foghorn';
+      } else {
+        soundType = 'bell_sacred';
+      }
     }
 
     // Temporary local bitcrusher override if specified by params
@@ -217,6 +223,17 @@ export class WebAudioEngine extends AbstractAudioEngine {
     }
 
     switch (soundType) {
+      case 'shanghai_gong':
+      case 'gong':
+        this.triggerShanghaiGong(params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_river':
+        this.triggerShanghaiRiver(params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_maglev':
+      case 'maglev':
+        this.triggerShanghaiMaglev(params, triggerTime, delaySeconds);
+        break;
       case 'chicago_rail':
       case 'rail':
         this.triggerChicagoRail(params, triggerTime, delaySeconds);
@@ -247,13 +264,171 @@ export class WebAudioEngine extends AbstractAudioEngine {
         break;
       case 'bell_sacred':
       default:
-        if (this.currentCityProfile === 'chicago') {
+        if (this.currentCityProfile === 'shanghai') {
+          this.triggerShanghaiGong(params, triggerTime, delaySeconds);
+        } else if (this.currentCityProfile === 'chicago') {
           this.triggerChicagoFoghorn(params, triggerTime, delaySeconds);
         } else {
           this.triggerSacredBell(params, triggerTime, delaySeconds);
         }
         break;
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Shanghai Procedural Acoustic Generators
+  // -------------------------------------------------------------------------
+
+  // A. Bund Custom House & Jing'an Sacred Bronze Gong
+  triggerShanghaiGong(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 220.0;
+    const decay = params.decay || 5.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.9;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.03);
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(params.filterCutoff || 1500.0, triggerTime);
+    filter.Q.setValueAtTime(2.0, triggerTime);
+
+    // Eastern Gong modal ratios (Hum 0.5, Fundamental 1.0, Major 2nd 1.12, Minor 6th 1.62, Nominal 2.38)
+    const gongRatios = [0.5, 1.0, 1.12, 1.62, 2.38, 3.14];
+
+    gongRatios.forEach((ratio, idx) => {
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+
+      osc.type = params.carrierType || 'sine';
+      const freq = baseFreq * ratio;
+      osc.frequency.setValueAtTime(freq, triggerTime);
+
+      // Subtle pitch bend down on impact for eastern gong characteristic
+      if (idx === 1) {
+        osc.frequency.setValueAtTime(freq + 4.0, triggerTime);
+        osc.frequency.exponentialRampToValueAtTime(freq, triggerTime + 0.15);
+      }
+
+      const partialAmp = (1.0 / (idx * 0.8 + 1)) * 0.25;
+      oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
+      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.03);
+      oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (ratio * 0.8)));
+
+      osc.connect(oscGain);
+      oscGain.connect(filter);
+
+      osc.start(triggerTime);
+      osc.stop(triggerTime + decay + 0.5);
+    });
+
+    filter.connect(mainGainNode);
+    mainGainNode.connect(this.masterGain);
+    if (this.convolverHuangpuRiver) {
+      mainGainNode.connect(this.convolverHuangpuRiver);
+    }
+
+    this.scheduleCleanup([mainGainNode, filter], delaySeconds + decay + 0.5);
+  }
+
+  // B. Huangpu River Ferry & Cargo Vessel Foghorn
+  triggerShanghaiRiver(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 85.0; // Deep vessel horn
+    const decay = params.decay || 5.5;
+    const gainVal = params.gain !== undefined ? params.gain : 0.9;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.55, triggerTime + 0.3); // River swell
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(320.0, triggerTime);
+    filter.frequency.exponentialRampToValueAtTime(140.0, triggerTime + decay);
+
+    // Water Vibrato Modulation (0.2 Hz slow river chorus)
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.frequency.setValueAtTime(0.2, triggerTime);
+    lfoGain.gain.setValueAtTime(1.5, triggerTime);
+
+    [1.0, 1.006, 0.5].forEach((ratio) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = ratio === 0.5 ? 'sine' : 'sawtooth';
+      osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+
+      lfo.connect(osc.frequency);
+
+      const oscGain = this.ctx.createGain();
+      oscGain.gain.setValueAtTime(0.3, triggerTime);
+
+      osc.connect(oscGain);
+      oscGain.connect(filter);
+
+      osc.start(triggerTime);
+      osc.stop(triggerTime + decay + 0.3);
+    });
+
+    lfo.start(triggerTime);
+    lfo.stop(triggerTime + decay + 0.3);
+
+    filter.connect(mainGainNode);
+    mainGainNode.connect(this.masterGain);
+    if (this.convolverHuangpuRiver) {
+      mainGainNode.connect(this.convolverHuangpuRiver);
+    }
+
+    this.scheduleCleanup([mainGainNode, filter, lfoGain], delaySeconds + decay + 0.5);
+  }
+
+  // C. High-Speed Maglev Electromagnetic Rail Glide
+  triggerShanghaiMaglev(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 350.0;
+    const decay = params.decay || 3.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.85;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.45, triggerTime + 0.2);
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    // Electromagnetic Soaring Frequency Pitch Sweep (350Hz -> 680Hz -> 250Hz)
+    const oscA = this.ctx.createOscillator();
+    const oscB = this.ctx.createOscillator();
+    oscA.type = 'sawtooth';
+    oscB.type = 'square';
+
+    oscA.frequency.setValueAtTime(baseFreq, triggerTime);
+    oscA.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, triggerTime + (decay * 0.4));
+    oscA.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, triggerTime + decay);
+
+    oscB.frequency.setValueAtTime(baseFreq * 1.5, triggerTime);
+    oscB.frequency.exponentialRampToValueAtTime(baseFreq * 2.2, triggerTime + (decay * 0.5));
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(baseFreq * 2, triggerTime);
+    filter.frequency.exponentialRampToValueAtTime(params.filterCutoff || 3800.0, triggerTime + decay * 0.4);
+    filter.Q.setValueAtTime(4.0, triggerTime);
+
+    oscA.connect(filter);
+    oscB.connect(filter);
+    filter.connect(mainGainNode);
+
+    mainGainNode.connect(this.masterGain);
+    if (this.convolverHuangpuRiver) {
+      mainGainNode.connect(this.convolverHuangpuRiver);
+    }
+
+    oscA.start(triggerTime);
+    oscB.start(triggerTime);
+    oscA.stop(triggerTime + decay + 0.2);
+    oscB.stop(triggerTime + decay + 0.2);
+
+    this.scheduleCleanup([mainGainNode, filter], delaySeconds + decay + 0.5);
   }
 
   // -------------------------------------------------------------------------

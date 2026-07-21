@@ -175,18 +175,65 @@ function seedInitialTowers(db) {
     }
   ];
 
-  if (chicagoResult.count === 0) {
-    console.log('[DB] Seeding database with initial Chicago landmark towers...');
-    insertMany(CHICAGO_INITIAL_NODES);
-    console.log(`[DB] Successfully seeded ${CHICAGO_INITIAL_NODES.length} Chicago landmark towers.`);
-  } else {
-    // Migration: Update existing initial Chicago towers to new Chicago sound types
-    const updateStmt = db.prepare("UPDATE nodes SET sound_type = ? WHERE node_id = ? AND sound_type NOT LIKE 'chicago_%'");
-    CHICAGO_INITIAL_NODES.forEach((n) => {
-      updateStmt.run(n.stateVector.soundType, n.nodeId);
-    });
+  const shanghaiResult = countStmt.get('shanghai');
+  const SHANGHAI_INITIAL_NODES = [
+    {
+      nodeId: 'tower_shanghai_1',
+      nodeType: 'TOWER',
+      city: 'shanghai',
+      name: 'The Bund / Custom House Clock Tower',
+      coordinates: { lat: 31.2389, lng: 121.4858, alt: 79.0 },
+      stateVector: { soundType: 'shanghai_gong', carrierType: 'sine', baseFrequency: 220.0, harmonicity: 1.414, decay: 4.5, gain: 0.95, filterCutoff: 1500.0, euclideanDensity: 3, echoProbability: 0.85, bitDepth: 16 }
+    },
+    {
+      nodeId: 'tower_shanghai_2',
+      nodeType: 'TOWER',
+      city: 'shanghai',
+      name: 'Oriental Pearl TV Tower',
+      coordinates: { lat: 31.2397, lng: 121.4998, alt: 468.0 },
+      stateVector: { soundType: 'glitch', carrierType: 'triangle', baseFrequency: 440.0, harmonicity: 3.14, decay: 0.7, gain: 0.85, fmIndex: 3.0, filterCutoff: 4500.0, euclideanDensity: 2, echoProbability: 0.75, bitDepth: 6 }
+    },
+    {
+      nodeId: 'tower_shanghai_3',
+      nodeType: 'TOWER',
+      city: 'shanghai',
+      name: 'Shanghai Tower (Lujiazui Financial Center)',
+      coordinates: { lat: 31.2335, lng: 121.5056, alt: 632.0 },
+      stateVector: { soundType: 'drone', carrierType: 'sine', baseFrequency: 95.0, harmonicity: 1.0, decay: 7.5, gain: 0.8, filterCutoff: 550.0, euclideanDensity: 2, echoProbability: 0.8, bitDepth: 16 }
+    },
+    {
+      nodeId: 'tower_shanghai_4',
+      nodeType: 'TOWER',
+      city: 'shanghai',
+      name: 'Huangpu River Ferry Terminal',
+      coordinates: { lat: 31.2351, lng: 121.4920, alt: 5.0 },
+      stateVector: { soundType: 'shanghai_river', carrierType: 'sawtooth', baseFrequency: 85.0, harmonicity: 1.2, decay: 5.5, gain: 1.0, filterCutoff: 480.0, euclideanDensity: 1, echoProbability: 0.9, bitDepth: 16 }
+    },
+    {
+      nodeId: 'tower_shanghai_5',
+      nodeType: 'TOWER',
+      city: 'shanghai',
+      name: "Jing'an Temple Sacred Bronze Gong",
+      coordinates: { lat: 31.2241, lng: 121.4468, alt: 20.0 },
+      stateVector: { soundType: 'shanghai_gong', carrierType: 'sine', baseFrequency: 180.0, harmonicity: 1.5, decay: 5.0, gain: 0.9, filterCutoff: 1200.0, euclideanDensity: 3, echoProbability: 0.8, bitDepth: 16 }
+    },
+    {
+      nodeId: 'tower_shanghai_6',
+      nodeType: 'TOWER',
+      city: 'shanghai',
+      name: 'Longyang Road Maglev Terminal',
+      coordinates: { lat: 31.2038, lng: 121.5583, alt: 15.0 },
+      stateVector: { soundType: 'shanghai_maglev', carrierType: 'sawtooth', baseFrequency: 350.0, harmonicity: 2.5, decay: 3.0, gain: 0.9, fmIndex: 4.0, filterCutoff: 3800.0, euclideanDensity: 3, echoProbability: 0.7, bitDepth: 12 }
+    }
+  ];
+
+  if (shanghaiResult.count === 0) {
+    console.log('[DB] Seeding database with initial Shanghai landmark towers...');
+    insertMany(SHANGHAI_INITIAL_NODES);
+    console.log(`[DB] Successfully seeded ${SHANGHAI_INITIAL_NODES.length} Shanghai landmark towers.`);
   }
 }
+
 
 
 
