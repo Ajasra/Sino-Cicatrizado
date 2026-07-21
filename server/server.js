@@ -53,13 +53,18 @@ app.post('/api/reflectors', async (req, res) => {
       return res.status(400).json({ error: 'Coordinates lat and lng are required.' });
     }
 
+    // ponytail: input protection — limit text to 200 chars & strip basic HTML tags
+    const sanitizedIntent = String(intentText || '').trim().slice(0, 200).replace(/[<>/]/g, '');
+
     const targetCity = city || CONFIG.DEFAULT_CITY;
-    const preset = await generateReflectorPresetFromPrompt(intentText || '', targetCity);
+    const preset = await generateReflectorPresetFromPrompt(sanitizedIntent, targetCity);
+    const displayName = preset.displayTitle || cicatrizeText(sanitizedIntent);
+
     const newNode = {
       nodeId: `reflector_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       nodeType: 'REFLECTOR',
       city: targetCity,
-      name: name || `Reflector: "${intentText || 'Somatic Trace'}"`,
+      name: name || `Reflector: "${displayName}"`,
       coordinates: {
         lat: Number(coordinates.lat),
         lng: Number(coordinates.lng),
@@ -379,3 +384,13 @@ server.listen(CONFIG.PORT, CONFIG.HOST, () => {
   console.log(` Debug Mode: ${CONFIG.DEBUG} | Show Users: ${CONFIG.SHOW_USERS} | Virtual Users: ${CONFIG.VIRTUAL_USERS_COUNT}`);
   console.log(`=======================================================`);
 });
+
+// ponytail: local fallback only strips code/XSS vectors (multi-lingual slang moderation is handled semantically by the LLM)
+function cicatrizeText(text) {
+  if (!text) return 'Somatic Trace';
+  const xssPattern = /(script|eval|exec|onerror|onload|http|<|>|drop table|select)/gi;
+  if (xssPattern.test(text)) {
+    return '▓▒░ [SOMATIC TRACE CICATRIZED] ░▒▓';
+  }
+  return text;
+}

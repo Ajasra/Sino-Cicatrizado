@@ -68,6 +68,15 @@ Before persistence, all generated payloads pass through `validateSynthPreset()` 
 - Frequency parameters are clamped to safe hearing ranges ($55.0\text{ Hz}$ to $880.0\text{ Hz}$).
 - Unrecognized sound archetypes default to `bell_soapstone` with a $220.0\text{ Hz}$ basal drone.
 
+### 2.3 Input Security, Length Control & Multi-Lingual Cicatrization
+To protect the system against script/code injection, prompt manipulation, and inappropriate multi-lingual content:
+1. **Native Client Truncation**: `<textarea id="input-reflector-intent">` enforces a strict `maxlength="200"` character cap on the UI layer ([index.html](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/index.html#L120)).
+2. **Server-Side XSS Protection**: `POST /api/reflectors` sanitizes user text by trimming, truncating to 200 characters, and stripping HTML/script angle brackets (`<`/`>`).
+3. **Single-Pass Multi-Lingual LLM Moderation**: The LLM prompt schema includes a `displayTitle` field. The LLM evaluates input semantically across all languages (including slang and leetspeak):
+   - **Clean Text**: Outputs a safe, concise reflection title (max 60 chars).
+   - **Profanity / Hate Speech / Injection Attack**: Outputs `"displayTitle": "▓▒░ [SOMATIC TRACE CICATRIZED] ░▒▓"` and generates calm neutral synthesis parameters.
+4. **Offline Cicatrization Fallback**: If the LLM is offline, `cicatrizeText()` in [server.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/server/server.js#L388) strips XSS execution vectors, converting script attempts into scarred glyphs.
+
 ---
 
 ## 3. Spatial Trigger & Acoustic Echo Physics

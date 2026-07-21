@@ -41,7 +41,8 @@ export function validateSynthPreset(rawPreset) {
     delayTimeMs: clamp(Number(data.delayTimeMs) || 250.0, 50.0, 1000.0),
     feedbackRatio: clamp(Number(data.feedbackRatio) || 0.3, 0.0, 0.85),
     combResonance: clamp(Number(data.combResonance) || 0.0, 0.0, 0.95),
-    bitDepth: Math.round(clamp(Number(data.bitDepth) || 16, bounds.bitDepth ? bounds.bitDepth.min : 2, bounds.bitDepth ? bounds.bitDepth.max : 16))
+    bitDepth: Math.round(clamp(Number(data.bitDepth) || 16, bounds.bitDepth ? bounds.bitDepth.min : 2, bounds.bitDepth ? bounds.bitDepth.max : 16)),
+    displayTitle: typeof data.displayTitle === 'string' ? data.displayTitle.trim().slice(0, 100) : null
   };
 }
 

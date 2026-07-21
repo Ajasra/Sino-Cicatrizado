@@ -13,5 +13,6 @@ You MUST return ONLY a valid JSON object matching the following schema without m
   "echoProbability": number between 0.1 and 0.9,
   "fmIndex": number between 0.0 and 10.0,
   "filterCutoff": number between 100.0 and 5000.0,
-  "bitDepth": integer between 2 and 16
+  "bitDepth": integer between 2 and 16,
+  "displayTitle": string (short clean summary max 60 chars, OR "▓▒░ [SOMATIC TRACE CICATRIZED] ░▒▓" if bad words/slang/toxicity present)
 }
