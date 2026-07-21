@@ -15,8 +15,18 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.ctx = AudioContextManager.getContext();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+
+    // Limiter: prevents polyphonic summing from clipping when multiple nodes fire simultaneously
+    this.limiter = this.ctx.createDynamicsCompressor();
+    this.limiter.threshold.value = -6;   // start compressing at -6dBFS
+    this.limiter.knee.value = 3;
+    this.limiter.ratio.value = 20;       // hard limiting
+    this.limiter.attack.value = 0.003;   // 3ms — catches transients
+    this.limiter.release.value = 0.25;   // 250ms — preserves bell tails
+
     // ponytail: direct path by default — bitcrusher only inserted when battery < 50%
-    this.masterGain.connect(this.ctx.destination);
+    this.masterGain.connect(this.limiter);
+    this.limiter.connect(this.ctx.destination);
   }
 
   async resume() {
@@ -37,15 +47,15 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.currentBits = newBits;
 
     if (newBits >= 16) {
-      // Bypass bitcrusher — clean direct path
+      // Bypass bitcrusher — clean direct path through limiter
       if (this.bitCrusher) {
         try {
           this.masterGain.disconnect(this.bitCrusher);
-          this.bitCrusher.disconnect(this.ctx.destination);
+          this.bitCrusher.disconnect(this.limiter);
         } catch (_) {}
         this.bitCrusher = null;
       }
-      this.masterGain.connect(this.ctx.destination);
+      this.masterGain.connect(this.limiter);
     } else {
       // Insert bitcrusher for low-battery degradation effect
       if (!this.bitCrusher) {
@@ -59,9 +69,9 @@ export class WebAudioEngine extends AbstractAudioEngine {
             output[i] = step * Math.round(input[i] / step);
           }
         };
-        try { this.masterGain.disconnect(this.ctx.destination); } catch (_) {}
+        try { this.masterGain.disconnect(this.limiter); } catch (_) {}
         this.masterGain.connect(this.bitCrusher);
-        this.bitCrusher.connect(this.ctx.destination);
+        this.bitCrusher.connect(this.limiter);
       }
       this.bitCrusher.bits = newBits;
     }
