@@ -23,6 +23,7 @@ export class ScarredWebSocketClient {
       if (this.currentCity) {
         this.subscribeCity(this.currentCity);
       }
+      if (this.onMessage) this.onMessage({ type: 'WS_STATUS_CHANGE', payload: { connected: true } });
     };
 
     this.ws.onmessage = (evt) => {
@@ -35,13 +36,15 @@ export class ScarredWebSocketClient {
     };
 
     this.ws.onclose = () => {
-      console.warn('[WS] Connection closed. Reconnecting...');
+      console.warn('[WS] Connection closed. Entering Sovereign Isolation...');
+      if (this.onMessage) this.onMessage({ type: 'WS_STATUS_CHANGE', payload: { connected: false } });
       this.scheduleReconnect();
     };
 
     this.ws.onerror = (err) => {
       console.error('[WS] Error:', err);
     };
+
   }
 
   subscribeCity(cityKey) {

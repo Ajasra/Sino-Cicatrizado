@@ -178,7 +178,14 @@ header {
   background: var(--accent-active);
   box-shadow: 0 0 8px var(--accent-active);
   flex-shrink: 0;
+  transition: background var(--transition-normal), box-shadow var(--transition-normal);
 }
+
+.brand-dot.offline {
+  background: var(--color-scar-accent, #ff4444);
+  box-shadow: 0 0 8px var(--color-scar-accent, #ff4444);
+}
+
 
 .status-subrow {
   display: flex;

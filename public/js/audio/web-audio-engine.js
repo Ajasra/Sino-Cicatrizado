@@ -33,6 +33,19 @@ export class WebAudioEngine extends AbstractAudioEngine {
     }
   }
 
+  // ponytail: Sovereign Isolation offline lowpass degradation toggle (450Hz heavily dampened vs 20kHz open)
+  setSovereignIsolation(isIsolated) {
+    if (!this.ctx || !this.isolationFilter) return;
+    const targetFreq = isIsolated ? 450.0 : 20000.0;
+    const rampTime = isIsolated ? 1.5 : 5.0; // 5s smooth re-sync curve per PRD §5.1
+    try {
+      this.isolationFilter.frequency.exponentialRampToValueAtTime(targetFreq, this.ctx.currentTime + rampTime);
+    } catch (_) {
+      this.isolationFilter.frequency.setValueAtTime(targetFreq, this.ctx.currentTime);
+    }
+  }
+
+
   async init() {
     this.ctx = AudioContextManager.getContext();
     this.masterGain = this.ctx.createGain();
@@ -46,9 +59,16 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.limiter.attack.value = 0.005;   // 5ms attack to catch transients smoothly
     this.limiter.release.value = 0.20;   // 200ms release
 
-    // Connect masterGain through limiter to destination
-    this.masterGain.connect(this.limiter);
+    // ponytail: Sovereign Isolation lowpass filter (degrades audio spectrum when network disconnects)
+    this.isolationFilter = this.ctx.createBiquadFilter();
+    this.isolationFilter.type = 'lowpass';
+    this.isolationFilter.frequency.setValueAtTime(20000, this.ctx.currentTime); // default open
+
+    // Connect masterGain through isolationFilter then limiter to destination
+    this.masterGain.connect(this.isolationFilter);
+    this.isolationFilter.connect(this.limiter);
     this.limiter.connect(this.ctx.destination);
+
 
     // -------------------------------------------------------------------------
     // Procedural Convolver Impulse Response Generation

@@ -335,6 +335,21 @@ class SinoCicatrizadoApp {
 
   handleServerMessage(msg) {
     switch (msg.type) {
+      case 'WS_STATUS_CHANGE': {
+        const isConnected = msg.payload?.connected;
+        if (this.audioEngine) {
+          // ponytail: toggle lowpass audio degradation in Sovereign Isolation mode
+          this.audioEngine.setSovereignIsolation(!isConnected);
+        }
+        const brandDot = document.getElementById('brand-dot');
+        if (brandDot) {
+          brandDot.classList.toggle('offline', !isConnected);
+          brandDot.title = isConnected ? 'Connection: Online' : 'Connection: Sovereign Isolation (Offline)';
+        }
+        break;
+      }
+
+
       case 'SESSION_INIT':
         console.log('[WS] Handshake established:', msg.payload);
         if (msg.payload?.somaticId) {
@@ -347,6 +362,8 @@ class SinoCicatrizadoApp {
           this.enableDebugFeatures();
         }
         break;
+
+
 
       case 'SOMATIC_FRAME_UPDATE': {
         if (this.showUsers && msg.payload?.somaticNodes) {
