@@ -1,0 +1,290 @@
+import { CLIENT_CONFIG } from '../../config.js';
+import { applyReflectorDSPChain, createNoiseBuffer, makeDistortionCurve } from '../general-filter.js';
+
+/**
+ * Ouro Preto Procedural Acoustic Generators
+ * Colonial soapstone bells, baroque cathedral reverb & subterranean mine resonances.
+ */
+
+// 1. Deep Atmospheric Bronze Bell (Clean Physical Modal Synthesis + Lowpass Cathedral Convolver)
+export function triggerDeepBell(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const baseFreq = params.baseFrequency || 110.0;
+  const decay = params.decay || 6.0;
+  const gainVal = params.gain !== undefined ? params.gain : 0.8;
+
+  // Physical bronze modal ratios: Hum, Prime, Tierce (minor 3rd), Quint, Nominal, Supernominal
+  const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
+
+  const gainNode = ctx.createGain();
+  gainNode.gain.setValueAtTime(0, ctx.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.45, triggerTime + 0.06);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  const cutoff = params.filterCutoff || 800.0;
+  filter.frequency.setValueAtTime(cutoff, triggerTime);
+  filter.frequency.exponentialRampToValueAtTime(140.0, triggerTime + decay);
+  filter.Q.setValueAtTime(1.8, triggerTime);
+
+  modalRatios.forEach((ratio, idx) => {
+    const oscA = ctx.createOscillator();
+    const oscB = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+
+    const freq = baseFreq * ratio;
+    const detuneHz = idx === 0 ? 0.0 : 0.25 * (idx % 2 === 0 ? 1 : -1);
+
+    oscA.type = params.carrierType || 'sine';
+    oscB.type = params.carrierType || 'sine';
+
+    oscA.frequency.setValueAtTime(freq, triggerTime);
+    oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
+
+    const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.25;
+    oscGain.gain.setValueAtTime(0, ctx.currentTime);
+    oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.05);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (idx === 0 ? 0.75 : ratio)));
+
+    oscA.connect(oscGain);
+    oscB.connect(oscGain);
+    oscGain.connect(gainNode);
+
+    oscA.start(triggerTime);
+    oscB.start(triggerTime);
+    oscA.stop(triggerTime + decay + 0.6);
+    oscB.stop(triggerTime + decay + 0.6);
+  });
+
+  gainNode.connect(filter);
+  filter.connect(engine.masterGain);
+  if (engine.convolverCathedral) {
+    filter.connect(engine.convolverCathedral);
+  }
+
+  engine.scheduleCleanup([gainNode, filter], delaySeconds + decay + 1.0);
+}
+
+// 2. Continuous Sub-Bass Flux Drone (Subtle Mountain Valley Convolver)
+export function triggerDrone(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const baseFreq = params.baseFrequency || 65.0;
+  const decay = params.decay || 8.0;
+  const gainVal = params.gain !== undefined ? params.gain : 0.6;
+
+  const droneGainNode = ctx.createGain();
+  droneGainNode.gain.setValueAtTime(0, ctx.currentTime);
+  droneGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 1.2);
+  droneGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  const startCutoff = params.filterCutoff || 500.0;
+  filter.frequency.setValueAtTime(startCutoff, triggerTime);
+
+  // LFO modulation for filter cutoff
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  lfo.frequency.setValueAtTime(0.12, triggerTime); // 0.12 Hz slow LFO
+  lfoGain.gain.setValueAtTime(180.0, triggerTime);
+  lfo.connect(lfoGain);
+  lfoGain.connect(filter.frequency);
+  lfo.start(triggerTime);
+  lfo.stop(triggerTime + decay + 0.5);
+
+  // Layered detuned sub-oscillators (pure sine & triangle)
+  [0.997, 1.0, 1.003, 2.0].forEach((ratio) => {
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+
+    osc.type = ratio > 1.5 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+
+    const amp = ratio > 1.5 ? 0.2 : 0.35;
+    oscGain.gain.setValueAtTime(amp, triggerTime);
+
+    osc.connect(oscGain);
+    oscGain.connect(droneGainNode);
+
+    osc.start(triggerTime);
+    osc.stop(triggerTime + decay + 0.5);
+  });
+
+  droneGainNode.connect(filter);
+  filter.connect(engine.masterGain);
+  if (engine.convolverValley) {
+    filter.connect(engine.convolverValley);
+  }
+
+  engine.scheduleCleanup([droneGainNode, filter, lfoGain], delaySeconds + decay + 1.0);
+}
+
+// 3. Industrial Somatic Friction (FM Synthesis + Soft Saturation + Mine Convolver)
+export function triggerIndustrial(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const carrierFreq = params.baseFrequency || 140.0;
+  const fmRatio = params.harmonicity || 2.71;
+  const modFreq = carrierFreq * fmRatio;
+  const fmIndex = params.fmIndex !== undefined ? Math.min(params.fmIndex, 4.0) : 2.5;
+  const decay = params.decay || 1.2;
+  const gainVal = params.gain !== undefined ? params.gain : 0.6;
+
+  const mainGainNode = ctx.createGain();
+  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.01);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+  // FM Carrier
+  const carrier = ctx.createOscillator();
+  carrier.type = 'triangle';
+  carrier.frequency.setValueAtTime(carrierFreq, triggerTime);
+
+  // FM Modulator
+  const modulator = ctx.createOscillator();
+  const modGain = ctx.createGain();
+  modulator.type = 'sine';
+  modulator.frequency.setValueAtTime(modFreq, triggerTime);
+  modGain.gain.setValueAtTime(fmIndex * modFreq, triggerTime);
+  modGain.gain.exponentialRampToValueAtTime(0.1, triggerTime + (decay * 0.7));
+
+  modulator.connect(modGain);
+  modGain.connect(carrier.frequency);
+  modulator.start(triggerTime);
+  modulator.stop(triggerTime + decay);
+
+  // Subtle Metallic Pick Attack
+  const noiseBuffer = createNoiseBuffer(ctx, 0.08); // 80ms click
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.setValueAtTime(params.filterCutoff || 2200.0, triggerTime);
+  noiseFilter.Q.setValueAtTime(8.0, triggerTime);
+
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(gainVal * 0.15, triggerTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + 0.08);
+
+  noiseSource.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseSource.start(triggerTime);
+
+  // Soft Saturation WaveShaper
+  const waveShaper = ctx.createWaveShaper();
+  waveShaper.curve = makeDistortionCurve(3); // Gentle warm saturation
+
+  carrier.connect(mainGainNode);
+  noiseGain.connect(mainGainNode);
+  mainGainNode.connect(waveShaper);
+  waveShaper.connect(engine.masterGain);
+  if (engine.convolverMine) {
+    waveShaper.connect(engine.convolverMine);
+  }
+
+  carrier.start(triggerTime);
+  carrier.stop(triggerTime + decay + 0.1);
+
+  engine.scheduleCleanup([mainGainNode, noiseGain, noiseFilter, waveShaper], delaySeconds + decay + 0.5);
+}
+
+// 4. Forensic Glitch (Clean Ring Modulation + Mine Convolver)
+export function triggerGlitch(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const baseFreq = params.baseFrequency || 330.0;
+  const decay = params.decay || 0.4;
+  const gainVal = params.gain !== undefined ? params.gain : 0.5;
+
+  const glitchGain = ctx.createGain();
+  glitchGain.gain.setValueAtTime(0, ctx.currentTime);
+  glitchGain.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.005);
+  glitchGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+  // Primary Carrier
+  const carrier = ctx.createOscillator();
+  carrier.type = 'square';
+  carrier.frequency.setValueAtTime(baseFreq, triggerTime);
+
+  // Ring Modulator Multiplier
+  const ringMod = ctx.createOscillator();
+  const ringGain = ctx.createGain();
+  ringMod.type = 'triangle';
+  ringMod.frequency.setValueAtTime(baseFreq * (params.harmonicity || 1.73), triggerTime);
+
+  ringMod.connect(ringGain.gain);
+  carrier.connect(ringGain);
+  ringGain.connect(glitchGain);
+
+  ringMod.start(triggerTime);
+  carrier.start(triggerTime);
+  ringMod.stop(triggerTime + decay);
+  carrier.stop(triggerTime + decay);
+
+  glitchGain.connect(engine.masterGain);
+  if (engine.convolverMine) {
+    glitchGain.connect(engine.convolverMine);
+  }
+
+  engine.scheduleCleanup([glitchGain, ringGain], delaySeconds + decay + 0.5);
+}
+
+// 5. Classic Sacred Bronze Bell (Clean Physical Modal Synthesis + Lowpass Cathedral Convolver)
+export function triggerSacredBell(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const baseFreq = params.baseFrequency || CLIENT_CONFIG.AUDIO.DEFAULT_FREQUENCY_HZ;
+  const decay = params.decay || 1.5;
+  const gainVal = params.gain !== undefined ? params.gain : 0.8;
+
+  // Physical colonial bronze bell modal ratios (Hum, Prime, Tierce minor 3rd, Quint, Nominal, Supernominal)
+  const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
+
+  const bellGainNode = ctx.createGain();
+  bellGainNode.gain.setValueAtTime(0, ctx.currentTime);
+  bellGainNode.gain.linearRampToValueAtTime(0.5, triggerTime + 0.04);
+  bellGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(params.filterCutoff || 1200, triggerTime);
+  filter.Q.setValueAtTime(1.5, triggerTime);
+
+  modalRatios.forEach((ratio, idx) => {
+    const oscA = ctx.createOscillator();
+    const oscB = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+
+    const freq = baseFreq * ratio;
+    const detuneHz = idx === 0 ? 0.0 : 0.25 * (idx % 2 === 0 ? 1 : -1);
+
+    oscA.type = params.carrierType || 'sine';
+    oscB.type = params.carrierType || 'sine';
+
+    oscA.frequency.setValueAtTime(freq, triggerTime);
+    oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
+
+    const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.25;
+    oscGain.gain.setValueAtTime(0, ctx.currentTime);
+    oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.04);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay / ratio);
+
+    oscA.connect(oscGain);
+    oscB.connect(oscGain);
+    oscGain.connect(bellGainNode);
+
+    oscA.start(triggerTime);
+    oscB.start(triggerTime);
+    oscA.stop(triggerTime + decay + 0.6);
+    oscB.stop(triggerTime + decay + 0.6);
+  });
+
+  bellGainNode.connect(filter);
+  applyReflectorDSPChain(engine, filter, params, triggerTime, decay);
+
+  engine.scheduleCleanup([bellGainNode, filter], delaySeconds + decay + 1.0);
+}

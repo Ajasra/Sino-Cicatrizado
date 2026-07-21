@@ -9,10 +9,12 @@
 
 The **Sound Engine** in *Sino Cicatrizado* is a 100% procedural, real-time spatial synthesis apparatus built on the native Web Audio API ([web-audio-engine.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/web-audio-engine.js#L9)).
 
-### Core DSP Axioms
-1. **Zero External Audio Samples**: No static `.mp3`, `.wav`, or pre-recorded audio files are loaded. Every bell toll, metal strike, drone, and atmospheric reverb tail is synthesized dynamically in JavaScript.
-2. **Deterministic & Continuous Parameterization**: Sound output is governed strictly by node state vectors (`baseFrequency`, `harmonicity`, `decay`, `fmIndex`, `filterCutoff`, `bitDepth`, `carrierType`).
-3. **Decentered Spatial Propagation**: Sound timing ($t_{\text{delay}} = d / 343\text{ m/s}$) and inverse-square volume attenuation ($\text{Gain}(d) = \frac{100}{d + 1}$) are rendered individually per client listener position.
+The engine is decomposed into single-responsibility ES modules under `public/js/audio/`:
+- **General Filter & DSP Utilities** ([general-filter.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/general-filter.js)): Reusable multi-mode filter bank (`applyReflectorDSPChain`), impulse response buffer synthesis, noise buffer generators, and soft-clipping waveshapers.
+- **City Generators**:
+  - **Ouro Preto** ([generators/ouro-preto.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/generators/ouro-preto.js)): Sacred bell inharmonic synthesis, deep sub-hum, continuous flux drone, industrial mine FM, and forensic glitch.
+  - **Chicago** ([generators/chicago.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/generators/chicago.js)): L-train track clatter, wind canyon whistles, Lake Michigan maritime foghorn, and drawbridge iron groans.
+  - **Shanghai** ([generators/shanghai.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/generators/shanghai.js)): Temple gongs, Huangpu river ferry foghorn, and soaring Maglev rail sweeps.
 
 ---
 
