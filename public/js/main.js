@@ -402,9 +402,17 @@ class SinoCicatrizadoApp {
           return;
         }
 
+        if (dropBtn.disabled) return;
+
         const intentText = intentInput ? intentInput.value.trim() || 'Somatic Memory Deposit' : 'Somatic Memory Deposit';
 
         try {
+          // Disable button and indicate LLM synthesis loading state
+          dropBtn.disabled = true;
+          dropBtn.textContent = 'GENERATING REFLECTION...';
+          dropBtn.style.opacity = '0.6';
+          dropBtn.style.cursor = 'not-allowed';
+
           const res = await fetch('/api/reflectors', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -419,9 +427,18 @@ class SinoCicatrizadoApp {
             if (intentInput) intentInput.value = '';
             closeModal();
             console.log('[API] Reflector dropped successfully:', data.node);
+          } else {
+            alert(data.error || 'Failed to create reflection deposit.');
           }
         } catch (err) {
           console.error('[API] Error dropping reflector:', err);
+          alert('Network error while depositing reflection.');
+        } finally {
+          // Restore button state
+          dropBtn.disabled = false;
+          dropBtn.textContent = 'DROP REFLECTOR';
+          dropBtn.style.opacity = '1';
+          dropBtn.style.cursor = 'pointer';
         }
       });
     }
