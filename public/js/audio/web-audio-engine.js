@@ -108,9 +108,10 @@ export class WebAudioEngine extends AbstractAudioEngine {
     const gainVal = params.gain !== undefined ? params.gain : 1.0;
     const partialRatios = CLIENT_CONFIG.AUDIO.DEEP_BELL_PARTIALS || [0.5, 1.0, 1.004, 1.414, 2.76];
 
+    // Master envelope: peak at 1.0, gainVal applied per-partial only (prevent double-gain squaring)
     const gainNode = this.ctx.createGain();
     gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(gainVal * 0.9, triggerTime + 0.1);
+    gainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.1);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
 
     const filter = this.ctx.createBiquadFilter();
@@ -127,6 +128,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
       osc.type = params.carrierType || 'sine';
       osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
 
+      // gainVal applied here once — spatial distance attenuation is perceptually correct
       const partialAmp = (1.0 / (idx * 0.8 + 1)) * gainVal;
       oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
       oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.08);
@@ -316,9 +318,10 @@ export class WebAudioEngine extends AbstractAudioEngine {
     const gainVal = params.gain !== undefined ? params.gain : 1.0;
     const partialRatios = CLIENT_CONFIG.AUDIO.INHARMONIC_PARTIALS;
 
+    // Master envelope at 1.0 — gainVal applied per-partial only
     const bellGainNode = this.ctx.createGain();
     bellGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    bellGainNode.gain.linearRampToValueAtTime(gainVal, triggerTime + 0.05);
+    bellGainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.05);
     bellGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
 
     const filter = this.ctx.createBiquadFilter();
@@ -333,6 +336,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
       osc.type = params.carrierType || 'sine';
       osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
 
+      // gainVal applied once here for spatial attenuation
       const partialAmp = (1.0 / (idx + 1)) * gainVal;
       oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
       oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.05);

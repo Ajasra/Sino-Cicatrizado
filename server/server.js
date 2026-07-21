@@ -18,6 +18,15 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 const app = express();
 app.use(express.json());
+
+// Disable JS caching so browser always fetches fresh modules
+app.use((req, res, next) => {
+  if (req.path.endsWith('.js')) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+  next();
+});
+
 app.use(express.static(PUBLIC_DIR));
 
 // Dual-Twin Database mode: 'LIVING' or 'TWIN'
