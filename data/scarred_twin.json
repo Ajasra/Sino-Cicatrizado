@@ -1,0 +1,70 @@
+[
+  {
+    "nodeId": "church_sao_francisco_1",
+    "nodeType": "TOWER",
+    "city": "ouro_preto",
+    "name": "Igreja de São Francisco de Assis",
+    "coordinates": { "lat": -20.3867, "lng": -43.5031, "alt": 1150.0 },
+    "stateVector": {
+      "baseFrequency": 220.0,
+      "harmonicity": 1.414,
+      "decay": 1.5,
+      "gain": 1.0,
+      "euclideanDensity": 3,
+      "euclideanSteps": 8
+    },
+    "scarIndex": 0.0,
+    "interactionCount": 0
+  },
+  {
+    "nodeId": "church_nossa_senhora_carmo_1",
+    "nodeType": "TOWER",
+    "city": "ouro_preto",
+    "name": "Igreja de Nossa Senhora do Carmo",
+    "coordinates": { "lat": -20.3852, "lng": -43.5042, "alt": 1165.0 },
+    "stateVector": {
+      "baseFrequency": 293.66,
+      "harmonicity": 1.94,
+      "decay": 2.0,
+      "gain": 0.9,
+      "euclideanDensity": 5,
+      "euclideanSteps": 8
+    },
+    "scarIndex": 0.0,
+    "interactionCount": 0
+  },
+  {
+    "nodeId": "church_santa_efigenia_1",
+    "nodeType": "TOWER",
+    "city": "ouro_preto",
+    "name": "Igreja de Santa Efigênia",
+    "coordinates": { "lat": -20.3845, "lng": -43.4988, "alt": 1210.0 },
+    "stateVector": {
+      "baseFrequency": 174.61,
+      "harmonicity": 1.21,
+      "decay": 3.0,
+      "gain": 1.0,
+      "euclideanDensity": 4,
+      "euclideanSteps": 12
+    },
+    "scarIndex": 0.0,
+    "interactionCount": 0
+  },
+  {
+    "nodeId": "church_matriz_pilar_1",
+    "nodeType": "TOWER",
+    "city": "ouro_preto",
+    "name": "Basílica de Nossa Senhora do Pilar",
+    "coordinates": { "lat": -20.3879, "lng": -43.5074, "alt": 1130.0 },
+    "stateVector": {
+      "baseFrequency": 146.83,
+      "harmonicity": 2.52,
+      "decay": 2.5,
+      "gain": 1.0,
+      "euclideanDensity": 7,
+      "euclideanSteps": 16
+    },
+    "scarIndex": 0.0,
+    "interactionCount": 0
+  }
+]

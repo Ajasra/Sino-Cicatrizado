@@ -1,29 +1,21 @@
-# Dependencies
+# Node modules
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment & Credentials
+# Environment variables
 .env
 .env.local
-.env.*.local
-*.pem
 
-# Local SQLite Database Files
-data/
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
+# SQLite local database files (keep structure/seed scripts)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
 
-# OS Metadata
+# OS / IDE metadata
 .DS_Store
 Thumbs.db
-
-# IDE & Editor files
 .vscode/
 .idea/
-*.swp
-*.swo
