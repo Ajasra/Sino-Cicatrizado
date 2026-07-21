@@ -29,7 +29,6 @@
 ```text
 c:\Users\user\Desktop\ASC\The Scarred Bell\
 ├── README.md                 # Project Overview & Quick Start
-├── SETUP.md                  # Comprehensive Setup, Installation & Developer Guide
 ├── package.json              # Dependencies (express, ws, better-sqlite3, dotenv)
 ├── docs/                     # Philosophical & Technical Governance
 │   ├── CONCEPT.md            # Second-Order Cybernetics & Decolonial Acoustic Framework
@@ -38,7 +37,8 @@ c:\Users\user\Desktop\ASC\The Scarred Bell\
 │   ├── SPEC.md               # Master Consolidated System Specification
 │   ├── IMPLEMENTATION.md     # Architectural Blueprint & Component Roadmap
 │   ├── DEV_PRACTICES.md      # Development Standards & Directory Layout Rules
-│   └── Audio Research.md     # Spectralism & Acoustic Resistance Foundations
+│   ├── Audio Research.md     # Spectralism & Acoustic Resistance Foundations
+│   └── SETUP.md              # Comprehensive Setup, Installation & Developer Guide
 ├── data/                     # Persistent Data Storage
 │   ├── scarred_bell.db       # Local SQLite Database (WAL Mode)
 │   └── scarred_twin.json     # Immutable ASC 2026 Snapshot
@@ -100,7 +100,7 @@ Open your browser to `http://localhost:3000`.
 npm test
 ```
 
-For detailed setup instructions, mobile device deployment, HTTPS configuration, and environment overrides, refer to [`SETUP.md`](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/SETUP.md).
+For detailed setup instructions, mobile device deployment, HTTPS configuration, and environment overrides, refer to [`docs/SETUP.md`](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/docs/SETUP.md).
 
 ---
 
