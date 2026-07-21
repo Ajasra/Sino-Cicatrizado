@@ -54,7 +54,38 @@ export async function generateReflectorPresetFromPrompt(userIntentText = '', cit
   let bitDepth = 16;
   let filterCutoff = 1800.0;
 
-  if (cityKey === 'shanghai') {
+  if (cityKey === 'shanghai_noise') {
+    // SH Noise Archetypes: Underground Venues (The Trigger, Bandai Namco), Circuit Bends, Harsh Feedback
+    if (lowerIntent.includes('feedback') || lowerIntent.includes('harsh') || lowerIntent.includes('trigger') || lowerIntent.includes('noise') || lowerIntent.includes('screaming')) {
+      soundType = 'shanghai_harsh_feedback';
+      carrierType = 'sawtooth';
+      baseFrequency = 480.0 + (hash % 200);
+      fmIndex = 7.5 + (hash % 3);
+      filterCutoff = 4200.0;
+      bitDepth = 6;
+    } else if (lowerIntent.includes('circuit') || lowerIntent.includes('bend') || lowerIntent.includes('bandai') || lowerIntent.includes('festival') || lowerIntent.includes('ring')) {
+      soundType = 'shanghai_circuit_bend';
+      carrierType = 'square';
+      baseFrequency = 350.0 + (hash % 180);
+      fmIndex = 5.0 + (hash % 4);
+      filterCutoff = 3800.0;
+      bitDepth = 4;
+    } else if (lowerIntent.includes('sub') || lowerIntent.includes('rumble') || lowerIntent.includes('bass') || lowerIntent.includes('all') || lowerIntent.includes('shelter')) {
+      soundType = 'shanghai_sub_rumble';
+      carrierType = 'sine';
+      baseFrequency = 42.0 + (hash % 30);
+      decay = 6.0;
+      filterCutoff = 280.0;
+      bitDepth = 12;
+    } else {
+      // Default SH Noise: Bitcrushed Glitch (Yuyintang Basement)
+      soundType = 'shanghai_glitch';
+      carrierType = 'sawtooth';
+      baseFrequency = 580.0 + (hash % 250);
+      bitDepth = 4 + (hash % 4);
+      filterCutoff = 4800.0;
+    }
+  } else if (cityKey === 'shanghai') {
     // Shanghai Acoustic Archetypes: River Ferries, Temple Gongs, Maglev Glides, Megatowers
     if (lowerIntent.includes('maglev') || lowerIntent.includes('train') || lowerIntent.includes('speed') || lowerIntent.includes('fast') || lowerIntent.includes('metro')) {
       soundType = 'industrial';

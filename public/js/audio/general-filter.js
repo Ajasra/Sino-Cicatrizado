@@ -168,18 +168,34 @@ export function applyReflectorDSPChain(engine, sourceNode, params = {}, triggerT
     fdnFeedback.connect(outputChain);
   }
 
-  // 3. Scarred Timbral Degradation (Ring Mod Flutter for high scar index)
-  if (scarIndex > 1.5) {
+  // 3. Scarred Timbral Degradation & SH Noise Distortion/Echo Expansion
+  const isNoisyProfile = engine.currentCityProfile === 'shanghai_noise' || params.soundType?.startsWith('shanghai_') || scarIndex > 1.5;
+
+  if (isNoisyProfile) {
+    // Lowpass filter to tame harsh highs and keep echo low, deep & dark
+    const echoToneFilter = ctx.createBiquadFilter();
+    echoToneFilter.type = 'lowpass';
+    const cutoffFreq = engine.currentCityProfile === 'shanghai_noise' ? 850.0 : 1200.0;
+    echoToneFilter.frequency.setValueAtTime(cutoffFreq, now);
+
+    // Sub-octave ring modulation (baseF * 0.5) for a deep, low, dark rumble echo
     const ringOsc = ctx.createOscillator();
     const ringGain = ctx.createGain();
-    ringOsc.type = 'triangle';
-    const baseF = params.baseFrequency || 220.0;
-    ringOsc.frequency.setValueAtTime(baseF * 1.73, now);
+    ringOsc.type = 'sine';
+    const baseF = params.baseFrequency || 180.0;
+    ringOsc.frequency.setValueAtTime(Math.min(120.0, baseF * 0.5), now); // Deep low tone
 
-    ringGain.gain.setValueAtTime(0.3, now);
+    const ringIntensity = engine.currentCityProfile === 'shanghai_noise' ? 0.35 : 0.25;
+    ringGain.gain.setValueAtTime(ringIntensity, now);
     ringOsc.connect(ringGain.gain);
 
-    outputChain.connect(ringGain);
+    const saturationShaper = ctx.createWaveShaper();
+    saturationShaper.curve = makeDistortionCurve(10);
+
+    outputChain.connect(echoToneFilter);
+    echoToneFilter.connect(saturationShaper);
+    saturationShaper.connect(ringGain);
+
     ringOsc.start(now);
     ringOsc.stop(now + decay + 0.5);
 

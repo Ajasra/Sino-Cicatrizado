@@ -29,6 +29,13 @@ export const CITIES = {
     country: 'China',
     center: { lat: 31.2304, lng: 121.4737, zoom: 14 },
     description: 'Huangpu River ferries, Bund custom clock, temple gongs & Maglev resonance'
+  },
+  shanghai_noise: {
+    key: 'shanghai_noise',
+    name: 'SH Noise',
+    country: 'China',
+    center: { lat: 31.2290, lng: 121.4420, zoom: 14 },
+    description: 'Underground noise clubs, circuit bends, digital glitches & harsh industrial feedback'
   }
 };
 

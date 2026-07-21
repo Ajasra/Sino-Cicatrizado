@@ -240,6 +240,65 @@ function seedInitialTowers(db) {
     insertMany(SHANGHAI_INITIAL_NODES);
     console.log(`[DB] Successfully seeded ${SHANGHAI_INITIAL_NODES.length} Shanghai landmark towers.`);
   }
+
+  // Seed SH Noise Landmark Nodes
+  const shanghaiNoiseResult = countStmt.get('shanghai_noise');
+  const SHANGHAI_NOISE_INITIAL_NODES = [
+    {
+      nodeId: 'tower_sh_noise_1',
+      nodeType: 'TOWER',
+      city: 'shanghai_noise',
+      name: 'The Trigger (Underground Experimental Space)',
+      coordinates: { lat: 31.2330, lng: 121.4390, alt: 10.0 },
+      stateVector: { soundType: 'shanghai_harsh_feedback', carrierType: 'sawtooth', baseFrequency: 520.0, harmonicity: 3.14, decay: 2.5, gain: 0.95, fmIndex: 8.5, filterCutoff: 3800.0, euclideanDensity: 3, echoProbability: 0.9, bitDepth: 6 }
+    },
+    {
+      nodeId: 'tower_sh_noise_2',
+      nodeType: 'TOWER',
+      city: 'shanghai_noise',
+      name: 'Bandai Namco Future House (Noise Festival Hall)',
+      coordinates: { lat: 31.2465, lng: 121.4370, alt: 25.0 },
+      stateVector: { soundType: 'shanghai_circuit_bend', carrierType: 'square', baseFrequency: 380.0, harmonicity: 2.718, decay: 1.8, gain: 0.9, fmIndex: 6.0, filterCutoff: 4200.0, euclideanDensity: 3, echoProbability: 0.8, bitDepth: 4 }
+    },
+    {
+      nodeId: 'tower_sh_noise_3',
+      nodeType: 'TOWER',
+      city: 'shanghai_noise',
+      name: 'Yuyintang Underground Basement',
+      coordinates: { lat: 31.2155, lng: 121.4190, alt: 5.0 },
+      stateVector: { soundType: 'shanghai_glitch', carrierType: 'sawtooth', baseFrequency: 640.0, harmonicity: 1.732, decay: 1.2, gain: 0.85, fmIndex: 4.0, filterCutoff: 5000.0, euclideanDensity: 3, echoProbability: 0.75, bitDepth: 4 }
+    },
+    {
+      nodeId: 'tower_sh_noise_4',
+      nodeType: 'TOWER',
+      city: 'shanghai_noise',
+      name: 'ALL Club Basement Cellar (Legacy Shelter)',
+      coordinates: { lat: 31.2185, lng: 121.4540, alt: 2.0 },
+      stateVector: { soundType: 'shanghai_sub_rumble', carrierType: 'sine', baseFrequency: 45.0, harmonicity: 1.0, decay: 6.0, gain: 1.0, fmIndex: 2.5, filterCutoff: 250.0, euclideanDensity: 2, echoProbability: 0.85, bitDepth: 12 }
+    },
+    {
+      nodeId: 'tower_sh_noise_5',
+      nodeType: 'TOWER',
+      city: 'shanghai_noise',
+      name: 'Suzhou Creek Warehouse Distortion Array',
+      coordinates: { lat: 31.2480, lng: 121.4580, alt: 15.0 },
+      stateVector: { soundType: 'shanghai_harsh_feedback', carrierType: 'sawtooth', baseFrequency: 440.0, harmonicity: 2.5, decay: 3.5, gain: 0.9, fmIndex: 9.0, filterCutoff: 3200.0, euclideanDensity: 3, echoProbability: 0.8, bitDepth: 8 }
+    },
+    {
+      nodeId: 'tower_sh_noise_6',
+      nodeType: 'TOWER',
+      city: 'shanghai_noise',
+      name: 'M50 Industrial Art Complex',
+      coordinates: { lat: 31.2495, lng: 121.4485, alt: 12.0 },
+      stateVector: { soundType: 'shanghai_construction', carrierType: 'square', baseFrequency: 95.0, harmonicity: 2.0, decay: 2.0, gain: 0.88, fmIndex: 5.0, filterCutoff: 1800.0, euclideanDensity: 2, echoProbability: 0.7, bitDepth: 8 }
+    }
+  ];
+
+  if (shanghaiNoiseResult.count === 0) {
+    console.log('[DB] Seeding database with initial SH Noise landmark towers...');
+    insertMany(SHANGHAI_NOISE_INITIAL_NODES);
+    console.log(`[DB] Successfully seeded ${SHANGHAI_NOISE_INITIAL_NODES.length} SH Noise landmark towers.`);
+  }
 }
 
 

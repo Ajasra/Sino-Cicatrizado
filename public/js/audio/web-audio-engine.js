@@ -30,6 +30,15 @@ import {
   triggerShanghaiConstructionDrums,
   createContinuousEmitterShanghai
 } from './generators/shanghai.js';
+import {
+  triggerShanghaiGlitch,
+  triggerShanghaiHarshFeedback,
+  triggerShanghaiCircuitBend,
+  triggerShanghaiSubRumble,
+  createContinuousEmitterShanghaiNoiseStatic,
+  createContinuousEmitterShanghaiNoiseDrone,
+  createContinuousEmitterShanghaiNoiseSubRumble
+} from './generators/shanghai-noise.js';
 
 import { calculateHaversineMeters } from '../spatial.js';
 
@@ -255,8 +264,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
   morphContinuousDrone(cityKey) {
     if (!this.ctx || !this.continuousDrone) return;
     const now = this.ctx.currentTime;
-    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'shanghai' ? 65.0 : 55.0);
-    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'shanghai' ? 420.0 : 380.0);
+    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'shanghai_noise' ? 48.0 : (cityKey === 'shanghai' ? 65.0 : 55.0));
+    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'shanghai_noise' ? 650.0 : (cityKey === 'shanghai' ? 420.0 : 380.0));
 
     const d = this.continuousDrone;
     d.targetCutoff = targetCutoff;
@@ -338,6 +347,14 @@ export class WebAudioEngine extends AbstractAudioEngine {
 
       if (this.currentCityProfile === 'chicago') {
         emitterInstance = createContinuousEmitterChicago(this, { baseFrequency: 220 + idx * 40 });
+      } else if (this.currentCityProfile === 'shanghai_noise') {
+        if (idx % 3 === 0) {
+          emitterInstance = createContinuousEmitterShanghaiNoiseStatic(this, { baseFrequency: 440 + idx * 60 });
+        } else if (idx % 3 === 1) {
+          emitterInstance = createContinuousEmitterShanghaiNoiseSubRumble(this, { baseFrequency: 38 + idx * 5 });
+        } else {
+          emitterInstance = createContinuousEmitterShanghaiNoiseDrone(this, { baseFrequency: 48 + idx * 10 });
+        }
       } else if (this.currentCityProfile === 'shanghai') {
         emitterInstance = createContinuousEmitterShanghai(this, { baseFrequency: 65 + idx * 10 });
       } else {
@@ -471,6 +488,21 @@ export class WebAudioEngine extends AbstractAudioEngine {
       case 'shanghai_construction':
       case 'construction_drums':
         triggerShanghaiConstructionDrums(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_glitch':
+        triggerShanghaiGlitch(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_harsh_feedback':
+      case 'harsh_feedback':
+        triggerShanghaiHarshFeedback(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_circuit_bend':
+      case 'circuit_bend':
+        triggerShanghaiCircuitBend(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_sub_rumble':
+      case 'sub_rumble':
+        triggerShanghaiSubRumble(this, params, triggerTime, delaySeconds);
         break;
       case 'chicago_rail':
       case 'rail':

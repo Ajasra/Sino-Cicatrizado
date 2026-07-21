@@ -93,11 +93,20 @@ The sound engine contains **6 procedural sound generators for each city** (a bal
 6. **`createContinuousEmitterChicagoLake`** *(Continuous Proximity)*: Lake Michigan shoreline & water drift ambient emitter.
 
 ### Shanghai (6 Generators)
-1. **`shanghai_gong`** *(Discrete)*: Eastern Gong ratios ($[0.5, 1.0, 1.12, 1.62, 2.38, 3.14]$) with pitch bend (Jing'an Temple).
-2. **`shanghai_maglev`** *(Discrete)*: Bandpass filtered soaring frequency sweep ($350\text{Hz} \to 680\text{Hz}$) (High-Speed Maglev Rail).
-3. **`shanghai_cicadas`** *(Discrete)*: Summer bamboo & Yuyuan Garden high-frequency cicada swarm with $12\text{ Hz}$ wing tremolo.
-4. **`shanghai_construction`** *(Discrete)*: Pudong skyscraper heavy construction piling drums & metallic impacts.
-5. **`createContinuousEmitterShanghaiRiver`** *(Continuous Proximity)*: Huangpu river vessel foghorn & water drift ambient emitter.
+1. **`triggerShanghaiGong`** *(Impact Modal)*: Imperial bronze gong with multi-partial mode ratios.
+2. **`triggerShanghaiRiver`** *(Continuous/Impact)*: Deep sub-bass maritime ferry foghorn with river chorus LFO.
+3. **`triggerShanghaiMaglev`** *(Sweep)*: High-frequency electromagnetic FM rail glide.
+4. **`triggerShanghaiCicadas`** *(Continuous/Impact)*: High-frequency garden cicadas swarm with 12 Hz tremolo.
+5. **`triggerShanghaiConstructionDrums`** *(Impact)*: Sub piling impact pitch drop.
+6. **`createContinuousEmitterShanghaiRiver`** *(Continuous Proximity)*: Huangpu river vessel foghorn & water drift ambient emitter.
+
+### SH Noise (6 Generators)
+1. **`triggerShanghaiGlitch`** *(Granular Impulse)*: Bitcrushed granular impulse synth with pseudo-random pitch skipping.
+2. **`triggerShanghaiHarshFeedback`** *(FM Burst)*: High FM-index screaming feedback burst with resonant bandpass sweep.
+3. **`triggerShanghaiCircuitBend`** *(Ring Mod/LFO)*: Rapid stepping pitch LFO with square wave ring-mod circuit bending.
+4. **`triggerShanghaiSubRumble`** *(Sub Impact)*: Heavy waveshaped sub-bass impact with sub-harmonic saturation.
+5. **`createContinuousEmitterShanghaiNoiseStatic`** *(Continuous Proximity)*: Continuous high-frequency electromagnetic noise & glitch static emitter.
+6. **`createContinuousEmitterShanghaiNoiseDrone`** *(Continuous Proximity)*: Continuous sub-bass industrial drone & cellar rumble emitter.
 6. **`createContinuousEmitterShanghaiCyber`** *(Continuous Proximity)*: Bund neon & urban electromagnetic resonance ambient emitter.
 
 
