@@ -17,7 +17,7 @@ export const CONFIG = {
   BROADCAST_RATE_HZ: Number(process.env.BROADCAST_RATE_HZ) || 4,
   PROXIMITY_MUTATION_THRESHOLD_M: Number(process.env.PROXIMITY_MUTATION_THRESHOLD_M) || 15.0,
   DEFAULT_CITY: process.env.DEFAULT_CITY || 'ouro_preto',
-  VIRTUAL_USERS_COUNT: Number(process.env.VIRTUAL_USERS_COUNT) || 5,
+  VIRTUAL_USERS_COUNT: process.env.VIRTUAL_USERS_COUNT != null ? Number(process.env.VIRTUAL_USERS_COUNT) : 5,
   SHOW_USERS: process.env.SHOW_USERS !== 'false' && process.env.SHOW_USERS !== '0',
   SCAR_COEFFICIENT_ALPHA: 0.05,
   SPATIAL_DECAY_LAMBDA: 0.15,
