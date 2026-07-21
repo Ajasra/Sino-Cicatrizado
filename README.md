@@ -40,9 +40,11 @@ c:\Users\user\Desktop\ASC\The Scarred Bell\
 │   ├── Audio Research.md     # Spectralism & Acoustic Resistance Foundations
 │   ├── SETUP.md              # Comprehensive Setup, Installation & Developer Guide
 │   └── systems/              # Detailed Cybernetic Subsystem Specifications
-│       ├── SCARRING_SYSTEM.md       # Cybernetic Scarring System Specification
-│       ├── SOMATIC_NODES_SYSTEM.md  # Somatic Nodes (Type 3 Mobile Clients) Specification
-│       └── REFLECTOR_NODES_SYSTEM.md# Reflector Nodes (Type 2 User Reflectors) Specification
+│       ├── SCARRING_SYSTEM.md        # Cybernetic Scarring System Specification
+│       ├── SOMATIC_NODES_SYSTEM.md   # Somatic Nodes (Type 3 Mobile Clients) Specification
+│       ├── REFLECTOR_NODES_SYSTEM.md # Reflector Nodes (Type 2 User Reflectors) Specification
+│       ├── SOUND_ENGINE_SYSTEM.md    # Real-Time Procedural Sound Engine Specification
+│       └── CITY_GENERATION_SYSTEM.md # Multi-City Generation & Landmark Synthesis Specification
 ├── data/                     # Persistent Data Storage
 │   ├── scarred_bell.db       # Local SQLite Database (WAL Mode)
 │   └── scarred_twin.json     # Immutable ASC 2026 Snapshot
