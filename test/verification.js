@@ -5,6 +5,7 @@ import { calculateHaversineMeters, calculateInverseSquareGain } from '../server/
 import { validateSynthPreset } from '../server/utils/immunological-parser.js';
 import { getDatabaseConnection, updateNodeStateVector } from '../server/db/database.js';
 import { CONFIG } from '../server/config.js';
+import { getSomaticSignature, evaluateSomaticProximity } from '../server/services/hysteresis.js';
 
 console.log('=======================================================');
 console.log(' SINO CICATRIZADO - AUTOMATED VERIFICATION MATRIX TEST');
@@ -110,6 +111,74 @@ runTest('Hysteresis Irreversible Parameter Mutation & Boundary Limits', () => {
 
   assert(currentVal > initialValue, 'Parameter must drift away from initial value (irreversibility)');
   assert(currentVal <= limit, 'Parameter must not exceed parameter limit');
+});
+
+// ----------------------------------------------------
+// TEST 6: Somatic Signature Determinism & Crowd Damping
+// ----------------------------------------------------
+runTest('Somatic Signature Determinism & Crowd Damping Calculation', () => {
+  const sig1 = getSomaticSignature('user_ouro_preto_1');
+  const sig1Repeat = getSomaticSignature('user_ouro_preto_1');
+  const sig2 = getSomaticSignature('user_chicago_9');
+
+  console.log('   User 1 Sig:', sig1);
+  console.log('   User 2 Sig:', sig2);
+
+  assert.deepStrictEqual(sig1, sig1Repeat, 'Somatic signature must be strictly deterministic per somaticId');
+  assert(sig1.weightMultiplier >= 0.5 && sig1.weightMultiplier <= 1.8, 'Weight multiplier out of bounds');
+
+  // Crowd damping multiplier test for N=10 users
+  const crowdDamping = CONFIG.CROWD_DAMPING_FACTOR; // 0.3
+  const crowdMultiplier10 = 1.0 / (1.0 + crowdDamping * (10 - 1)); // ~0.27
+  assert(crowdMultiplier10 < 0.35 && crowdMultiplier10 > 0.2, 'Crowd multiplier for 10 users should dampen effect to ~0.27');
+});
+
+// ----------------------------------------------------
+// TEST 7: Non-Compounding Pitch Drift & User Reflector Scarring
+// ----------------------------------------------------
+runTest('Non-Compounding Pitch Drift Stability & User Reflector Scarring', () => {
+  const dummyReflector = {
+    nodeId: 'test_user_reflector_999',
+    nodeType: 'REFLECTOR',
+    city: 'chicago',
+    name: 'Test Chicago User Reflector',
+    coordinates: { lat: 41.8818, lng: -87.6231, alt: 0 },
+    stateVector: {
+      soundType: 'bell_deep',
+      carrierType: 'sine',
+      baseFrequency: 440.0,
+      initialBaseFrequency: 440.0,
+      harmonicity: 1.414,
+      decay: 1.5,
+      gain: 1.0,
+      euclideanDensity: 2,
+      fmIndex: 0.0,
+      filterCutoff: 1200.0,
+      bitDepth: 16
+    },
+    scarIndex: 0.0
+  };
+
+  const userPos = { lat: 41.8818, lng: -87.6231 }; // Directly at node coordinate
+  let mutatedNode = dummyReflector;
+
+  // Run 100 proximity evaluations
+  for (let i = 0; i < 100; i++) {
+    const res = evaluateSomaticProximity(userPos, mutatedNode, 'user_soma_chicago');
+    assert(res !== null, 'Proximity evaluation should succeed for user reflector');
+    mutatedNode = {
+      ...mutatedNode,
+      stateVector: res.mutatedStateVector,
+      scarIndex: mutatedNode.scarIndex + res.scarIncrement
+    };
+  }
+
+  const finalFreq = mutatedNode.stateVector.baseFrequency;
+  console.log(`   Initial Pitch: 440Hz -> Pitch after 100 ticks: ${finalFreq}Hz | Scar Index: ${mutatedNode.scarIndex.toFixed(6)}`);
+
+  // Verify pitch did not explode exponentially (must remain within microtonal range 420Hz - 460Hz)
+  assert(finalFreq >= 420.0 && finalFreq <= 460.0, `Pitch exploded unexpectedly: ${finalFreq}Hz`);
+  assert(mutatedNode.scarIndex > 0, 'User reflector scar index must increase over proximity updates');
 });
 
 console.log(`\n=======================================================`);

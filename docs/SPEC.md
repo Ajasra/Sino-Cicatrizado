@@ -109,17 +109,21 @@ $$\text{AttenuationFactor} = \frac{1}{1.0 + I(P)}$$
 
 ## 5. Cybernetic Hysteresis Engine
 
-When a Somatic Node passes within $15\text{ meters}$ of a Tower or Reflector, the node's state vector undergoes an irreversible parameter mutation.
+When a Somatic Node passes within $15\text{ meters}$ of any Tower or User-Created Reflector across all cities, the node's state vector undergoes an irreversible, participant-signed parameter mutation while fundamental note pitch is anchored to `initialBaseFrequency` to prevent exponential pitch compounding.
 
-$$\text{Parameter}_{t+1} = \text{Parameter}_t + \alpha \cdot e^{-\lambda \cdot d} \cdot (P_{\text{limit}} - \text{Parameter}_t)$$
+$$\Delta \text{Scar} = \alpha \cdot w_{\text{soma}} \cdot \mu_{\text{crowd}} \cdot e^{-\lambda \cdot d}$$
+$$\text{Parameter}_{t+1} = \text{Parameter}_t + \Delta \text{Scar} \cdot \mathbf{b}_{\text{soma}} \cdot (P_{\text{limit}} - \text{Parameter}_t)$$
 
 Where:
-- $\alpha = 0.05$ (Scarring coefficient)
+- $\alpha = 0.00002$ (Base scarring coefficient per $4\text{ Hz}$ frame tick, tuned for long-term multi-hour collapse longevity)
+- $w_{\text{soma}}$ = Deterministic participant weight multiplier ($0.5\times$ to $1.8\times$ derived from `somaticId`)
+- $\mathbf{b}_{\text{soma}}$ = Somatic directional parameter biases (unique participant signatures determining pitch drift direction $\pm 1$, filter cutoff shift $\pm 1$, FM distortion weight, and envelope decay direction)
+- $\mu_{\text{crowd}} = \frac{1}{1 + 0.3(N - 1)}$ = Sub-linear crowd damping factor for $N$ participants in proximity
 - $\lambda = 0.15\text{ m}^{-1}$ (Spatial decay rate)
 - $d = \text{Haversine distance in meters}$
 - $P_{\text{limit}} = \text{Parameter safety boundary}$
 
-The cumulative parameter deviation is tracked in the node's `scarIndex`.
+Microtonal pitch drift modulates smoothly ($\pm 3\%$) as a wave relative to fundamental pitch (`initialBaseFrequency`), providing rich real-time presence feedback without pitch runaway. The cumulative parameter deviation is tracked permanently in the node's `scarIndex`.
 
 ---
 

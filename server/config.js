@@ -45,8 +45,9 @@ export const CONFIG = {
   CITIES,
   VIRTUAL_USERS_COUNT: process.env.VIRTUAL_USERS_COUNT != null ? Number(process.env.VIRTUAL_USERS_COUNT) : 5,
   SHOW_USERS: process.env.SHOW_USERS !== 'false' && process.env.SHOW_USERS !== '0',
-  SCAR_COEFFICIENT_ALPHA: 0.05,
+  SCAR_COEFFICIENT_ALPHA: Number(process.env.SCAR_COEFFICIENT_ALPHA) || 0.00002,
   SPATIAL_DECAY_LAMBDA: 0.15,
+  CROWD_DAMPING_FACTOR: 0.3,
   PARAMETER_BOUNDS: {
     baseFrequency: { min: 55.0, max: 880.0, limit: 880.0 },
     harmonicity: { min: 0.5, max: 4.0, limit: 4.0 },

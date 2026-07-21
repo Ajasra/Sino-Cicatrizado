@@ -13,7 +13,7 @@
 
 ## 🌟 Key Features & Cybernetic Foundations
 
-- 🔔 **Irreversible Hysteretic Scars**: Somatic node encounters permanently mutate bell parameter vectors without returning to baseline state ($P_0$).
+- 🔔 **Irreversible Hysteretic Scars & Somatic Signatures**: Somatic node encounters permanently mutate bell parameter vectors with participant-specific fingerprints (unique weights, pitch directions, filter shifts, and FM biases) time-scaled for 30–60 minute real-world presence and protected by sub-linear crowd damping.
 - 🎛️ **Native Additive Bell DSP**: 5 inharmonic sine partials ($1.0, 1.21, 1.47, 1.94, 2.52$) simulating bronze and soapstone acoustic structures without external audio framework bloat.
 - 🔋 **Thermodynamic Battery Degradation**: Real-time hardware battery monitoring (`navigator.getBattery()`) mapped to a ScriptProcessor BitCrusher node (16-bit high-fidelity down to 4-bit digital dirt).
 - 🌐 **Decentered Spatial Propagation**: Spatial wave delay calculated at the speed of sound ($v_{\text{sound}} = 343\text{ m/s}$) via client-side Haversine distance math.
@@ -35,6 +35,7 @@ c:\Users\user\Desktop\ASC\The Scarred Bell\
 │   ├── PRD.md                # Product Requirement Document
 │   ├── TS.md                 # Technical Specification Document
 │   ├── SPEC.md               # Master Consolidated System Specification
+│   ├── SCARRING_SYSTEM.md    # Comprehensive Cybernetic Scarring System Specification
 │   ├── IMPLEMENTATION.md     # Architectural Blueprint & Component Roadmap
 │   ├── DEV_PRACTICES.md      # Development Standards & Directory Layout Rules
 │   ├── Audio Research.md     # Spectralism & Acoustic Resistance Foundations

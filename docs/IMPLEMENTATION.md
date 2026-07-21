@@ -95,8 +95,11 @@ Centralizes all server configuration, ports, file paths, math coefficients, and 
 - Pre-seeds historical towers of Ouro Preto (São Francisco de Assis, Nossa Senhora do Carmo, Santa Efigênia, Matriz do Pilar).
 
 #### 3. State Hysteresis Engine (`server/services/hysteresis.js`)
-Computes proximity parameter drift when a Somatic Node passes within $15\text{m}$ of a tower or reflector:
-$$P_{t+1} = P_t + \alpha \cdot e^{-\lambda \cdot d} \cdot (P_{\text{limit}} - P_t)$$
+Computes participant-signed proximity parameter drift and crowd damping when Somatic Nodes pass within $15\text{m}$ of any preset tower or user-created reflector:
+- **Fundamental Pitch Anchoring**: Anchors pitch drift ($\pm 3\%$ wobble) to `initialBaseFrequency`, preventing exponential pitch runaway while providing rich real-time microtonal presence response.
+- **Participant Signatures (`getSomaticSignature`)**: Deterministic parameter multipliers ($0.5\times$ to $1.8\times$) and directional biases ($\pm 1$ pitch drift, $\pm 1$ filter cutoff, FM weight, decay direction) per `somaticId`.
+- **Sub-linear Crowd Damping**: Multi-user proximity factor $\mu_{\text{crowd}} = \frac{1}{1 + 0.3(N - 1)}$ prevents linear crowd acceleration.
+- **Structural Longevity**: Base coefficient $\alpha = 0.00002$ per tick (~`0.00008`/sec), tuned for multi-hour/day structural collapse longevity.
 
 #### 4. Immunological Membrane (`server/utils/immunological-parser.js`)
 Sanitizes raw JSON or LLM outputs, enforcing safe ranges:

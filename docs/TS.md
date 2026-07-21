@@ -73,14 +73,18 @@ const NodeSchema = new mongoose.Schema({
 });
 ```
 
-### 2.2 The Hysteresis Math Engine
-When a Somatic Node passes near a Tower, we update the `stateVector` [tracing-the-scar]. The state must drift permanently, preventing parameters from returning to their initial pristine values ($P_0$) [tracing-the-scar].
+### 2.2 The Hysteresis Math Engine & Somatic Signatures
+When a Somatic Node passes near any Tower or User-Created Reflector across all cities, we update the `stateVector` [tracing-the-scar]. Pitch drift is anchored to `initialBaseFrequency` to prevent compounding exponential pitch runaway, while parameters drift permanently according to a participant-signed hysteretic transformation [tracing-the-scar].
 
 The parameter transformation is governed by:
-$$P_{t+1} = P_t + \alpha \cdot e^{-\lambda \cdot d} \cdot (P_{\text{limit}} - P_t)$$
+$$\Delta \text{Scar} = \alpha \cdot w_{\text{soma}} \cdot \mu_{\text{crowd}} \cdot e^{-\lambda \cdot d}$$
+$$P_{t+1} = P_t + \Delta \text{Scar} \cdot \mathbf{b}_{\text{soma}} \cdot (P_{\text{limit}} - P_t)$$
 
 Where:
-*   $\alpha$ = Scarring coefficient ($0.05$ default) [tracing-the-scar].
+*   $\alpha$ = Base scarring coefficient ($0.00002$ per tick, time-scaled for multi-hour structural collapse longevity).
+*   $w_{\text{soma}}$ = Somatic weight multiplier ($0.5\times$ to $1.8\times$) generated deterministically by `getSomaticSignature(somaticId)`.
+*   $\mathbf{b}_{\text{soma}}$ = Somatic directional biases ($\pm 1$ pitch drift, $\pm 1$ filter cutoff shift, FM weight multiplier, decay tail direction).
+*   $\mu_{\text{crowd}}$ = Sub-linear crowd damping factor $\frac{1}{1 + 0.3(N - 1)}$ for $N$ nearby participants.
 *   $\lambda$ = Spatial decay rate ($0.15\text{ m}^{-1}$).
 *   $d$ = Real-time Haversine distance in meters.
 *   $P_{\text{limit}}$ = Absolute non-destructive boundary threshold [tracing-the-scar].

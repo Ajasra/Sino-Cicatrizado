@@ -237,10 +237,12 @@ function seedInitialTowers(db) {
 
 
 
-export function getAllNodes(city = CONFIG.DEFAULT_CITY) {
+export function getAllNodes(city = null) {
   const db = getDatabaseConnection();
-  const stmt = db.prepare('SELECT * FROM nodes WHERE city = ?');
-  const rows = stmt.all(city);
+  const stmt = city
+    ? db.prepare('SELECT * FROM nodes WHERE city = ?')
+    : db.prepare('SELECT * FROM nodes');
+  const rows = city ? stmt.all(city) : stmt.all();
 
   return rows.map((row) => ({
     nodeId: row.node_id,
@@ -256,6 +258,7 @@ export function getAllNodes(city = CONFIG.DEFAULT_CITY) {
       soundType: row.sound_type || 'bell_deep',
       carrierType: row.carrier_type || 'sine',
       baseFrequency: row.base_frequency,
+      initialBaseFrequency: row.base_frequency,
       harmonicity: row.harmonicity,
       decay: row.decay,
       gain: row.gain,

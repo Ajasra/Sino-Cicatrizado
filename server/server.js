@@ -8,7 +8,8 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
 import { getAllNodes, saveReflectorNode, getDatabaseConnection } from './db/database.js';
-import { evaluateSomaticProximity } from './services/hysteresis.js';
+import { evaluateSomaticProximity, getSomaticSignature } from './services/hysteresis.js';
+import { calculateHaversineMeters } from './services/spatial.js';
 import { generateReflectorPresetFromPrompt } from './llm-membrane.js';
 import { validateSynthPreset } from './utils/immunological-parser.js';
 import { initVirtualUsers } from './services/virtual-users.js';
@@ -209,10 +210,11 @@ function broadcastMessage(dataObj) {
 // 4 Hz Broadcast & Proximity Hysteresis Evaluation Loop (250 ms interval)
 const loopIntervalMs = Math.round(1000 / CONFIG.BROADCAST_RATE_HZ);
 setInterval(() => {
-  const allDbNodes = getAllNodes(CONFIG.DEFAULT_CITY);
+  const allDbNodes = getAllNodes();
 
   // Collect somatic positions for frame broadcast
   const somaticList = [];
+  const activeSomas = [];
   for (const [id, soma] of somaticNodesMap) {
     if (soma.coordinates) {
       somaticList.push({
@@ -220,23 +222,41 @@ setInterval(() => {
         coordinates: soma.coordinates,
         batteryLevel: soma.batteryLevel
       });
+      activeSomas.push({ id, soma });
+    }
+  }
 
-      // Evaluate hysteretic mutations against active towers & reflectors
-      for (const dbNode of allDbNodes) {
-        const mutationResult = evaluateSomaticProximity(soma.coordinates, dbNode);
-        if (mutationResult) {
-          // Broadcast scar mutation to all clients
-          broadcastMessage({
-            type: 'NODE_MUTATED',
-            payload: {
-              nodeId: mutationResult.nodeId,
-              scarIncrement: mutationResult.scarIncrement,
-              updatedState: mutationResult.mutatedStateVector,
-              distanceMeters: mutationResult.distanceMeters,
-              triggeredBySomaticId: id
-            },
-            timestamp: Date.now()
-          });
+  // Evaluate hysteretic mutations against active towers & reflectors with crowd damping & participant signatures
+  if (activeSomas.length > 0) {
+    for (const dbNode of allDbNodes) {
+      // Find all somatic nodes within proximity interaction threshold for this dbNode
+      const somasInProximity = activeSomas.filter(item => {
+        const dist = calculateHaversineMeters(item.soma.coordinates, dbNode.coordinates);
+        return dist <= CONFIG.PROXIMITY_MUTATION_THRESHOLD_M;
+      });
+
+      const crowdCount = somasInProximity.length;
+      if (crowdCount > 0) {
+        const crowdDamping = CONFIG.CROWD_DAMPING_FACTOR || 0.3;
+        const crowdMultiplier = 1.0 / (1.0 + crowdDamping * (crowdCount - 1));
+
+        for (const item of somasInProximity) {
+          const mutationResult = evaluateSomaticProximity(item.soma.coordinates, dbNode, item.id, crowdMultiplier);
+          if (mutationResult) {
+            // Broadcast scar mutation to all clients
+            broadcastMessage({
+              type: 'NODE_MUTATED',
+              payload: {
+                nodeId: mutationResult.nodeId,
+                scarIncrement: mutationResult.scarIncrement,
+                updatedState: mutationResult.mutatedStateVector,
+                distanceMeters: mutationResult.distanceMeters,
+                triggeredBySomaticId: item.id,
+                signature: mutationResult.signature
+              },
+              timestamp: Date.now()
+            });
+          }
         }
       }
     }

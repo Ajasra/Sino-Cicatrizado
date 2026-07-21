@@ -2,45 +2,86 @@ import { CONFIG } from '../config.js';
 import { calculateHaversineMeters } from './spatial.js';
 import { updateNodeStateVector } from '../db/database.js';
 
-export function evaluateSomaticProximity(somaticPosition, targetNode) {
+/**
+ * Generates a deterministic participant signature from somaticId.
+ * Provides unique weight multipliers and directional parameter biases per participant.
+ */
+export function getSomaticSignature(somaticId) {
+  if (!somaticId) {
+    return { weightMultiplier: 1.0, pitchDir: 1, filterDir: -1, fmWeight: 1.0, decayDir: 1 };
+  }
+  let hash = 5381;
+  const str = String(somaticId);
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const uHash = Math.abs(hash);
+
+  const weightMultiplier = 0.5 + ((uHash % 100) / 100.0) * 1.3; // 0.5x to 1.8x intensity
+  const pitchDir = ((uHash >> 2) & 1) === 0 ? 1 : -1;             // +1 or -1 pitch drift direction
+  const filterDir = ((uHash >> 3) & 1) === 0 ? -1 : 1;            // -1 (darkening) or +1 (brightening)
+  const fmWeight = 0.5 + (((uHash >> 4) % 100) / 100.0) * 1.5;     // 0.5x to 2.0x FM distortion sensitivity
+  const decayDir = ((uHash >> 5) & 1) === 0 ? 1 : -1;            // +1 (lengthen) or -1 (shorten) decay
+
+  return {
+    weightMultiplier,
+    pitchDir,
+    filterDir,
+    fmWeight,
+    decayDir
+  };
+}
+
+export function evaluateSomaticProximity(somaticPosition, targetNode, somaticSignature = null, crowdMultiplier = 1.0) {
   const distanceMeters = calculateHaversineMeters(somaticPosition, targetNode.coordinates);
 
   if (distanceMeters > CONFIG.PROXIMITY_MUTATION_THRESHOLD_M) {
     return null; // Outside proximity interaction zone
   }
 
+  const signature = (typeof somaticSignature === 'object' && somaticSignature !== null)
+    ? somaticSignature
+    : getSomaticSignature(somaticSignature);
+
   // Hysteresis calculation: P_{t+1} = P_t + alpha * exp(-lambda * d) * (P_{limit} - P_t)
   const alpha = CONFIG.SCAR_COEFFICIENT_ALPHA;
   const lambda = CONFIG.SPATIAL_DECAY_LAMBDA;
   const spatialWeight = Math.exp(-lambda * distanceMeters);
 
-  const currentVector = targetNode.stateVector || {};
-  const bounds = CONFIG.PARAMETER_BOUNDS;
-  const scarIncrement = alpha * spatialWeight;
+  // Apply participant signature weight multiplier & crowd multiplier
+  const effectiveAlpha = alpha * signature.weightMultiplier * crowdMultiplier;
+  const scarIncrement = effectiveAlpha * spatialWeight;
   const currentScarIndex = (targetNode.scarIndex || 0.0) + scarIncrement;
 
-  // Multi-parameter hysteretic scar mutation
-  const baseFreq = Number(currentVector.baseFrequency) || 220.0;
-  // Microtonal pitch drift up/down (±3% oscillation as scars accumulate)
-  const pitchDrift = 1.0 + (Math.sin(currentScarIndex * 8.5) * 0.03 * spatialWeight);
-  const newFreq = clamp(baseFreq * pitchDrift, bounds.baseFrequency.min, bounds.baseFrequency.max);
+  const currentVector = targetNode.stateVector || {};
+  const bounds = CONFIG.PARAMETER_BOUNDS;
+
+  // Multi-parameter hysteretic scar mutation influenced by participant signature
+  // Anchor to fundamental pitch (initialBaseFrequency) to prevent exponential compounding pitch runaway
+  const fundamentalFreq = Number(currentVector.initialBaseFrequency) || Number(currentVector.baseFrequency) || 220.0;
+  const baseFreq = clamp(mutateParameter(fundamentalFreq, bounds.baseFrequency, effectiveAlpha, spatialWeight), bounds.baseFrequency.min, bounds.baseFrequency.max);
+
+  // Microtonal pitch drift (±3% oscillation) applied to fundamental pitch without runaway compounding
+  const pitchDrift = 1.0 + (signature.pitchDir * Math.sin(currentScarIndex * 8.5) * 0.03 * spatialWeight);
+  const effectiveFreq = clamp(baseFreq * pitchDrift, bounds.baseFrequency.min, bounds.baseFrequency.max);
 
   // Harmonicity drift
   const currentHarm = Number(currentVector.harmonicity) || 1.414;
-  const newHarm = clamp(mutateParameter(currentHarm, bounds.harmonicity, alpha, spatialWeight), bounds.harmonicity.min, bounds.harmonicity.max);
+  const newHarm = clamp(mutateParameter(currentHarm, bounds.harmonicity, effectiveAlpha, spatialWeight), bounds.harmonicity.min, bounds.harmonicity.max);
 
-  // Decay envelope tail variation
+  // Decay envelope tail variation (influenced by decayDir)
   const currentDecay = Number(currentVector.decay) || 1.5;
-  const decayDelta = (Math.cos(currentScarIndex * 4.2) * 0.2 * spatialWeight);
+  const decayDelta = signature.decayDir * (Math.cos(currentScarIndex * 4.2) * 0.2 * spatialWeight);
   const newDecay = clamp(currentDecay + decayDelta, bounds.decay.min, bounds.decay.max);
 
-  // FM Index distortion increases with scar accumulation
+  // FM Index distortion scaled by participant fmWeight
   const currentFm = Number(currentVector.fmIndex) || 0.0;
-  const newFm = clamp(currentFm + (scarIncrement * 2.5), bounds.fmIndex.min, bounds.fmIndex.max);
+  const newFm = clamp(currentFm + (scarIncrement * 2.5 * signature.fmWeight), bounds.fmIndex.min, bounds.fmIndex.max);
 
-  // Filter cutoff shift (darkening resonance as scars build up)
+  // Filter cutoff shift (shift direction influenced by filterDir)
   const currentCutoff = Number(currentVector.filterCutoff) || 1200.0;
-  const newCutoff = clamp(currentCutoff - (scarIncrement * 300.0), bounds.filterCutoff.min, bounds.filterCutoff.max);
+  const newCutoff = clamp(currentCutoff + (signature.filterDir * scarIncrement * 300.0), bounds.filterCutoff.min, bounds.filterCutoff.max);
 
   // Bit depth reduction for severe physical exhaustion (lowers from 16 to 4 bit as scarIndex exceeds 1.5)
   const currentBits = Number(currentVector.bitDepth) || 16;
@@ -61,11 +102,12 @@ export function evaluateSomaticProximity(somaticPosition, targetNode) {
     ...currentVector,
     soundType,
     carrierType: currentVector.carrierType || 'sine',
-    baseFrequency: Math.round(newFreq * 100) / 100,
+    initialBaseFrequency: Math.round(fundamentalFreq * 100) / 100,
+    baseFrequency: Math.round(effectiveFreq * 100) / 100,
     harmonicity: Math.round(newHarm * 1000) / 1000,
     decay: Math.round(newDecay * 100) / 100,
-    gain: Math.round(mutateParameter(Number(currentVector.gain) || 1.0, bounds.gain, alpha, spatialWeight) * 100) / 100,
-    euclideanDensity: Math.round(mutateParameter(Number(currentVector.euclideanDensity) || 2, bounds.euclideanDensity, alpha, spatialWeight)),
+    gain: Math.round(mutateParameter(Number(currentVector.gain) || 1.0, bounds.gain, effectiveAlpha, spatialWeight) * 100) / 100,
+    euclideanDensity: Math.round(mutateParameter(Number(currentVector.euclideanDensity) || 2, bounds.euclideanDensity, effectiveAlpha, spatialWeight)),
     echoProbability: currentVector.echoProbability || 0.7,
     fmIndex: Math.round(newFm * 100) / 100,
     filterCutoff: Math.round(newCutoff),
@@ -79,7 +121,8 @@ export function evaluateSomaticProximity(somaticPosition, targetNode) {
     nodeId: targetNode.nodeId,
     mutatedStateVector: mutatedVector,
     scarIncrement,
-    distanceMeters
+    distanceMeters,
+    signature
   };
 }
 
