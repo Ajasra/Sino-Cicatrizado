@@ -52,17 +52,22 @@ class SinoCicatrizadoApp {
     // 1. Fetch available cities configuration from backend
     await this.fetchCities();
 
-    // 2. Detect initial city from URL (e.g. /chicago) or show city selection
+    // 2. Detect initial city from URL (e.g. /chicago) or use default
     const urlCity = this.detectCityFromURL();
     if (urlCity) {
       this.currentCity = urlCity;
     } else {
       this.currentCity = CLIENT_CONFIG.DEFAULT_CITY;
-      // Prompt user with city selector modal if no city specified in URL
-      setTimeout(() => this.openCityModal(), 300);
     }
 
     const cityObj = this.availableCities[this.currentCity] || CLIENT_CONFIG.CITIES.ouro_preto;
+
+    // Initialize default fallback somatic coordinates for active city
+    this.currentSomaticCoords = {
+      lat: Number(cityObj.center.lat),
+      lng: Number(cityObj.center.lng),
+      alt: Number(cityObj.center.alt || 100.0)
+    };
 
     // Set Audio Engine City Acoustic Profile
     if (this.audioEngine && typeof this.audioEngine.setCityAcousticProfile === 'function') {
@@ -80,7 +85,8 @@ class SinoCicatrizadoApp {
     this.wsClient = new ScarredWebSocketClient((msg) => this.handleServerMessage(msg));
     this.wsClient.connect();
 
-    // 6. Initialize Sensors
+    // 6. Initialize Sensors & Sequencer coords
+    this.nodeSequencer.setSomaticCoords(this.currentSomaticCoords);
     this.setupSensors();
     if (this.gpsSensor) {
       this.gpsSensor.setCityCenter(cityObj.center);
@@ -95,8 +101,9 @@ class SinoCicatrizadoApp {
       }
     });
 
-    // 7. Setup UI Event Listeners
+    // 7. Setup UI Event Listeners & City Selectors
     this.setupUIListeners();
+    this.renderMembraneCitySelector();
     this.renderCitySelector();
   }
 
@@ -129,6 +136,16 @@ class SinoCicatrizadoApp {
     this.currentCity = cityKey;
     const cityObj = this.availableCities[cityKey];
 
+    // Update fallback somatic position for active city
+    this.currentSomaticCoords = {
+      lat: Number(cityObj.center.lat),
+      lng: Number(cityObj.center.lng),
+      alt: Number(cityObj.center.alt || 100.0)
+    };
+    if (this.nodeSequencer) {
+      this.nodeSequencer.setSomaticCoords(this.currentSomaticCoords);
+    }
+
     if (updateUrl && window.history && window.history.pushState) {
       window.history.pushState({ city: cityKey }, '', `/${cityKey}`);
     }
@@ -146,9 +163,29 @@ class SinoCicatrizadoApp {
     }
 
     await this.fetchNodes();
+    this.renderMembraneCitySelector();
+    this.renderCitySelector();
     this.closeCityModal();
   }
 
+  renderMembraneCitySelector() {
+    const container = document.getElementById('membrane-city-cards');
+    if (!container) return;
+
+    container.innerHTML = '';
+    Object.values(this.availableCities).forEach((c) => {
+      const card = document.createElement('div');
+      card.className = `membrane-city-card ${c.key === this.currentCity ? 'active' : ''}`;
+      card.innerHTML = `
+        <div class="membrane-city-name">${c.name}</div>
+        <div class="membrane-city-country">${c.country || ''}</div>
+      `;
+      card.addEventListener('click', () => {
+        this.selectCity(c.key);
+      });
+      container.appendChild(card);
+    });
+  }
 
   renderCitySelector() {
     const container = document.getElementById('city-list-container');
@@ -206,6 +243,18 @@ class SinoCicatrizadoApp {
 
   async unlockAudio() {
     if (this.isAudioUnlocked) return;
+
+    const cityObj = this.availableCities[this.currentCity] || CLIENT_CONFIG.CITIES.ouro_preto;
+    if (!this.currentSomaticCoords && cityObj) {
+      this.currentSomaticCoords = {
+        lat: Number(cityObj.center.lat),
+        lng: Number(cityObj.center.lng),
+        alt: Number(cityObj.center.alt || 100.0)
+      };
+    }
+    if (this.nodeSequencer) {
+      this.nodeSequencer.setSomaticCoords(this.currentSomaticCoords);
+    }
 
     await this.audioEngine.init();
     await this.audioEngine.resume();

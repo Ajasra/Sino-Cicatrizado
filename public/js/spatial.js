@@ -43,28 +43,19 @@ export function calculateDensityImpedanceFactor(targetNode, allReflectors = []) 
   return 1.0 / (1.0 + impedance);
 }
 
-export function getEffectiveSpatialAudio(listenerCoords, nodeCoords) {
-  const defaultCenter = CLIENT_CONFIG.OURO_PRETO_CENTER;
+export function getEffectiveSpatialAudio(listenerCoords, nodeCoords, activeCityCenter = null) {
+  const effectiveCoords = listenerCoords || activeCityCenter;
 
-  // No GPS fix yet — fall back to city-center distance for preview/desktop mode
-  if (!listenerCoords || !Number.isFinite(listenerCoords.lat) || !Number.isFinite(listenerCoords.lng)) {
-    const mapCenterDist = calculateHaversineMeters(defaultCenter, nodeCoords);
-    const distanceMeters = Number.isFinite(mapCenterDist) ? Math.min(mapCenterDist, 600.0) : 150.0;
-    const delaySeconds = Math.min(calculateWaveDelaySeconds(distanceMeters), 2.0);
-    const gain = Math.max(0.15, calculateInverseSquareGain(distanceMeters));
-    return { distanceMeters, delaySeconds, gain, hasGpsFix: false };
+  if (!effectiveCoords || !Number.isFinite(effectiveCoords.lat) || !Number.isFinite(effectiveCoords.lng)) {
+    return { distanceMeters: Infinity, delaySeconds: 0, gain: 0, hasGpsFix: false };
   }
 
-  // Real GPS available — use actual distance, no fake substitution
-  const distanceMeters = calculateHaversineMeters(listenerCoords, nodeCoords);
-
-  // Speed of sound propagation delay (distance / 343 m/s). Further towers take longer to arrive
+  const distanceMeters = calculateHaversineMeters(effectiveCoords, nodeCoords);
   const rawDelay = calculateWaveDelaySeconds(distanceMeters);
   const delaySeconds = Math.min(rawDelay, 2.0);
-
-  // Inverse-square gain attenuation — allow near-silence at range (no enforced floor)
   const gain = Math.max(0.02, calculateInverseSquareGain(distanceMeters));
+  const hasGpsFix = !!(listenerCoords && Number.isFinite(listenerCoords.lat) && Number.isFinite(listenerCoords.lng));
 
-  return { distanceMeters, delaySeconds, gain, hasGpsFix: true };
+  return { distanceMeters, delaySeconds, gain, hasGpsFix };
 }
 

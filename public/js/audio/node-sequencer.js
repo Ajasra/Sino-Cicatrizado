@@ -78,12 +78,14 @@ export class NodeSequencer {
   }
 
   strikeNodeBell(node) {
+    if (!this.somaticCoords) return;
+
     // Compute effective spatial audio gain & delay for listener position
     const spatialAudio = getEffectiveSpatialAudio(this.somaticCoords, node.coordinates);
 
-    // Proximity gate: if we have a real GPS fix, only trigger nodes within SOUND_TRIGGER_RADIUS_M
-    if (spatialAudio.hasGpsFix && spatialAudio.distanceMeters > CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M) {
-      return; // User is too far from this node — stay silent
+    // Proximity gate: only trigger nodes within SOUND_TRIGGER_RADIUS_M
+    if (spatialAudio.distanceMeters > CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M) {
+      return; // Listener is too far from this node — stay silent
     }
 
     // 1. Animate visual ringing ripple on map marker

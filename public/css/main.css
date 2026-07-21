@@ -43,7 +43,69 @@ body, html {
   max-width: 480px;
   font-size: 0.95rem;
   line-height: 1.5;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+}
+
+.membrane-city-container {
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 28px;
+}
+
+.membrane-city-title {
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  color: var(--accent-gold);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.membrane-city-cards {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.membrane-city-card {
+  flex: 1;
+  min-width: 120px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.membrane-city-card:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--accent-echolocation);
+}
+
+.membrane-city-card.active {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.25);
+}
+
+.membrane-city-name {
+  font-family: var(--font-family-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.membrane-city-card.active .membrane-city-name {
+  color: var(--accent-gold);
+}
+
+.membrane-city-country {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .unlock-btn {
