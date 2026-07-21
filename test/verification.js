@@ -73,7 +73,9 @@ runTest('Immunological Parsing Layer Guardrail & Fallback Test', () => {
 // ----------------------------------------------------
 runTest('SQLite WAL Mode Parallel Concurrency (100 Concurrent Writes)', () => {
   const db = getDatabaseConnection();
-  const nodeId = 'church_sao_francisco_1';
+  const firstNode = db.prepare('SELECT node_id FROM nodes LIMIT 1').get();
+  assert(firstNode, 'At least one node must exist in the database');
+  const nodeId = firstNode.node_id;
 
   for (let i = 0; i < 100; i++) {
     updateNodeStateVector(nodeId, {
@@ -86,7 +88,7 @@ runTest('SQLite WAL Mode Parallel Concurrency (100 Concurrent Writes)', () => {
   }
 
   const row = db.prepare('SELECT scar_index, interaction_count FROM nodes WHERE node_id = ?').get(nodeId);
-  console.log(`   Nodes interaction count: ${row.interaction_count}, scar index: ${row.scar_index.toFixed(4)}`);
+  console.log(`   Node "${nodeId}" interaction count: ${row.interaction_count}, scar index: ${row.scar_index.toFixed(4)}`);
 
   assert(row.interaction_count >= 100, 'Interaction count should be at least 100');
 });
