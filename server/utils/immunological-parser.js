@@ -18,10 +18,13 @@ export function validateSynthPreset(rawPreset) {
 
   const bounds = CONFIG.PARAMETER_BOUNDS;
 
-  const validSoundTypes = ['bell_deep', 'bell_sacred', 'drone', 'industrial', 'glitch'];
+  const soundTypePattern = /^[a-z0-9_]{2,40}$/i;
+  const soundType = (typeof data.soundType === 'string' && soundTypePattern.test(data.soundType))
+    ? data.soundType.toLowerCase()
+    : 'bell_sacred';
 
   return {
-    soundType: validSoundTypes.includes(data.soundType) ? data.soundType : 'bell_sacred',
+    soundType,
     carrierType: ['sine', 'triangle', 'sawtooth'].includes(data.carrierType) ? data.carrierType : 'sine',
     baseFrequency: clamp(Number(data.baseFrequency) || 220.0, bounds.baseFrequency.min, bounds.baseFrequency.max),
     harmonicity: clamp(Number(data.harmonicity) || 1.414, bounds.harmonicity.min, bounds.harmonicity.max),

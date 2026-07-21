@@ -103,7 +103,8 @@ async function sendFetchPayload(endpoint, headers, payload) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000)
     });
 
     if (!response.ok) {

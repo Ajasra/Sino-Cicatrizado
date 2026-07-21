@@ -332,6 +332,23 @@ export class LeafletMapView {
     });
   }
 
+  enableTapToMove(onSetLocation) {
+    if (!this.map || !window.L) return;
+
+    this.map.on('click', (e) => {
+      // Ignore clicks on existing popups or control elements
+      const target = e.originalEvent?.target;
+      if (target && (target.closest('.leaflet-popup') || target.closest('.leaflet-control'))) {
+        return;
+      }
+
+      const clickedCoords = { lat: e.latlng.lat, lng: e.latlng.lng };
+      if (typeof onSetLocation === 'function') {
+        onSetLocation(clickedCoords);
+      }
+    });
+  }
+
   getMap() {
     return this.map;
   }

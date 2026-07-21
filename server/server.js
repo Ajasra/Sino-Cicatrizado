@@ -1,7 +1,9 @@
 import express from 'express';
 import http from 'http';
+import https from 'https';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
@@ -255,10 +257,55 @@ getDatabaseConnection(); // Initialize database schema & seed data
 if (CONFIG.DEBUG) {
   initVirtualUsers(somaticNodesMap, broadcastMessage);
 }
+function getNetworkIPs() {
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push(net.address);
+      }
+    }
+  }
+  return addresses;
+}
+
+const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 3443;
+const PFX_PATH = path.join(__dirname, '..', 'certs', 'server.pfx');
+let httpsServer = null;
+
+if (fs.existsSync(PFX_PATH)) {
+  try {
+    const pfxBuffer = fs.readFileSync(PFX_PATH);
+    httpsServer = https.createServer({ pfx: pfxBuffer, passphrase: 'scarred' }, app);
+    const wssHttps = new WebSocketServer({ server: httpsServer });
+    wssHttps.on('connection', (ws) => {
+      // Reuse same websocket connection handler logic
+      wss.emit('connection', ws);
+    });
+    httpsServer.listen(HTTPS_PORT, CONFIG.HOST, () => {
+      // Started HTTPS listener
+    });
+  } catch (err) {
+    console.warn('[HTTPS] Could not start HTTPS server:', err.message);
+  }
+}
+
 server.listen(CONFIG.PORT, CONFIG.HOST, () => {
+  const lanIps = getNetworkIPs();
   console.log(`=======================================================`);
-  console.log(` Sino Cicatrizado (The Scarred Bell) Server Running `);
-  console.log(` URL: http://localhost:${CONFIG.PORT}`);
+  console.log(` Sino Cicatrizado (The Scarred Bell) Server Running`);
+  console.log(` Local HTTP:    http://localhost:${CONFIG.PORT}`);
+  lanIps.forEach(ip => {
+    console.log(` Network HTTP:  http://${ip}:${CONFIG.PORT} (Interactive Tap Mode)`);
+  });
+  if (httpsServer) {
+    console.log(` -----------------------------------------------------`);
+    console.log(` Local HTTPS:   https://localhost:${HTTPS_PORT}`);
+    lanIps.forEach(ip => {
+      console.log(` Network HTTPS: https://${ip}:${HTTPS_PORT} (Real Hardware GPS Mode)`);
+    });
+  }
   console.log(` Environment: Node.js / SQLite WAL / WSS Port ${CONFIG.PORT}`);
   console.log(` Broadcast Loop: ${CONFIG.BROADCAST_RATE_HZ} Hz (${loopIntervalMs} ms)`);
   console.log(` Debug Mode: ${CONFIG.DEBUG} | Show Users: ${CONFIG.SHOW_USERS} | Virtual Users: ${CONFIG.VIRTUAL_USERS_COUNT}`);

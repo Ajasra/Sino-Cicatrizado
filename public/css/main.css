@@ -142,6 +142,13 @@ header {
   opacity: 0.8;
   white-space: nowrap;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pill-city {
+  cursor: pointer;
 }
 
 .pill-active {
@@ -160,6 +167,11 @@ header {
   width: 100%;
   height: 100%;
   z-index: 1;
+  background-color: #08090d !important;
+}
+
+.leaflet-container {
+  background-color: #08090d !important;
 }
 
 /* Leaflet Map Controls Custom Positioning (Left Center) */
@@ -303,18 +315,43 @@ header {
 
 .fab-settings {
   position: absolute;
-  bottom: 20px;
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   left: 20px;
 }
 
 .fab-group-right {
   position: absolute;
-  bottom: 20px;
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   right: 20px;
   z-index: 500;
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .fab-settings {
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .fab-group-right {
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    gap: 14px;
+  }
+
+  .fab-group-right .fab-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .leaflet-top.leaflet-left {
+    top: 45% !important;
+    left: 12px !important;
+  }
 }
 
 .fab-group-right .fab-btn {

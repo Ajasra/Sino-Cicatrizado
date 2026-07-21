@@ -86,6 +86,15 @@ class SinoCicatrizadoApp {
       this.gpsSensor.setCityCenter(cityObj.center);
     }
 
+    // Enable touch/click tap-to-move location on map for mobile devices
+    this.mapView.enableTapToMove((coords) => {
+      if (this.gpsSensor) {
+        this.gpsSensor.setCustomMockLocation(coords);
+      } else {
+        this.handlePositionUpdate(coords);
+      }
+    });
+
     // 7. Setup UI Event Listeners
     this.setupUIListeners();
     this.renderCitySelector();
@@ -109,7 +118,7 @@ class SinoCicatrizadoApp {
     const pillCity = document.getElementById('pill-city');
     const cityObj = this.availableCities[this.currentCity];
     if (pillCity && cityObj) {
-      pillCity.textContent = `🏙️ ${cityObj.name.toUpperCase()}`;
+      pillCity.textContent = `${cityObj.name.toUpperCase()}`;
       pillCity.title = `Active Soundscape: ${cityObj.name} (${cityObj.country}) — Click to change city`;
     }
   }
