@@ -1,0 +1,28 @@
+{
+  "name": "sino-cicatrizado",
+  "version": "1.0.0",
+  "description": "Sino Cicatrizado (The Scarred Bell) - System-Environment Hybrid Hysteretic Acoustic Apparatus",
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "test": "node test/verification.js"
+  },
+  "keywords": [
+    "cybernetics",
+    "web-audio",
+    "hysteresis",
+    "decolonial-sound",
+    "ouro-preto",
+    "sqlite-wal"
+  ],
+  "author": "Vector",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.1.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}

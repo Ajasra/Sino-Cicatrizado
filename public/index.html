@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sino Cicatrizado (The Scarred Bell)</title>
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- App Styling -->
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+
+  <!-- AudioContext Gesture Unlock Membrane -->
+  <div id="unlock-membrane">
+    <h1>SINO CICATRIZADO</h1>
+    <p>A Site-Specific System-Environment Hybrid Acoustic Apparatus. Enter the Campanile to initialize AudioContext, spatial synthesis graph, and somatic position tracking.</p>
+    <button id="unlock-btn" class="unlock-btn">ENTER CAMPANILE / PERMITIR O SOM</button>
+  </div>
+
+  <!-- Main App View Shell -->
+  <div id="app-container">
+    <header>
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <span>SINO CICATRIZADO</span>
+      </div>
+
+      <div class="status-pills">
+        <span id="pill-twin-mode" class="pill pill-active">MODE: LIVING CITY</span>
+        <span id="pill-battery" class="pill">BATTERY: 100% (16-BIT)</span>
+        <span id="pill-gps" class="pill">GPS: MOCK/DESKTOP</span>
+        <span id="pill-nodes" class="pill">TOWERS: 4</span>
+      </div>
+    </header>
+
+    <div id="viewport">
+      <div id="map"></div>
+      <canvas id="radar-canvas"></canvas>
+
+      <!-- Control Dashboard -->
+      <div id="dashboard">
+        <div class="card">
+          <div class="card-title">Acoustic Probes & Echolocation</div>
+          <div class="btn-group">
+            <button id="btn-chirp" class="btn btn-primary">EMIT SOMATIC CHIRP</button>
+            <button id="btn-mock-gps" class="btn">MOCK GPS TOGGLE</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Somatic Reflector Deposit</div>
+          <input type="text" id="input-reflector-intent" class="input-field" placeholder="Enter emotional state or acoustic intent...">
+          <button id="btn-drop-reflector" class="btn" style="width: 100%;">DROP STATIC REFLECTOR HERE</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Dual-Twin Ontology Selector</div>
+          <div class="btn-group">
+            <button id="btn-mode-living" class="btn btn-primary">LIVING CITY</button>
+            <button id="btn-mode-twin" class="btn">SCARRED TWIN</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Main Client Application Module -->
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
