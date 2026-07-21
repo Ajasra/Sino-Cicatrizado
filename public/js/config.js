@@ -74,9 +74,27 @@ export const CLIENT_CONFIG = {
     filterCutoff: 1200.0,
     bitDepth: 16
   },
+  DEFAULT_CITY: 'ouro_preto',
+  CITIES: {
+    ouro_preto: {
+      key: 'ouro_preto',
+      name: 'Ouro Preto',
+      country: 'Brazil',
+      center: { lat: -20.3856, lng: -43.5035, zoom: 16 },
+      description: 'Colonial soapstone bells & baroque valley echoes'
+    },
+    chicago: {
+      key: 'chicago',
+      name: 'Chicago',
+      country: 'USA',
+      center: { lat: 41.8818, lng: -87.6231, zoom: 14 },
+      description: 'Windy lakefront, steel bridges & industrial L-train resonance'
+    }
+  },
   OURO_PRETO_CENTER: {
     lat: -20.3856,
     lng: -43.5035,
     zoom: 16
   }
 };
+

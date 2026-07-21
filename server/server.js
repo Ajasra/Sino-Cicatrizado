@@ -33,9 +33,14 @@ app.use(express.static(PUBLIC_DIR));
 const somaticNodesMap = new Map();
 
 // API Routes
+app.get('/api/cities', (req, res) => {
+  return res.json({ cities: Object.values(CONFIG.CITIES) });
+});
+
 app.get('/api/nodes', (req, res) => {
-  const nodes = getAllNodes(CONFIG.DEFAULT_CITY);
-  return res.json({ mode: 'LIVING', debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, nodes });
+  const city = req.query.city || CONFIG.DEFAULT_CITY;
+  const nodes = getAllNodes(city);
+  return res.json({ mode: 'LIVING', debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, city, nodes });
 });
 
 app.post('/api/reflectors', async (req, res) => {
@@ -88,6 +93,15 @@ app.post('/api/cities/create', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// SPA fallback for city routes (e.g. /chicago, /ouro_preto)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.includes('.')) {
+    return next();
+  }
+  return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
+
 
 // Initialize HTTP & WebSocket Server
 const server = http.createServer(app);

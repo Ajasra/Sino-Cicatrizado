@@ -8,6 +8,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 
+export const CITIES = {
+  ouro_preto: {
+    key: 'ouro_preto',
+    name: 'Ouro Preto',
+    country: 'Brazil',
+    center: { lat: -20.3856, lng: -43.5035, zoom: 16 },
+    description: 'Colonial soapstone bells & baroque valley echoes'
+  },
+  chicago: {
+    key: 'chicago',
+    name: 'Chicago',
+    country: 'USA',
+    center: { lat: 41.8818, lng: -87.6231, zoom: 14 },
+    description: 'Windy lakefront, steel bridges & industrial L-train resonance'
+  }
+};
+
 export const CONFIG = {
   DEBUG: process.env.DEBUG === 'true' || process.env.DEBUG === '1',
   PORT: process.env.PORT || 3000,
@@ -17,6 +34,7 @@ export const CONFIG = {
   BROADCAST_RATE_HZ: Number(process.env.BROADCAST_RATE_HZ) || 4,
   PROXIMITY_MUTATION_THRESHOLD_M: Number(process.env.PROXIMITY_MUTATION_THRESHOLD_M) || 15.0,
   DEFAULT_CITY: process.env.DEFAULT_CITY || 'ouro_preto',
+  CITIES,
   VIRTUAL_USERS_COUNT: process.env.VIRTUAL_USERS_COUNT != null ? Number(process.env.VIRTUAL_USERS_COUNT) : 5,
   SHOW_USERS: process.env.SHOW_USERS !== 'false' && process.env.SHOW_USERS !== '0',
   SCAR_COEFFICIENT_ALPHA: 0.05,
@@ -41,3 +59,4 @@ export const CONFIG = {
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || ''
   }
 };
+

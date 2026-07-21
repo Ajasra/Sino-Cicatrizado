@@ -18,6 +18,9 @@ class SinoCicatrizadoApp {
     this.wsClient = null;
     this.gpsSensor = null;
 
+    this.currentCity = CLIENT_CONFIG.DEFAULT_CITY;
+    this.availableCities = CLIENT_CONFIG.CITIES || {};
+
     this.currentSomaticCoords = null;
     this.batteryLevel = 1.0;
     this.nodesList = [];
@@ -28,22 +31,147 @@ class SinoCicatrizadoApp {
     this.showUsers = true;
   }
 
-  async init() {
-    // 1. Initialize Map View
-    this.mapView.init();
+  detectCityFromURL() {
+    // Check path (e.g. /chicago or /ouro_preto)
+    const pathSlug = window.location.pathname.replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+    if (pathSlug && this.availableCities[pathSlug]) {
+      return pathSlug;
+    }
 
-    // 2. Fetch Initial Nodes from Backend API
+    // Check query param (e.g. ?city=chicago)
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryCity = urlParams.get('city')?.toLowerCase();
+    if (queryCity && this.availableCities[queryCity]) {
+      return queryCity;
+    }
+
+    return null;
+  }
+
+  async init() {
+    // 1. Fetch available cities configuration from backend
+    await this.fetchCities();
+
+    // 2. Detect initial city from URL (e.g. /chicago) or show city selection
+    const urlCity = this.detectCityFromURL();
+    if (urlCity) {
+      this.currentCity = urlCity;
+    } else {
+      this.currentCity = CLIENT_CONFIG.DEFAULT_CITY;
+      // Prompt user with city selector modal if no city specified in URL
+      setTimeout(() => this.openCityModal(), 300);
+    }
+
+    const cityObj = this.availableCities[this.currentCity] || CLIENT_CONFIG.CITIES.ouro_preto;
+
+    // Set Audio Engine City Acoustic Profile
+    if (this.audioEngine && typeof this.audioEngine.setCityAcousticProfile === 'function') {
+      this.audioEngine.setCityAcousticProfile(this.currentCity);
+    }
+
+    // 3. Initialize Map View centered on active city
+    this.mapView.init(cityObj.center);
+    this.updateCityPill();
+
+    // 4. Fetch Initial Nodes for active city
     await this.fetchNodes();
 
-    // 3. Initialize WebSocket Client
+    // 5. Initialize WebSocket Client
     this.wsClient = new ScarredWebSocketClient((msg) => this.handleServerMessage(msg));
     this.wsClient.connect();
 
-    // 4. Initialize Sensors
+    // 6. Initialize Sensors
     this.setupSensors();
+    if (this.gpsSensor) {
+      this.gpsSensor.setCityCenter(cityObj.center);
+    }
 
-    // 5. Setup UI Event Listeners
+    // 7. Setup UI Event Listeners
     this.setupUIListeners();
+    this.renderCitySelector();
+  }
+
+  async fetchCities() {
+    try {
+      const res = await fetch('/api/cities');
+      const data = await res.json();
+      if (data.cities && Array.isArray(data.cities)) {
+        data.cities.forEach((c) => {
+          this.availableCities[c.key] = c;
+        });
+      }
+    } catch (err) {
+      console.warn('[API] Error fetching cities, using default config:', err);
+    }
+  }
+
+  updateCityPill() {
+    const pillCity = document.getElementById('pill-city');
+    const cityObj = this.availableCities[this.currentCity];
+    if (pillCity && cityObj) {
+      pillCity.textContent = `🏙️ ${cityObj.name.toUpperCase()}`;
+      pillCity.title = `Active Soundscape: ${cityObj.name} (${cityObj.country}) — Click to change city`;
+    }
+  }
+
+  async selectCity(cityKey, updateUrl = true) {
+    if (!this.availableCities[cityKey]) return;
+
+    this.currentCity = cityKey;
+    const cityObj = this.availableCities[cityKey];
+
+    if (updateUrl && window.history && window.history.pushState) {
+      window.history.pushState({ city: cityKey }, '', `/${cityKey}`);
+    }
+
+    if (this.audioEngine && typeof this.audioEngine.setCityAcousticProfile === 'function') {
+      this.audioEngine.setCityAcousticProfile(cityKey);
+    }
+
+    this.updateCityPill();
+    this.mapView.setCityView(cityObj.center);
+    this.mapView.clearAllNodeMarkers();
+
+    if (this.gpsSensor) {
+      this.gpsSensor.setCityCenter(cityObj.center);
+    }
+
+    await this.fetchNodes();
+    this.closeCityModal();
+  }
+
+
+  renderCitySelector() {
+    const container = document.getElementById('city-list-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    Object.values(this.availableCities).forEach((c) => {
+      const card = document.createElement('div');
+      card.className = `city-card ${c.key === this.currentCity ? 'active' : ''}`;
+      card.innerHTML = `
+        <div class="city-card-header">
+          <span class="city-card-title">${c.name}</span>
+          <span class="city-card-country">${c.country || ''}</span>
+        </div>
+        <div class="city-card-desc">${c.description || ''}</div>
+      `;
+      card.addEventListener('click', () => {
+        this.selectCity(c.key);
+      });
+      container.appendChild(card);
+    });
+  }
+
+  openCityModal() {
+    this.renderCitySelector();
+    const modal = document.getElementById('modal-city-select');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  closeCityModal() {
+    const modal = document.getElementById('modal-city-select');
+    if (modal) modal.style.display = 'none';
   }
 
   enableDebugFeatures() {
@@ -121,7 +249,7 @@ class SinoCicatrizadoApp {
 
   async fetchNodes() {
     try {
-      const res = await fetch('/api/nodes');
+      const res = await fetch(`/api/nodes?city=${encodeURIComponent(this.currentCity)}`);
       const data = await res.json();
       this.nodesList = data.nodes || [];
       if (data.showUsers !== undefined) {
@@ -141,6 +269,7 @@ class SinoCicatrizadoApp {
       console.error('[API] Error fetching nodes:', err);
     }
   }
+
 
   handleServerMessage(msg) {
     switch (msg.type) {
@@ -386,8 +515,43 @@ class SinoCicatrizadoApp {
       });
     }
 
+    // City Selector listeners
+    const pillCity = document.getElementById('pill-city');
+    if (pillCity) {
+      pillCity.addEventListener('click', () => this.openCityModal());
+    }
+
+    const switchCityBtn = document.getElementById('btn-switch-city');
+    if (switchCityBtn) {
+      switchCityBtn.addEventListener('click', () => {
+        closeSettingsModal();
+        this.openCityModal();
+      });
+    }
+
+    const closeCityBtn = document.getElementById('modal-city-close-btn');
+    if (closeCityBtn) {
+      closeCityBtn.addEventListener('click', () => this.closeCityModal());
+    }
+
+    const cityModal = document.getElementById('modal-city-select');
+    if (cityModal) {
+      cityModal.addEventListener('click', (e) => {
+        if (e.target === cityModal) this.closeCityModal();
+      });
+    }
+
+    // Handle browser navigation (back/forward buttons)
+    window.addEventListener('popstate', () => {
+      const urlCity = this.detectCityFromURL();
+      if (urlCity && urlCity !== this.currentCity) {
+        this.selectCity(urlCity, false);
+      }
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (cityModal && cityModal.style.display !== 'none') this.closeCityModal();
         if (settingsModal && settingsModal.style.display !== 'none') closeSettingsModal();
         if (modal && modal.style.display !== 'none') closeModal();
       }
@@ -418,7 +582,8 @@ class SinoCicatrizadoApp {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               coordinates: this.currentSomaticCoords,
-              intentText
+              intentText,
+              city: this.currentCity
             })
           });
 

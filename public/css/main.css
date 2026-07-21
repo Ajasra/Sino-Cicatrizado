@@ -460,3 +460,76 @@ header {
   color: var(--text-muted) !important;
   text-decoration: none !important;
 }
+
+/* City Selector Pill & Cards */
+.pill-city {
+  cursor: pointer;
+  color: var(--accent-echolocation);
+  border-color: rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.08);
+  transition: all var(--transition-fast);
+}
+
+.pill-city:hover {
+  background: rgba(0, 229, 255, 0.25);
+  box-shadow: 0 0 10px var(--accent-echolocation-glow);
+}
+
+.city-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.city-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.city-card:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: var(--accent-echolocation);
+  transform: translateY(-1px);
+}
+
+.city-card.active {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.city-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.city-card-title {
+  font-family: var(--font-family-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.city-card-country {
+  font-size: 0.75rem;
+  font-family: var(--font-family-mono);
+  color: var(--accent-echolocation);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.city-card-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+

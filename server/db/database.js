@@ -69,61 +69,126 @@ export function getDatabaseConnection() {
 }
 
 function seedInitialTowers(db) {
-  const countStmt = db.prepare('SELECT COUNT(*) as count FROM nodes');
-  const result = countStmt.get();
+  const countStmt = db.prepare('SELECT COUNT(*) as count FROM nodes WHERE city = ?');
+  const ouroResult = countStmt.get('ouro_preto');
 
-  if (result.count === 0 && fs.existsSync(CONFIG.TWIN_SNAPSHOT_PATH)) {
+  const insertStmt = db.prepare(`
+    INSERT OR REPLACE INTO nodes (
+      node_id, node_type, city, name, lat, lng, alt,
+      base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
+      echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
+      scar_index, interaction_count
+    ) VALUES (
+      @nodeId, @nodeType, @city, @name, @lat, @lng, @alt,
+      @baseFrequency, @harmonicity, @decay, @gain, @euclideanDensity, @euclideanSteps,
+      @echoProbability, @soundType, @fmIndex, @filterCutoff, @bitDepth, @carrierType,
+      @scarIndex, @interactionCount
+    )
+  `);
+
+  const insertMany = db.transaction((nodes) => {
+    for (const node of nodes) {
+      const sv = node.stateVector;
+      insertStmt.run({
+        nodeId: node.nodeId,
+        nodeType: node.nodeType,
+        city: node.city || 'ouro_preto',
+        name: node.name,
+        lat: node.coordinates.lat,
+        lng: node.coordinates.lng,
+        alt: node.coordinates.alt || 0.0,
+        baseFrequency: sv.baseFrequency,
+        harmonicity: sv.harmonicity,
+        decay: sv.decay,
+        gain: sv.gain,
+        euclideanDensity: sv.euclideanDensity,
+        euclideanSteps: sv.euclideanSteps || 8,
+        echoProbability: sv.echoProbability || 0.7,
+        soundType: sv.soundType || 'bell_deep',
+        fmIndex: sv.fmIndex || 0.0,
+        filterCutoff: sv.filterCutoff || 1200.0,
+        bitDepth: sv.bitDepth || 16,
+        carrierType: sv.carrierType || 'sine',
+        scarIndex: node.scarIndex || 0.0,
+        interactionCount: node.interactionCount || 0
+      });
+    }
+  });
+
+  if (ouroResult.count === 0 && fs.existsSync(CONFIG.TWIN_SNAPSHOT_PATH)) {
     console.log('[DB] Seeding database with initial Ouro Preto towers from snapshot...');
     const snapshotRaw = fs.readFileSync(CONFIG.TWIN_SNAPSHOT_PATH, 'utf-8');
     const snapshotNodes = JSON.parse(snapshotRaw);
-
-    const insertStmt = db.prepare(`
-      INSERT OR REPLACE INTO nodes (
-        node_id, node_type, city, name, lat, lng, alt,
-        base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
-        echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
-        scar_index, interaction_count
-      ) VALUES (
-        @nodeId, @nodeType, @city, @name, @lat, @lng, @alt,
-        @baseFrequency, @harmonicity, @decay, @gain, @euclideanDensity, @euclideanSteps,
-        @echoProbability, @soundType, @fmIndex, @filterCutoff, @bitDepth, @carrierType,
-        @scarIndex, @interactionCount
-      )
-    `);
-
-    const insertMany = db.transaction((nodes) => {
-      for (const node of nodes) {
-        const sv = node.stateVector;
-        insertStmt.run({
-          nodeId: node.nodeId,
-          nodeType: node.nodeType,
-          city: node.city,
-          name: node.name,
-          lat: node.coordinates.lat,
-          lng: node.coordinates.lng,
-          alt: node.coordinates.alt || 0.0,
-          baseFrequency: sv.baseFrequency,
-          harmonicity: sv.harmonicity,
-          decay: sv.decay,
-          gain: sv.gain,
-          euclideanDensity: sv.euclideanDensity,
-          euclideanSteps: sv.euclideanSteps || 8,
-          echoProbability: sv.echoProbability || 0.7,
-          soundType: sv.soundType || 'bell_deep',
-          fmIndex: sv.fmIndex || 0.0,
-          filterCutoff: sv.filterCutoff || 1200.0,
-          bitDepth: sv.bitDepth || 16,
-          carrierType: sv.carrierType || 'sine',
-          scarIndex: node.scarIndex || 0.0,
-          interactionCount: node.interactionCount || 0
-        });
-      }
-    });
-
     insertMany(snapshotNodes);
-    console.log(`[DB] Successfully seeded ${snapshotNodes.length} historical towers.`);
+    console.log(`[DB] Successfully seeded ${snapshotNodes.length} Ouro Preto towers.`);
+  }
+
+  const chicagoResult = countStmt.get('chicago');
+  const CHICAGO_INITIAL_NODES = [
+    {
+      nodeId: 'tower_chicago_1',
+      nodeType: 'TOWER',
+      city: 'chicago',
+      name: 'DuSable Bridge / Chicago Riverwalk',
+      coordinates: { lat: 41.8887, lng: -87.6244, alt: 177.0 },
+      stateVector: { soundType: 'chicago_bridge', carrierType: 'triangle', baseFrequency: 110.0, harmonicity: 2.41, decay: 3.5, gain: 0.9, fmIndex: 4.5, filterCutoff: 2200.0, euclideanDensity: 3, echoProbability: 0.75, bitDepth: 12 }
+    },
+    {
+      nodeId: 'tower_chicago_2',
+      nodeType: 'TOWER',
+      city: 'chicago',
+      name: 'Willis Tower Skydeck',
+      coordinates: { lat: 41.8789, lng: -87.6359, alt: 442.0 },
+      stateVector: { soundType: 'chicago_wind', carrierType: 'sine', baseFrequency: 220.0, harmonicity: 1.5, decay: 6.0, gain: 0.8, filterCutoff: 1200.0, euclideanDensity: 2, echoProbability: 0.8, bitDepth: 16 }
+    },
+    {
+      nodeId: 'tower_chicago_3',
+      nodeType: 'TOWER',
+      city: 'chicago',
+      name: 'The Loop: Adams & Wabash L-Station',
+      coordinates: { lat: 41.8793, lng: -87.6260, alt: 185.0 },
+      stateVector: { soundType: 'chicago_rail', carrierType: 'sawtooth', baseFrequency: 140.0, harmonicity: 2.1, decay: 2.2, gain: 0.95, fmIndex: 5.5, filterCutoff: 2800.0, euclideanDensity: 3, echoProbability: 0.7, bitDepth: 10 }
+    },
+    {
+      nodeId: 'tower_chicago_4',
+      nodeType: 'TOWER',
+      city: 'chicago',
+      name: 'Navy Pier Harbor Foghorn',
+      coordinates: { lat: 41.8917, lng: -87.6043, alt: 178.0 },
+      stateVector: { soundType: 'chicago_foghorn', carrierType: 'sawtooth', baseFrequency: 65.0, harmonicity: 1.0, decay: 6.5, gain: 1.0, filterCutoff: 450.0, euclideanDensity: 1, echoProbability: 0.9, bitDepth: 16 }
+    },
+    {
+      nodeId: 'tower_chicago_5',
+      nodeType: 'TOWER',
+      city: 'chicago',
+      name: 'Millennium Park (Cloud Gate)',
+      coordinates: { lat: 41.8827, lng: -87.6233, alt: 180.0 },
+      stateVector: { soundType: 'glitch', carrierType: 'triangle', baseFrequency: 330.0, harmonicity: 3.14, decay: 0.8, gain: 0.85, fmIndex: 2.5, filterCutoff: 4200.0, euclideanDensity: 2, echoProbability: 0.75, bitDepth: 6 }
+    },
+    {
+      nodeId: 'tower_chicago_6',
+      nodeType: 'TOWER',
+      city: 'chicago',
+      name: 'Fulton Market Industrial Yard',
+      coordinates: { lat: 41.8865, lng: -87.6485, alt: 182.0 },
+      stateVector: { soundType: 'chicago_rail', carrierType: 'square', baseFrequency: 125.0, harmonicity: 1.85, decay: 2.0, gain: 0.9, fmIndex: 6.2, filterCutoff: 3200.0, euclideanDensity: 3, echoProbability: 0.7, bitDepth: 8 }
+    }
+  ];
+
+  if (chicagoResult.count === 0) {
+    console.log('[DB] Seeding database with initial Chicago landmark towers...');
+    insertMany(CHICAGO_INITIAL_NODES);
+    console.log(`[DB] Successfully seeded ${CHICAGO_INITIAL_NODES.length} Chicago landmark towers.`);
+  } else {
+    // Migration: Update existing initial Chicago towers to new Chicago sound types
+    const updateStmt = db.prepare("UPDATE nodes SET sound_type = ? WHERE node_id = ? AND sound_type NOT LIKE 'chicago_%'");
+    CHICAGO_INITIAL_NODES.forEach((n) => {
+      updateStmt.run(n.stateVector.soundType, n.nodeId);
+    });
   }
 }
+
+
 
 export function getAllNodes(city = CONFIG.DEFAULT_CITY) {
   const db = getDatabaseConnection();

@@ -14,11 +14,19 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.masterGain = null;
     this.limiter = null;
     this.currentBits = 16;
-
     // Procedural Convolver Space Nodes
     this.convolverCathedral = null;
     this.convolverMine = null;
     this.convolverValley = null;
+    this.convolverWindCanyon = null;
+    this.convolverSteelBridge = null;
+
+    this.currentCityProfile = 'ouro_preto';
+  }
+
+  setCityAcousticProfile(cityKey) {
+    this.currentCityProfile = cityKey || 'ouro_preto';
+    console.log(`[AudioEngine] Switched acoustic profile to: ${this.currentCityProfile}`);
   }
 
   async init() {
@@ -39,10 +47,10 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.limiter.connect(this.ctx.destination);
 
     // -------------------------------------------------------------------------
-    // 100% Procedural Convolver Impulse Response Generation (Smooth Velvety Acoustic Space)
+    // Procedural Convolver Impulse Response Generation
     // -------------------------------------------------------------------------
 
-    // Cathedral / Church Tower Space (3.0s warm exponential lowpass decay)
+    // Ouro Preto: Cathedral / Church Tower Space (3.0s warm exponential lowpass decay)
     this.convolverCathedral = this.ctx.createConvolver();
     this.convolverCathedral.buffer = this.createProceduralImpulseResponse(3.0, 3.5, { lpCutoff: 1800 });
     const cathedralGain = this.ctx.createGain();
@@ -50,7 +58,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.convolverCathedral.connect(cathedralGain);
     cathedralGain.connect(this.masterGain);
 
-    // Mine / Subterranean Chamber Space (1.2s dense lowpass metallic reflections)
+    // Ouro Preto: Mine / Subterranean Chamber Space (1.2s dense lowpass metallic reflections)
     this.convolverMine = this.ctx.createConvolver();
     this.convolverMine.buffer = this.createProceduralImpulseResponse(1.2, 5.0, { metalRing: true, lpCutoff: 2400 });
     const mineGain = this.ctx.createGain();
@@ -58,13 +66,29 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.convolverMine.connect(mineGain);
     mineGain.connect(this.masterGain);
 
-    // Mountain Valley Space (4.5s long lowpass diffuse tail)
+    // Ouro Preto: Mountain Valley Space (4.5s long lowpass diffuse tail)
     this.convolverValley = this.ctx.createConvolver();
     this.convolverValley.buffer = this.createProceduralImpulseResponse(4.5, 2.5, { lpCutoff: 1200 });
     const valleyGain = this.ctx.createGain();
     valleyGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
     this.convolverValley.connect(valleyGain);
     valleyGain.connect(this.masterGain);
+
+    // Chicago: Lake Michigan Wind Canyon Space (4.0s wide open atmospheric reverb)
+    this.convolverWindCanyon = this.ctx.createConvolver();
+    this.convolverWindCanyon.buffer = this.createProceduralImpulseResponse(4.0, 2.0, { lpCutoff: 3000 });
+    const windGain = this.ctx.createGain();
+    windGain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+    this.convolverWindCanyon.connect(windGain);
+    windGain.connect(this.masterGain);
+
+    // Chicago: Steel Bridge & River Corridor Space (1.8s metallic beam impulse)
+    this.convolverSteelBridge = this.ctx.createConvolver();
+    this.convolverSteelBridge.buffer = this.createProceduralImpulseResponse(1.8, 4.0, { metalRing: true, lpCutoff: 3500 });
+    const bridgeGain = this.ctx.createGain();
+    bridgeGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    this.convolverSteelBridge.connect(bridgeGain);
+    bridgeGain.connect(this.masterGain);
   }
 
   async resume() {
@@ -177,7 +201,11 @@ export class WebAudioEngine extends AbstractAudioEngine {
 
     const now = this.ctx.currentTime;
     const triggerTime = now + Math.max(0, delaySeconds);
-    const soundType = params.soundType || 'bell_sacred';
+    let soundType = params.soundType;
+
+    if (!soundType) {
+      soundType = this.currentCityProfile === 'chicago' ? 'chicago_foghorn' : 'bell_sacred';
+    }
 
     // Temporary local bitcrusher override if specified by params
     if (params.bitDepth && params.bitDepth < 16 && this.bitCrusher) {
@@ -189,6 +217,22 @@ export class WebAudioEngine extends AbstractAudioEngine {
     }
 
     switch (soundType) {
+      case 'chicago_rail':
+      case 'rail':
+        this.triggerChicagoRail(params, triggerTime, delaySeconds);
+        break;
+      case 'chicago_wind':
+      case 'wind':
+        this.triggerChicagoWind(params, triggerTime, delaySeconds);
+        break;
+      case 'chicago_foghorn':
+      case 'foghorn':
+        this.triggerChicagoFoghorn(params, triggerTime, delaySeconds);
+        break;
+      case 'chicago_bridge':
+      case 'bridge':
+        this.triggerChicagoBridge(params, triggerTime, delaySeconds);
+        break;
       case 'bell_deep':
         this.triggerDeepBell(params, triggerTime, delaySeconds);
         break;
@@ -203,10 +247,232 @@ export class WebAudioEngine extends AbstractAudioEngine {
         break;
       case 'bell_sacred':
       default:
-        this.triggerSacredBell(params, triggerTime, delaySeconds);
+        if (this.currentCityProfile === 'chicago') {
+          this.triggerChicagoFoghorn(params, triggerTime, delaySeconds);
+        } else {
+          this.triggerSacredBell(params, triggerTime, delaySeconds);
+        }
         break;
     }
   }
+
+  // -------------------------------------------------------------------------
+  // Chicago Procedural Acoustic Generators
+  // -------------------------------------------------------------------------
+
+  // A. Elevated L-Train Rail Track Clatter & Iron Friction
+  triggerChicagoRail(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 140.0;
+    const decay = params.decay || 1.8;
+    const gainVal = params.gain !== undefined ? params.gain : 0.85;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.015);
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    // FM Sawtooth / Square Carrier for metallic iron rail sound
+    const carrier = this.ctx.createOscillator();
+    carrier.type = params.carrierType || 'sawtooth';
+    carrier.frequency.setValueAtTime(baseFreq, triggerTime);
+
+    const modulator = this.ctx.createOscillator();
+    const modGain = this.ctx.createGain();
+    modulator.type = 'square';
+    modulator.frequency.setValueAtTime(baseFreq * (params.harmonicity || 2.1), triggerTime);
+    modGain.gain.setValueAtTime((params.fmIndex || 4.5) * baseFreq, triggerTime);
+    modGain.gain.exponentialRampToValueAtTime(0.1, triggerTime + (decay * 0.6));
+
+    modulator.connect(modGain);
+    modGain.connect(carrier.frequency);
+    modulator.start(triggerTime);
+    modulator.stop(triggerTime + decay);
+
+    // Rhythmic Wheel Click Transient
+    const noiseBuffer = this.createNoiseBuffer(0.05); // 50ms click
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(params.filterCutoff || 2800.0, triggerTime);
+    noiseFilter.Q.setValueAtTime(6.0, triggerTime);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(gainVal * 0.25, triggerTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + 0.05);
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseSource.start(triggerTime);
+
+    carrier.connect(mainGainNode);
+    noiseGain.connect(mainGainNode);
+
+    mainGainNode.connect(this.masterGain);
+    if (this.convolverSteelBridge) {
+      mainGainNode.connect(this.convolverSteelBridge);
+    }
+
+    carrier.start(triggerTime);
+    carrier.stop(triggerTime + decay + 0.1);
+
+    this.scheduleCleanup([mainGainNode, noiseFilter, noiseGain], delaySeconds + decay + 0.5);
+  }
+
+  // B. Skyscraper Wind Tunnel & Lake Michigan Wind Gale Whistle
+  triggerChicagoWind(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 220.0;
+    const decay = params.decay || 5.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.7;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.8);
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    // Whistling Wind Resonant Sine Sweeper
+    const oscA = this.ctx.createOscillator();
+    const oscB = this.ctx.createOscillator();
+    oscA.type = 'sine';
+    oscB.type = 'triangle';
+
+    oscA.frequency.setValueAtTime(baseFreq, triggerTime);
+    oscA.frequency.exponentialRampToValueAtTime(baseFreq * 1.6, triggerTime + (decay * 0.5));
+    oscA.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, triggerTime + decay);
+
+    oscB.frequency.setValueAtTime(baseFreq * 1.5, triggerTime);
+    oscB.frequency.exponentialRampToValueAtTime(baseFreq * 2.1, triggerTime + (decay * 0.6));
+
+    // High Q Bandpass Wind Noise Filter
+    const noiseBuffer = this.createNoiseBuffer(decay);
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const windFilter = this.ctx.createBiquadFilter();
+    windFilter.type = 'bandpass';
+    windFilter.frequency.setValueAtTime(baseFreq * 1.2, triggerTime);
+    windFilter.frequency.exponentialRampToValueAtTime(baseFreq * 2.4, triggerTime + decay * 0.5);
+    windFilter.Q.setValueAtTime(10.0, triggerTime); // Sharp whistle peak
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(gainVal * 0.2, triggerTime + 0.2);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    noiseSource.connect(windFilter);
+    windFilter.connect(noiseGain);
+
+    oscA.connect(mainGainNode);
+    oscB.connect(mainGainNode);
+    noiseGain.connect(mainGainNode);
+
+    mainGainNode.connect(this.masterGain);
+    if (this.convolverWindCanyon) {
+      mainGainNode.connect(this.convolverWindCanyon);
+    }
+
+    oscA.start(triggerTime);
+    oscB.start(triggerTime);
+    noiseSource.start(triggerTime);
+
+    oscA.stop(triggerTime + decay + 0.2);
+    oscB.stop(triggerTime + decay + 0.2);
+    noiseSource.stop(triggerTime + decay + 0.2);
+
+    this.scheduleCleanup([mainGainNode, windFilter, noiseGain], delaySeconds + decay + 0.5);
+  }
+
+  // C. Lake Michigan Deep Maritime Foghorn (Sub-Bass Swell)
+  triggerChicagoFoghorn(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 65.0; // Deep sub frequency (45-85Hz)
+    const decay = params.decay || 6.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.95;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.6, triggerTime + 0.4); // Foghorn atmospheric swell
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(180.0, triggerTime);
+    filter.frequency.linearRampToValueAtTime(params.filterCutoff || 550.0, triggerTime + 0.5);
+    filter.frequency.exponentialRampToValueAtTime(120.0, triggerTime + decay);
+
+    // Dual detuned sub saw/square foghorn oscillators
+    [1.0, 1.004, 0.5, 1.5].forEach((ratio) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = ratio === 0.5 ? 'sine' : 'sawtooth';
+      osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+
+      const oscGain = this.ctx.createGain();
+      oscGain.gain.setValueAtTime(ratio === 0.5 ? 0.4 : 0.2, triggerTime);
+
+      osc.connect(oscGain);
+      oscGain.connect(filter);
+
+      osc.start(triggerTime);
+      osc.stop(triggerTime + decay + 0.3);
+    });
+
+    filter.connect(mainGainNode);
+    mainGainNode.connect(this.masterGain);
+    if (this.convolverWindCanyon) {
+      mainGainNode.connect(this.convolverWindCanyon);
+    }
+
+    this.scheduleCleanup([mainGainNode, filter], delaySeconds + decay + 0.5);
+  }
+
+  // D. Chicago River Steel Drawbridge Iron Groan & Metallic Thud
+  triggerChicagoBridge(params, triggerTime, delaySeconds) {
+    const baseFreq = params.baseFrequency || 110.0;
+    const decay = params.decay || 3.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.85;
+
+    const mainGainNode = this.ctx.createGain();
+    mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.55, triggerTime + 0.02);
+    mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+    // Sub-harmonic iron beam thud
+    const subOsc = this.ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(baseFreq * 0.5, triggerTime);
+
+    // Metallic Bridge Beam Inharmonic Ring (Ratios: 1.0, 2.41, 3.82)
+    [1.0, 2.41, 3.82].forEach((ratio, idx) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+
+      const oscGain = this.ctx.createGain();
+      oscGain.gain.setValueAtTime(0.3 / (idx + 1), triggerTime);
+
+      osc.connect(oscGain);
+      oscGain.connect(mainGainNode);
+
+      osc.start(triggerTime);
+      osc.stop(triggerTime + decay + 0.2);
+    });
+
+    subOsc.connect(mainGainNode);
+    subOsc.start(triggerTime);
+    subOsc.stop(triggerTime + decay + 0.2);
+
+    // Soft Saturation WaveShaper
+    const waveShaper = this.ctx.createWaveShaper();
+    waveShaper.curve = this.makeDistortionCurve(4);
+
+    mainGainNode.connect(waveShaper);
+    waveShaper.connect(this.masterGain);
+    if (this.convolverSteelBridge) {
+      mainGainNode.connect(this.convolverSteelBridge);
+    }
+
+    this.scheduleCleanup([mainGainNode, waveShaper], delaySeconds + decay + 0.5);
+  }
+
 
   // 1. Deep Atmospheric Bronze Bell (Clean Physical Modal Synthesis + Lowpass Cathedral Convolver)
   triggerDeepBell(params, triggerTime, delaySeconds) {

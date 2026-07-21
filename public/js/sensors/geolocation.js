@@ -14,6 +14,18 @@ export class GeolocationSensor {
     this.mockInterval = null;
   }
 
+  setCityCenter(centerCoords) {
+    if (!centerCoords) return;
+    this.mockCoords = {
+      lat: Number(centerCoords.lat),
+      lng: Number(centerCoords.lng),
+      alt: Number(centerCoords.alt || 100.0)
+    };
+    if (this.mockMode && this.onPositionUpdate) {
+      this.onPositionUpdate(this.mockCoords);
+    }
+  }
+
   setMockMode(enabled) {
     this.mockMode = enabled;
     if (enabled) {
@@ -33,7 +45,7 @@ export class GeolocationSensor {
     this.mockCoords = {
       lat: Number(coords.lat),
       lng: Number(coords.lng),
-      alt: Number(coords.alt || 1150.0)
+      alt: Number(coords.alt || 100.0)
     };
 
     if (this.onPositionUpdate) {

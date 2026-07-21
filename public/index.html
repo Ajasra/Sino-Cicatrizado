@@ -29,6 +29,8 @@
           <span>SINO CICATRIZADO</span>
         </div>
         <div class="status-subrow">
+          <span id="pill-city" class="pill pill-city" title="Click to Select City">🏙️ CITY</span>
+          <span class="status-sep">•</span>
           <span id="pill-battery" class="pill">⚡ 100%</span>
           <span class="status-sep">•</span>
           <span id="pill-gps" class="pill" title="GPS Location Active">GPS 🟢</span>
@@ -68,6 +70,20 @@
     </div>
   </div>
 
+  <!-- Modal Popup: City Selection -->
+  <div id="modal-city-select" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">SELECT ACOUSTIC CITY</span>
+        <button id="modal-city-close-btn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Choose a site-specific spatial soundscape to enter:</p>
+        <div id="city-list-container" class="city-cards-list"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Popup: Settings & Acoustic Probes -->
   <div id="modal-settings" class="modal-overlay" style="display: none;">
     <div class="modal-card">
@@ -79,6 +95,7 @@
         <p class="modal-desc">Toggle background autonomous spatial rhythm generation.</p>
         <div class="modal-actions-list">
           <button id="btn-rhythm-toggle" class="btn btn-primary btn-full">RHYTHM LOOP: ON</button>
+          <button id="btn-switch-city" class="btn btn-full" style="margin-top: 8px;">CHANGE CITY</button>
         </div>
       </div>
     </div>
@@ -101,6 +118,7 @@
       </div>
     </div>
   </div>
+
 
   <!-- Leaflet Map JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

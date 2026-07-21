@@ -13,20 +13,20 @@ export class LeafletMapView {
     this.lastNodesList = [];
   }
 
-  init() {
+  init(initialCenter) {
     if (!window.L) {
       console.warn('[Map] Leaflet.js library not loaded yet.');
       return;
     }
 
-    const center = CLIENT_CONFIG.OURO_PRETO_CENTER;
+    const center = initialCenter || CLIENT_CONFIG.OURO_PRETO_CENTER;
     this.map = window.L.map(this.elementId, {
       zoomControl: true,
       tap: true,
       touchZoom: true,
       dragging: true,
       bounceAtZoomLimits: false
-    }).setView([center.lat, center.lng], center.zoom);
+    }).setView([center.lat, center.lng], center.zoom || 14);
 
     // Dark Map Tiles (CartoDB Dark Matter / OpenStreetMap)
     window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -35,9 +35,43 @@ export class LeafletMapView {
     }).addTo(this.map);
   }
 
+  setCityView(centerCoords) {
+    if (!this.map || !centerCoords) return;
+    this.map.setView([centerCoords.lat, centerCoords.lng], centerCoords.zoom || 14);
+  }
+
+  clearAllNodeMarkers() {
+    if (!this.map) return;
+    for (const [id, marker] of this.towerMarkers) {
+      this.map.removeLayer(marker);
+    }
+    this.towerMarkers.clear();
+
+    for (const [id, marker] of this.reflectorMarkers) {
+      this.map.removeLayer(marker);
+    }
+    this.reflectorMarkers.clear();
+  }
+
   updateNodes(nodesList = []) {
     if (!this.map) return;
     this.lastNodesList = nodesList;
+
+    const currentIds = new Set(nodesList.map((n) => n.nodeId));
+
+    // Remove markers that are no longer in the active city node list
+    for (const [id, marker] of this.towerMarkers) {
+      if (!currentIds.has(id)) {
+        this.map.removeLayer(marker);
+        this.towerMarkers.delete(id);
+      }
+    }
+    for (const [id, marker] of this.reflectorMarkers) {
+      if (!currentIds.has(id)) {
+        this.map.removeLayer(marker);
+        this.reflectorMarkers.delete(id);
+      }
+    }
 
     nodesList.forEach((node) => {
       const { lat, lng } = node.coordinates;
@@ -87,6 +121,7 @@ export class LeafletMapView {
       }
     });
   }
+
 
   updateSomaticNode(coords) {
     if (!this.map || !coords) return;
