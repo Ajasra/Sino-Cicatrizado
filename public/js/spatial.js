@@ -45,23 +45,26 @@ export function calculateDensityImpedanceFactor(targetNode, allReflectors = []) 
 
 export function getEffectiveSpatialAudio(listenerCoords, nodeCoords) {
   const defaultCenter = CLIENT_CONFIG.OURO_PRETO_CENTER;
-  let referenceCoords = listenerCoords || defaultCenter;
 
-  let distanceMeters = calculateHaversineMeters(referenceCoords, nodeCoords);
-
-  // If user coordinates are invalid or far outside Ouro Preto (> 3000m), measure relative to town center
-  if (!Number.isFinite(distanceMeters) || distanceMeters > 3000.0) {
+  // No GPS fix yet — fall back to city-center distance for preview/desktop mode
+  if (!listenerCoords || !Number.isFinite(listenerCoords.lat) || !Number.isFinite(listenerCoords.lng)) {
     const mapCenterDist = calculateHaversineMeters(defaultCenter, nodeCoords);
-    distanceMeters = Number.isFinite(mapCenterDist) ? Math.min(mapCenterDist, 600.0) : 150.0;
+    const distanceMeters = Number.isFinite(mapCenterDist) ? Math.min(mapCenterDist, 600.0) : 150.0;
+    const delaySeconds = Math.min(calculateWaveDelaySeconds(distanceMeters), 2.0);
+    const gain = Math.max(0.15, calculateInverseSquareGain(distanceMeters));
+    return { distanceMeters, delaySeconds, gain, hasGpsFix: false };
   }
 
-  // Speed of sound propagation delay (distance / 343 m/s). Further towers take longer to arrive!
+  // Real GPS available — use actual distance, no fake substitution
+  const distanceMeters = calculateHaversineMeters(listenerCoords, nodeCoords);
+
+  // Speed of sound propagation delay (distance / 343 m/s). Further towers take longer to arrive
   const rawDelay = calculateWaveDelaySeconds(distanceMeters);
   const delaySeconds = Math.min(rawDelay, 2.0);
 
-  // Inverse-square gain attenuation (closer towers are louder, further towers are softer)
-  const rawGain = calculateInverseSquareGain(distanceMeters);
-  const gain = Math.max(0.15, rawGain);
+  // Inverse-square gain attenuation — allow near-silence at range (no enforced floor)
+  const gain = Math.max(0.02, calculateInverseSquareGain(distanceMeters));
 
-  return { distanceMeters, delaySeconds, gain };
+  return { distanceMeters, delaySeconds, gain, hasGpsFix: true };
 }
+

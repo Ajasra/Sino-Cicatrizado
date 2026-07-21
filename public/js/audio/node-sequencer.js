@@ -1,5 +1,6 @@
 import { generateEuclideanPattern, isBeatActiveForNode } from './euclidean.js';
 import { getEffectiveSpatialAudio } from '../spatial.js';
+import { CLIENT_CONFIG } from '../config.js';
 
 export class NodeSequencer {
   constructor(audioEngine, mapView, radar) {
@@ -77,6 +78,14 @@ export class NodeSequencer {
   }
 
   strikeNodeBell(node) {
+    // Compute effective spatial audio gain & delay for listener position
+    const spatialAudio = getEffectiveSpatialAudio(this.somaticCoords, node.coordinates);
+
+    // Proximity gate: if we have a real GPS fix, only trigger nodes within SOUND_TRIGGER_RADIUS_M
+    if (spatialAudio.hasGpsFix && spatialAudio.distanceMeters > CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M) {
+      return; // User is too far from this node — stay silent
+    }
+
     // 1. Animate visual ringing ripple on map marker
     if (this.mapView && typeof this.mapView.pulseNodeMarker === 'function') {
       this.mapView.pulseNodeMarker(node.nodeId);
@@ -84,9 +93,6 @@ export class NodeSequencer {
 
     // 2. Trigger audio synthesis if AudioContext is unlocked
     if (!this.audioEngine || !this.audioEngine.ctx) return;
-
-    // Compute effective spatial audio gain & delay for listener position
-    const spatialAudio = getEffectiveSpatialAudio(this.somaticCoords, node.coordinates);
 
     const state = node.stateVector || {};
 
