@@ -7,6 +7,7 @@ import { ScarredWebSocketClient } from './net/websocket-client.js';
 import { LeafletMapView } from './ui/map-view.js';
 import { SpatialWaveRadar } from './ui/visualizer.js';
 import { calculateHaversineMeters, calculateWaveDelaySeconds, calculateInverseSquareGain } from './spatial.js';
+import { CLIENT_CONFIG } from './config.js';
 
 class SinoCicatrizadoApp {
   constructor() {
@@ -157,11 +158,18 @@ class SinoCicatrizadoApp {
       }
 
       case 'SOMATIC_CHIRP_BROADCAST': {
-        const { somaticId, coordinates, frequency } = msg.payload;
+        const { somaticId, coordinates, frequency, chirpFrequency, isVirtual } = msg.payload;
         if (somaticId && somaticId !== this.mySomaticId) {
           this.mapView.pulseOtherUserMarker(somaticId);
         }
-        this.triggerSpatialEcholocationResponse(coordinates, frequency);
+
+        // Only trigger audio if the chirping user is within earshot of the real listener
+        if (this.currentSomaticCoords && coordinates) {
+          const sourceDistance = calculateHaversineMeters(this.currentSomaticCoords, coordinates);
+          if (sourceDistance > CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M) break; // too far — stay silent
+        }
+
+        this.triggerSpatialEcholocationResponse(coordinates, chirpFrequency || frequency || 440.0);
         break;
       }
 
@@ -214,7 +222,8 @@ class SinoCicatrizadoApp {
     const rawDelay = calculateWaveDelaySeconds(distanceMeters);
     const primaryDelay = Number.isFinite(rawDelay) ? Math.min(rawDelay, 0.3) : 0;
     const rawGain = calculateInverseSquareGain(distanceMeters);
-    const primaryGain = Number.isFinite(rawGain) ? Math.max(0.35, rawGain) : 1.0;
+    // No minimum floor — sound genuinely fades at distance
+    const primaryGain = Number.isFinite(rawGain) ? rawGain : 1.0;
 
     this.audioEngine.triggerBell(
       {
@@ -259,7 +268,8 @@ class SinoCicatrizadoApp {
 
       const returnDelaySeconds = Math.min(arrivalDelay + calculateWaveDelaySeconds(distListenerToNode), 2.5);
       const rawNodeGain = calculateInverseSquareGain(distListenerToNode);
-      const nodeGain = (node.stateVector?.gain || 0.8) * Math.max(0.25, rawNodeGain);
+      // No minimum floor — let real inverse-square attenuation apply
+      const nodeGain = (node.stateVector?.gain || 0.8) * (Number.isFinite(rawNodeGain) ? rawNodeGain : 0.0);
 
       const nodeParams = {
         baseFrequency: node.stateVector?.baseFrequency || 220.0,
