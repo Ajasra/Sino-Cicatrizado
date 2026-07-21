@@ -65,8 +65,8 @@ export class ScarredWebSocketClient {
     });
   }
 
-  sendChirp(frequency = 440.0) {
-    this.send('SOMATIC_CHIRP', { chirpFrequency: frequency });
+  sendChirp(frequency = 440.0, coordinates = null) {
+    this.send('SOMATIC_CHIRP', { chirpFrequency: frequency, coordinates });
   }
 
   send(type, payload) {

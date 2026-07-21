@@ -8,10 +8,11 @@
     "stateVector": {
       "baseFrequency": 220.0,
       "harmonicity": 1.414,
-      "decay": 1.5,
+      "decay": 2.5,
       "gain": 1.0,
-      "euclideanDensity": 3,
-      "euclideanSteps": 8
+      "euclideanDensity": 1,
+      "euclideanSteps": 16,
+      "echoProbability": 0.85
     },
     "scarIndex": 0.0,
     "interactionCount": 0
@@ -25,10 +26,11 @@
     "stateVector": {
       "baseFrequency": 293.66,
       "harmonicity": 1.94,
-      "decay": 2.0,
+      "decay": 3.0,
       "gain": 0.9,
-      "euclideanDensity": 5,
-      "euclideanSteps": 8
+      "euclideanDensity": 2,
+      "euclideanSteps": 16,
+      "echoProbability": 0.75
     },
     "scarIndex": 0.0,
     "interactionCount": 0
@@ -42,10 +44,11 @@
     "stateVector": {
       "baseFrequency": 174.61,
       "harmonicity": 1.21,
-      "decay": 3.0,
+      "decay": 4.0,
       "gain": 1.0,
-      "euclideanDensity": 4,
-      "euclideanSteps": 12
+      "euclideanDensity": 1,
+      "euclideanSteps": 24,
+      "echoProbability": 0.65
     },
     "scarIndex": 0.0,
     "interactionCount": 0
@@ -59,10 +62,11 @@
     "stateVector": {
       "baseFrequency": 146.83,
       "harmonicity": 2.52,
-      "decay": 2.5,
+      "decay": 3.5,
       "gain": 1.0,
-      "euclideanDensity": 7,
-      "euclideanSteps": 16
+      "euclideanDensity": 2,
+      "euclideanSteps": 32,
+      "echoProbability": 0.90
     },
     "scarIndex": 0.0,
     "interactionCount": 0

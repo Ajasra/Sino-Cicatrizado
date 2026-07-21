@@ -9,6 +9,8 @@ import { getAllNodes, saveReflectorNode, getDatabaseConnection } from './db/data
 import { evaluateSomaticProximity } from './services/hysteresis.js';
 import { generateReflectorPresetFromPrompt } from './llm-membrane.js';
 import { validateSynthPreset } from './utils/immunological-parser.js';
+import { initVirtualUsers } from './services/virtual-users.js';
+import { createNewCity } from './services/city-generator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,25 +30,26 @@ const somaticNodesMap = new Map();
 app.get('/api/nodes', (req, res) => {
   if (activeTwinMode === 'TWIN' && fs.existsSync(CONFIG.TWIN_SNAPSHOT_PATH)) {
     const raw = fs.readFileSync(CONFIG.TWIN_SNAPSHOT_PATH, 'utf-8');
-    return res.json({ mode: 'TWIN', nodes: JSON.parse(raw) });
+    return res.json({ mode: 'TWIN', debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, nodes: JSON.parse(raw) });
   }
 
   const nodes = getAllNodes(CONFIG.DEFAULT_CITY);
-  return res.json({ mode: activeTwinMode, nodes });
+  return res.json({ mode: activeTwinMode, debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, nodes });
 });
 
-app.post('/api/reflectors', (req, res) => {
+app.post('/api/reflectors', async (req, res) => {
   try {
-    const { coordinates, intentText, name } = req.body;
+    const { coordinates, intentText, name, city } = req.body;
     if (!coordinates || coordinates.lat === undefined || coordinates.lng === undefined) {
       return res.status(400).json({ error: 'Coordinates lat and lng are required.' });
     }
 
-    const preset = generateReflectorPresetFromPrompt(intentText || '');
+    const targetCity = city || CONFIG.DEFAULT_CITY;
+    const preset = await generateReflectorPresetFromPrompt(intentText || '', targetCity);
     const newNode = {
       nodeId: `reflector_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       nodeType: 'REFLECTOR',
-      city: CONFIG.DEFAULT_CITY,
+      city: targetCity,
       name: name || `Reflector: "${intentText || 'Somatic Trace'}"`,
       coordinates: {
         lat: Number(coordinates.lat),
@@ -72,6 +75,17 @@ app.post('/api/reflectors', (req, res) => {
     return res.status(201).json({ success: true, node: newNode });
   } catch (err) {
     console.error('[API] Error creating reflector:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/cities/create', async (req, res) => {
+  try {
+    const { key, name, contextText, landmarks } = req.body;
+    const result = await createNewCity({ key, name, contextText, landmarks });
+    return res.status(201).json({ success: true, city: result });
+  } catch (err) {
+    console.error('[API] Error creating new city:', err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -115,6 +129,8 @@ wss.on('connection', (ws) => {
     payload: {
       somaticId: clientSomaticId,
       twinMode: activeTwinMode,
+      debugMode: CONFIG.DEBUG,
+      showUsers: CONFIG.SHOW_USERS,
       config: {
         broadcastRateHz: CONFIG.BROADCAST_RATE_HZ,
         proximityThresholdM: CONFIG.PROXIMITY_MUTATION_THRESHOLD_M
@@ -170,7 +186,7 @@ function handleClientMessage(somaticId, msg) {
         type: 'SOMATIC_CHIRP_BROADCAST',
         payload: {
           somaticId,
-          coordinates: node.coordinates,
+          coordinates: msg.payload?.coordinates || node.coordinates,
           frequency: msg.payload?.chirpFrequency || 440.0
         },
         timestamp: Date.now()
@@ -242,11 +258,15 @@ setInterval(() => {
 
 // Start Server
 getDatabaseConnection(); // Initialize database schema & seed data
+if (CONFIG.DEBUG) {
+  initVirtualUsers(somaticNodesMap, broadcastMessage);
+}
 server.listen(CONFIG.PORT, CONFIG.HOST, () => {
   console.log(`=======================================================`);
   console.log(` Sino Cicatrizado (The Scarred Bell) Server Running `);
   console.log(` URL: http://localhost:${CONFIG.PORT}`);
   console.log(` Environment: Node.js / SQLite WAL / WSS Port ${CONFIG.PORT}`);
   console.log(` Broadcast Loop: ${CONFIG.BROADCAST_RATE_HZ} Hz (${loopIntervalMs} ms)`);
+  console.log(` Debug Mode: ${CONFIG.DEBUG} | Show Users: ${CONFIG.SHOW_USERS} | Virtual Users: ${CONFIG.VIRTUAL_USERS_COUNT}`);
   console.log(`=======================================================`);
 });

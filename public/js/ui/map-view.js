@@ -1,4 +1,5 @@
 import { CLIENT_CONFIG } from '../config.js';
+import { calculateHaversineMeters } from '../spatial.js';
 
 export class LeafletMapView {
   constructor(elementId = 'map') {
@@ -7,6 +8,9 @@ export class LeafletMapView {
     this.towerMarkers = new Map();
     this.reflectorMarkers = new Map();
     this.somaticMarker = null;
+    this.somaticCoords = null;
+    this.otherUserMarkers = new Map();
+    this.lastNodesList = [];
   }
 
   init() {
@@ -27,11 +31,16 @@ export class LeafletMapView {
 
   updateNodes(nodesList = []) {
     if (!this.map) return;
+    this.lastNodesList = nodesList;
 
     nodesList.forEach((node) => {
       const { lat, lng } = node.coordinates;
+      const dist = this.somaticCoords ? calculateHaversineMeters(this.somaticCoords, node.coordinates) : null;
+      const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance to you:</b> ${dist.toFixed(1)} meters` : '';
 
       if (node.nodeType === 'TOWER') {
+        const popupText = `<b>${node.name}</b>${distStr}<br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scars: ${node.scarIndex.toFixed(2)}`;
+
         if (!this.towerMarkers.has(node.nodeId)) {
           const marker = window.L.circleMarker([lat, lng], {
             radius: 10,
@@ -40,14 +49,18 @@ export class LeafletMapView {
             fillOpacity: 0.8
           }).addTo(this.map);
 
-          marker.bindPopup(`<b>${node.name}</b><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scars: ${node.scarIndex.toFixed(2)}`);
+          marker._baseRadius = 10;
+          marker._baseColor = '#d4af37';
+          marker.bindPopup(popupText);
           this.towerMarkers.set(node.nodeId, marker);
         } else {
           const marker = this.towerMarkers.get(node.nodeId);
           marker.setLatLng([lat, lng]);
-          marker.setPopupContent(`<b>${node.name}</b><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scars: ${node.scarIndex.toFixed(2)}`);
+          marker.setPopupContent(popupText);
         }
       } else if (node.nodeType === 'REFLECTOR') {
+        const popupText = `<b>${node.name}</b>${distStr}<br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
+
         if (!this.reflectorMarkers.has(node.nodeId)) {
           const marker = window.L.circleMarker([lat, lng], {
             radius: 6,
@@ -56,8 +69,13 @@ export class LeafletMapView {
             fillOpacity: 0.6
           }).addTo(this.map);
 
-          marker.bindPopup(`<b>${node.name}</b><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`);
+          marker._baseRadius = 6;
+          marker._baseColor = '#00e5ff';
+          marker.bindPopup(popupText);
           this.reflectorMarkers.set(node.nodeId, marker);
+        } else {
+          const marker = this.reflectorMarkers.get(node.nodeId);
+          marker.setPopupContent(popupText);
         }
       }
     });
@@ -65,6 +83,7 @@ export class LeafletMapView {
 
   updateSomaticNode(coords) {
     if (!this.map || !coords) return;
+    this.somaticCoords = coords;
 
     if (!this.somaticMarker) {
       this.somaticMarker = window.L.circleMarker([coords.lat, coords.lng], {
@@ -73,10 +92,202 @@ export class LeafletMapView {
         fillColor: '#00e676',
         fillOpacity: 1.0
       }).addTo(this.map);
+
+      this.somaticMarker._baseRadius = 8;
+      this.somaticMarker._baseColor = '#00e676';
       this.somaticMarker.bindPopup('<b>Your Somatic Node</b>');
     } else {
       this.somaticMarker.setLatLng([coords.lat, coords.lng]);
     }
+
+    // Refresh node distance popups if loaded
+    if (this.lastNodesList.length > 0) {
+      this.updateNodes(this.lastNodesList);
+    }
+  }
+
+  updateOtherSomaticNodes(somaticNodes = [], mySomaticId = null) {
+    if (!this.map) return;
+
+    const currentIds = new Set();
+
+    somaticNodes.forEach((soma) => {
+      if (!soma.coordinates || soma.somaticId === mySomaticId) return;
+
+      const id = soma.somaticId;
+      currentIds.add(id);
+      const { lat, lng } = soma.coordinates;
+      const isVirtual = soma.somaticId.startsWith('vuser_');
+      const label = isVirtual ? `Virtual User (${id})` : `Somatic Node (${id})`;
+      const popupText = `<b>${label}</b><br>Lat: ${lat.toFixed(5)}<br>Lng: ${lng.toFixed(5)}`;
+
+      const color = isVirtual ? '#ff4081' : '#ab47bc';
+
+      if (!this.otherUserMarkers.has(id)) {
+        const marker = window.L.circleMarker([lat, lng], {
+          radius: 7,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.85
+        }).addTo(this.map);
+
+        marker._baseRadius = 7;
+        marker._baseColor = color;
+        marker.bindPopup(popupText);
+        this.otherUserMarkers.set(id, marker);
+      } else {
+        const marker = this.otherUserMarkers.get(id);
+        marker.setLatLng([lat, lng]);
+        marker.setPopupContent(popupText);
+      }
+    });
+
+    // Remove disconnected users
+    for (const [id, marker] of this.otherUserMarkers) {
+      if (!currentIds.has(id)) {
+        if (marker._pulseTimeout) clearTimeout(marker._pulseTimeout);
+        this.map.removeLayer(marker);
+        this.otherUserMarkers.delete(id);
+      }
+    }
+  }
+
+  pulseOtherUserMarker(somaticId) {
+    if (!this.map) return;
+
+    const marker = this.otherUserMarkers.get(somaticId);
+    if (!marker) return;
+
+    const baseRadius = marker._baseRadius || 7;
+    const baseColor = marker._baseColor || '#ff4081';
+
+    if (marker._pulseTimeout) clearTimeout(marker._pulseTimeout);
+
+    marker.setRadius(baseRadius + 6);
+    marker.setStyle({ fillColor: '#ffffff', color: '#ffffff' });
+
+    marker._pulseTimeout = setTimeout(() => {
+      marker.setRadius(baseRadius);
+      marker.setStyle({ fillColor: baseColor, color: baseColor });
+      marker._pulseTimeout = null;
+    }, 250);
+  }
+
+  pulseSomaticNode() {
+    if (!this.map || !this.somaticMarker) return;
+
+    const baseRadius = 8;
+    const baseColor = '#00e676';
+
+    if (this.somaticMarker._pulseTimeout) clearTimeout(this.somaticMarker._pulseTimeout);
+
+    this.somaticMarker.setRadius(baseRadius + 8);
+    this.somaticMarker.setStyle({ fillColor: '#ffffff', color: '#00e676' });
+
+    this.somaticMarker._pulseTimeout = setTimeout(() => {
+      this.somaticMarker.setRadius(baseRadius);
+      this.somaticMarker.setStyle({ fillColor: baseColor, color: baseColor });
+      this.somaticMarker._pulseTimeout = null;
+    }, 250);
+  }
+
+  getContainerPoint(coords) {
+    if (!this.map || !coords || coords.lat === undefined || coords.lng === undefined) return null;
+    return this.map.latLngToContainerPoint([coords.lat, coords.lng]);
+  }
+
+  pulseNodeMarker(nodeId) {
+    if (!this.map) return;
+
+    const marker = this.towerMarkers.get(nodeId) || this.reflectorMarkers.get(nodeId);
+    if (!marker) return;
+
+    const isTower = this.towerMarkers.has(nodeId);
+    const baseRadius = marker._baseRadius || (isTower ? 10 : 6);
+    const baseColor = marker._baseColor || (isTower ? '#d4af37' : '#00e5ff');
+
+    if (marker._pulseTimeout) clearTimeout(marker._pulseTimeout);
+
+    // Flash radius expansion
+    marker.setRadius(baseRadius + 6);
+    marker.setStyle({ fillColor: '#ffffff', color: '#ffffff' });
+
+    marker._pulseTimeout = setTimeout(() => {
+      marker.setRadius(baseRadius);
+      marker.setStyle({ fillColor: baseColor, color: baseColor });
+      marker._pulseTimeout = null;
+    }, 200);
+  }
+
+  enableDebugContextMenu(onSetLocation) {
+    if (!this.map || !window.L) return;
+
+    this.map.on('contextmenu', (e) => {
+      const clickedCoords = { lat: e.latlng.lat, lng: e.latlng.lng };
+
+      const popupContent = document.createElement('div');
+      popupContent.style.padding = '4px';
+
+      const title = document.createElement('div');
+      title.style.fontWeight = 'bold';
+      title.style.marginBottom = '4px';
+      title.style.color = '#00e5ff';
+      title.textContent = 'DEBUG GPS SIMULATOR';
+
+      const coordsDiv = document.createElement('div');
+      coordsDiv.style.fontSize = '0.8em';
+      coordsDiv.style.color = '#aaa';
+      coordsDiv.style.marginBottom = '4px';
+      coordsDiv.textContent = `Lat: ${clickedCoords.lat.toFixed(5)} | Lng: ${clickedCoords.lng.toFixed(5)}`;
+
+      let distDivHtml = '';
+      if (this.somaticCoords) {
+        const distFromCurrent = calculateHaversineMeters(this.somaticCoords, clickedCoords);
+        distDivHtml += `<div style="font-size: 0.8em; color: #00e676; margin-bottom: 6px;">Distance from current: <b>${distFromCurrent.toFixed(1)}m</b></div>`;
+      }
+
+      // Find distance to nearest tower
+      let minDist = Infinity;
+      let nearestName = '';
+      this.lastNodesList.forEach((n) => {
+        const d = calculateHaversineMeters(clickedCoords, n.coordinates);
+        if (d < minDist) {
+          minDist = d;
+          nearestName = n.name;
+        }
+      });
+
+      if (Number.isFinite(minDist)) {
+        distDivHtml += `<div style="font-size: 0.8em; color: #d4af37; margin-bottom: 8px;">Nearest Tower (${nearestName}): <b>${minDist.toFixed(1)}m</b></div>`;
+      }
+
+      const infoContainer = document.createElement('div');
+      infoContainer.innerHTML = distDivHtml;
+
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-primary';
+      btn.style.width = '100%';
+      btn.style.padding = '4px 8px';
+      btn.style.fontSize = '0.85em';
+      btn.textContent = 'Set Current Location';
+
+      popupContent.appendChild(title);
+      popupContent.appendChild(coordsDiv);
+      popupContent.appendChild(infoContainer);
+      popupContent.appendChild(btn);
+
+      const popup = window.L.popup()
+        .setLatLng(e.latlng)
+        .setContent(popupContent)
+        .openOn(this.map);
+
+      btn.addEventListener('click', () => {
+        if (typeof onSetLocation === 'function') {
+          onSetLocation(clickedCoords);
+        }
+        this.map.closePopup(popup);
+      });
+    });
   }
 
   getMap() {

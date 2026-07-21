@@ -42,3 +42,26 @@ export function calculateDensityImpedanceFactor(targetNode, allReflectors = []) 
   if (impedance === 0) return 1.0;
   return 1.0 / (1.0 + impedance);
 }
+
+export function getEffectiveSpatialAudio(listenerCoords, nodeCoords) {
+  const defaultCenter = CLIENT_CONFIG.OURO_PRETO_CENTER;
+  let referenceCoords = listenerCoords || defaultCenter;
+
+  let distanceMeters = calculateHaversineMeters(referenceCoords, nodeCoords);
+
+  // If user coordinates are invalid or far outside Ouro Preto (> 3000m), measure relative to town center
+  if (!Number.isFinite(distanceMeters) || distanceMeters > 3000.0) {
+    const mapCenterDist = calculateHaversineMeters(defaultCenter, nodeCoords);
+    distanceMeters = Number.isFinite(mapCenterDist) ? Math.min(mapCenterDist, 600.0) : 150.0;
+  }
+
+  // Speed of sound propagation delay (distance / 343 m/s). Further towers take longer to arrive!
+  const rawDelay = calculateWaveDelaySeconds(distanceMeters);
+  const delaySeconds = Math.min(rawDelay, 2.0);
+
+  // Inverse-square gain attenuation (closer towers are louder, further towers are softer)
+  const rawGain = calculateInverseSquareGain(distanceMeters);
+  const gain = Math.max(0.15, rawGain);
+
+  return { distanceMeters, delaySeconds, gain };
+}

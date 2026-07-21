@@ -65,7 +65,7 @@ runTest('Immunological Parsing Layer Guardrail & Fallback Test', () => {
 
   assert.strictEqual(cleanPreset.carrierType, 'sine', 'Invalid carrierType must fallback to sine');
   assert.strictEqual(cleanPreset.baseFrequency, 220.0, 'NaN baseFrequency must fallback to 220.0');
-  assert.strictEqual(cleanPreset.decay, 6.0, 'Out of bounds decay must be clamped to 6.0');
+  assert.strictEqual(cleanPreset.decay, CONFIG.PARAMETER_BOUNDS.decay.max, `Out of bounds decay must be clamped to ${CONFIG.PARAMETER_BOUNDS.decay.max}`);
 });
 
 // ----------------------------------------------------

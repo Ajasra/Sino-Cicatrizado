@@ -37,11 +37,19 @@ export function getDatabaseConnection() {
       gain REAL DEFAULT 1.0,
       euclidean_density INTEGER DEFAULT 3,
       euclidean_steps INTEGER DEFAULT 8,
+      echo_probability REAL DEFAULT 0.7,
       scar_index REAL DEFAULT 0.0,
       interaction_count INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Migration helper for existing table
+  try {
+    dbInstance.exec(`ALTER TABLE nodes ADD COLUMN echo_probability REAL DEFAULT 0.7;`);
+  } catch (e) {
+    // Column already exists
+  }
 
   // Seed default Ouro Preto historical towers if table is empty
   seedInitialTowers(dbInstance);
@@ -92,6 +100,20 @@ function seedInitialTowers(db) {
 
     insertMany(snapshotNodes);
     console.log(`[DB] Successfully seeded ${snapshotNodes.length} historical towers.`);
+  } else if (result.count > 0 && fs.existsSync(CONFIG.TWIN_SNAPSHOT_PATH)) {
+    // Update existing towers to rare solemn rhythm density
+    try {
+      const snapshotRaw = fs.readFileSync(CONFIG.TWIN_SNAPSHOT_PATH, 'utf-8');
+      const snapshotNodes = JSON.parse(snapshotRaw);
+      const updateStmt = db.prepare(`
+        UPDATE nodes SET euclidean_density = ?, euclidean_steps = ? WHERE node_id = ?
+      `);
+      for (const node of snapshotNodes) {
+        updateStmt.run(node.stateVector.euclideanDensity, node.stateVector.euclideanSteps, node.nodeId);
+      }
+    } catch (e) {
+      // Ignore DB update error if snapshot unreadable
+    }
   }
 }
 
@@ -116,7 +138,8 @@ export function getAllNodes(city = CONFIG.DEFAULT_CITY) {
       decay: row.decay,
       gain: row.gain,
       euclideanDensity: row.euclidean_density,
-      euclideanSteps: row.euclidean_steps
+      euclideanSteps: row.euclidean_steps,
+      echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7
     },
     scarIndex: row.scar_index,
     interactionCount: row.interaction_count,
@@ -142,7 +165,8 @@ export function getNodeById(nodeId) {
       decay: row.decay,
       gain: row.gain,
       euclideanDensity: row.euclidean_density,
-      euclideanSteps: row.euclidean_steps
+      euclideanSteps: row.euclidean_steps,
+      echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7
     },
     scarIndex: row.scar_index,
     interactionCount: row.interaction_count,

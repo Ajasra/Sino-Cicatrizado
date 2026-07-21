@@ -25,6 +25,22 @@ export class GeolocationSensor {
     }
   }
 
+  setCustomMockLocation(coords) {
+    this.mockMode = true;
+    this.stopRealWatch();
+    this.stopMockSimulation();
+
+    this.mockCoords = {
+      lat: Number(coords.lat),
+      lng: Number(coords.lng),
+      alt: Number(coords.alt || 1150.0)
+    };
+
+    if (this.onPositionUpdate) {
+      this.onPositionUpdate(this.mockCoords);
+    }
+  }
+
   startRealWatch() {
     if (navigator.geolocation) {
       this.watchId = navigator.geolocation.watchPosition(

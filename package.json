@@ -5,7 +5,7 @@
   "type": "module",
   "main": "server/server.js",
   "scripts": {
-    "start": "node server/server.js",
+    "start": "node --watch server/server.js",
     "dev": "node --watch server/server.js",
     "test": "node test/verification.js"
   },
