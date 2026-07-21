@@ -12,7 +12,11 @@ const METERS_PER_DEGREE_LNG = 111000 * Math.cos((CENTER_LAT * Math.PI) / 180);
 export function initVirtualUsers(somaticNodesMap, broadcastMessage) {
   if (!CONFIG.DEBUG) return;
 
-  const count = CONFIG.VIRTUAL_USERS_COUNT || 5;
+  const count = CONFIG.VIRTUAL_USERS_COUNT != null ? CONFIG.VIRTUAL_USERS_COUNT : 5;
+  if (count === 0) {
+    console.log('[VIRTUAL USERS] VIRTUAL_USERS_COUNT=0, skipping virtual user simulation.');
+    return;
+  }
   console.log(`[VIRTUAL USERS] Initializing ${count} virtual users in debug mode...`);
 
   const virtualUsers = [];
