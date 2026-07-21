@@ -1,6 +1,12 @@
 # TODO & Deferred Roadmap Items
 
 ## Deferred Infra & Operations
-- [ ] **Automated AWS S3 Twin Archive Sync**:
-  - *Context:* Currently the Scarred Twin dataset snapshot is served locally from `data/scarred_twin.json`.
-  - *Future Work:* Implement automated post-conference upload script to push final static snapshot to an external AWS S3 bucket if remote cloud backup is required.
+- [ ] **Scarred Twin City Snapshot Feature**:
+  - *Context:* Provide a historical snapshot mode ("Scarred Twin") alongside the real-time autopoiesis mode ("Living City").
+  - *Implementation Spec:*
+    - **City Duplicate:** Create a frozen snapshot copy of all city nodes (`node_type`, `coordinates`, `stateVector`, `scarIndex`) when freezing a twin dataset.
+    - **Read-Only / Immutable Mode:** When a participant toggles to the Scarred Twin view:
+      - Disable adding new reflectors (`/api/reflectors` rejected or disabled in UI).
+      - Disable hysteretic state mutations (proximity updates do not mutate the twin node parameters in DB).
+    - **City In-App Toggle:** Inside each city view (or city selector modal), add a toggle switch (`LIVING` vs `TWIN`) allowing participants to seamlessly switch between the live mutating soundscape and the frozen historical Scarred Twin dataset.
+
