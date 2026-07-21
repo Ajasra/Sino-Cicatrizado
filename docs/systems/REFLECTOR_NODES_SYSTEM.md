@@ -57,8 +57,13 @@ The server invokes `generateReflectorPresetFromPrompt()` ([llm-membrane.js](file
   "gain": 0.85,
   "fmIndex": 2.5,
   "filterCutoff": 1400.0,
+  "filterType": "bandpass",
+  "delayTimeMs": 350.0,
+  "feedbackRatio": 0.45,
+  "combResonance": 0.20,
   "bitDepth": 16,
-  "echoProbability": 0.80
+  "echoProbability": 0.80,
+  "displayTitle": "Colonial Bronze & Iron Echoes"
 }
 ```
 
@@ -157,7 +162,11 @@ All parameter shifts are clamped within `CONFIG.PARAMETER_BOUNDS`:
 | Reflector Parameter | Initial Baseline | Scar Mutation Behavior | Operational Audio Result |
 | :--- | :--- | :--- | :--- |
 | **`baseFrequency`** | $55\text{ Hz} - 880\text{ Hz}$ | Microtonal sway ($\pm 3\%$) relative to fundamental pitch | Microtonal pitch detuning without runaway compounding |
-| **`filterCutoff`** | $100\text{ Hz} - 5000\text{ Hz}$ | Shifts by $\text{filterDir} \cdot 300 \cdot \Delta \text{Scar}$ | Lowpass filter cutoff darkens or brightens resonance |
+| **`filterCutoff`** | $100\text{ Hz} - 5000\text{ Hz}$ | Shifts by $\text{filterDir} \cdot 300 \cdot \Delta \text{Scar}$ | Lowpass/Bandpass cutoff darkens or brightens resonance |
+| **`filterType`** | User Preset | `lowpass` $\rightarrow$ `highpass` $\rightarrow$ `bandpass` $\rightarrow$ `comb` | Multi-mode filter bank timbral morphing |
+| **`delayTimeMs`** | $50\text{ ms} - 1000\text{ ms}$ | Modulated via tape-warp LFO ($\pm 2.5\text{ms}$) | Analog delay pitch wobble & echo decay |
+| **`feedbackRatio`** | $0.0 - 0.85$ | Feedback ratio scales with scar index | Dense Feedback Delay Network (FDN) tail |
+| **`combResonance`** | $0.0 - 0.95$ | Comb $Q$ increases with $\text{scarIndex}$ | Metallic cavity resonance & ringing |
 | **`fmIndex`** | $0.0 - 10.0$ | Increases by $+2.5 \cdot \Delta \text{Scar} \cdot \text{fmWeight}$ | Harsh inharmonic metallic overtone generation |
 | **`decay`** | $0.1\text{ s} - 15.0\text{ s}$ | Oscillates via $\text{decayDir} \cdot \cos(\text{scarIndex} \cdot 4.2)$ | Envelope release tail lengthens or shortens |
 | **`bitDepth`** | $16\text{-bit} - 2\text{-bit}$ | Drops when $\text{scarIndex} > 1.5$ down to 2-bit | Digital crushing & bit degradation |
@@ -188,6 +197,10 @@ CREATE TABLE IF NOT EXISTS nodes (
   sound_type TEXT DEFAULT 'bell_deep',
   fm_index REAL DEFAULT 0.0,
   filter_cutoff REAL DEFAULT 1200.0,
+  filter_type TEXT DEFAULT 'lowpass',
+  delay_time_ms REAL DEFAULT 250.0,
+  feedback_ratio REAL DEFAULT 0.3,
+  comb_resonance REAL DEFAULT 0.0,
   bit_depth INTEGER DEFAULT 16,
   carrier_type TEXT DEFAULT 'sine',
   scar_index REAL DEFAULT 0.0,
@@ -196,9 +209,10 @@ CREATE TABLE IF NOT EXISTS nodes (
 );
 ```
 
-### 6.1 Real-Time WebSocket Synchronization
-- **Creation**: When a reflector is added, the server broadcasts a `REFLECTOR_CREATED` event containing the full node state to all connected Somatic Nodes.
-- **Mutation**: When proximity causes a parameter shift, the server broadcasts a `NODE_MUTATED` event containing the updated state vector, distance, and triggering `somaticId`.
+### 6.1 Real-Time WebSocket City Room Synchronization & Spatial Capping
+- **City Room Partitioning (`SUBSCRIBE_CITY`)**: Clients join WebSocket rooms for their active city (`ouro_preto`, `chicago`, `shanghai`). Messages (`SOMATIC_FRAME_UPDATE`, `NODE_MUTATED`, `REFLECTOR_CREATED`) are filtered by city room to eliminate global network flooding.
+- **Spatial Grid Hysteresis Indexing**: Server partitions nodes into $200\text{m}$ spatial grid cells (`getGridCellKey()`), reducing 4Hz proximity evaluation from $O(N \cdot M)$ full DB scans to $O(1)$ spatial bucket lookups.
+- **Client Polyphony Capping ($N = 100$)**: Web Audio synthesis evaluates only the **100 nearest nodes** relative to listener coordinates ([spatial.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/spatial.js#L66-L80)), protecting client CPU resources.
 
 ---
 
