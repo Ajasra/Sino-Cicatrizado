@@ -29,21 +29,13 @@ app.use((req, res, next) => {
 
 app.use(express.static(PUBLIC_DIR));
 
-// Dual-Twin Database mode: 'LIVING' or 'TWIN'
-let activeTwinMode = 'LIVING';
-
 // Active connected somatic nodes state map: somaticId => { id, ws, coordinates, batteryLevel, lastUpdated }
 const somaticNodesMap = new Map();
 
 // API Routes
 app.get('/api/nodes', (req, res) => {
-  if (activeTwinMode === 'TWIN' && fs.existsSync(CONFIG.TWIN_SNAPSHOT_PATH)) {
-    const raw = fs.readFileSync(CONFIG.TWIN_SNAPSHOT_PATH, 'utf-8');
-    return res.json({ mode: 'TWIN', debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, nodes: JSON.parse(raw) });
-  }
-
   const nodes = getAllNodes(CONFIG.DEFAULT_CITY);
-  return res.json({ mode: activeTwinMode, debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, nodes });
+  return res.json({ mode: 'LIVING', debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, nodes });
 });
 
 app.post('/api/reflectors', async (req, res) => {
@@ -70,9 +62,7 @@ app.post('/api/reflectors', async (req, res) => {
       interactionCount: 0
     };
 
-    if (activeTwinMode === 'LIVING') {
-      saveReflectorNode(newNode);
-    }
+    saveReflectorNode(newNode);
 
     // Broadcast new reflector creation to all clients over WebSocket
     broadcastMessage({
@@ -99,23 +89,6 @@ app.post('/api/cities/create', async (req, res) => {
   }
 });
 
-app.post('/api/twin/toggle', (req, res) => {
-  const { mode } = req.body;
-  if (mode === 'LIVING' || mode === 'TWIN') {
-    activeTwinMode = mode;
-    console.log(`[SYSTEM] Dual-Twin mode switched to: ${activeTwinMode}`);
-
-    broadcastMessage({
-      type: 'TWIN_MODE_CHANGED',
-      payload: { mode: activeTwinMode },
-      timestamp: Date.now()
-    });
-
-    return res.json({ success: true, mode: activeTwinMode });
-  }
-  return res.status(400).json({ error: 'Mode must be LIVING or TWIN' });
-});
-
 // Initialize HTTP & WebSocket Server
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -137,7 +110,7 @@ wss.on('connection', (ws) => {
     type: 'SESSION_INIT',
     payload: {
       somaticId: clientSomaticId,
-      twinMode: activeTwinMode,
+      twinMode: 'LIVING',
       debugMode: CONFIG.DEBUG,
       showUsers: CONFIG.SHOW_USERS,
       config: {
@@ -220,8 +193,6 @@ function broadcastMessage(dataObj) {
 // 4 Hz Broadcast & Proximity Hysteresis Evaluation Loop (250 ms interval)
 const loopIntervalMs = Math.round(1000 / CONFIG.BROADCAST_RATE_HZ);
 setInterval(() => {
-  if (activeTwinMode !== 'LIVING') return; // Do not mutate in read-only Scarred Twin mode
-
   const allDbNodes = getAllNodes(CONFIG.DEFAULT_CITY);
 
   // Collect somatic positions for frame broadcast

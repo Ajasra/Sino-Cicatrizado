@@ -60,7 +60,10 @@ class SinoCicatrizadoApp {
       }
 
       const pill = document.getElementById('pill-gps');
-      if (pill) pill.textContent = 'GPS: DEBUG RIGHT-CLICKED';
+      if (pill) {
+        pill.textContent = 'GPS 🟢';
+        pill.title = `Simulated Coords: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+      }
     });
   }
 
@@ -83,7 +86,9 @@ class SinoCicatrizadoApp {
     // Battery level monitoring
     BatterySensor.watchLevel((level) => {
       this.batteryLevel = level;
-      this.audioEngine.updateBatteryLevel(level); // also updates pill-battery UI
+      this.audioEngine.updateBatteryLevel(level);
+      const pill = document.getElementById('pill-battery');
+      if (pill) pill.textContent = `⚡ ${Math.round(level * 100)}%`;
     });
 
     // Geolocation tracking
@@ -99,6 +104,16 @@ class SinoCicatrizadoApp {
     this.mapView.updateSomaticNode(coords);
     this.nodeSequencer.setSomaticCoords(coords);
 
+    const pillGps = document.getElementById('pill-gps');
+    if (pillGps) {
+      pillGps.textContent = coords ? 'GPS 🟢' : 'GPS --';
+      if (coords) {
+        const latStr = coords.lat >= 0 ? `${coords.lat.toFixed(4)}°N` : `${Math.abs(coords.lat).toFixed(4)}°S`;
+        const lngStr = coords.lng >= 0 ? `${coords.lng.toFixed(4)}°E` : `${Math.abs(coords.lng).toFixed(4)}°W`;
+        pillGps.title = `Position: ${latStr}, ${lngStr}`;
+      }
+    }
+
     if (this.wsClient) {
       this.wsClient.sendPositionUpdate(coords, this.batteryLevel);
     }
@@ -108,7 +123,6 @@ class SinoCicatrizadoApp {
     try {
       const res = await fetch('/api/nodes');
       const data = await res.json();
-      this.twinMode = data.mode;
       this.nodesList = data.nodes || [];
       if (data.showUsers !== undefined) {
         this.showUsers = data.showUsers;
@@ -120,9 +134,6 @@ class SinoCicatrizadoApp {
 
       this.mapView.updateNodes(this.nodesList);
       this.nodeSequencer.setNodes(this.nodesList);
-
-      const pillMode = document.getElementById('pill-twin-mode');
-      if (pillMode) pillMode.textContent = `MODE: ${this.twinMode === 'TWIN' ? 'SCARRED TWIN' : 'LIVING CITY'}`;
 
       const pillNodes = document.getElementById('pill-nodes');
       if (pillNodes) pillNodes.textContent = `NODES: ${this.nodesList.length}`;
@@ -185,10 +196,6 @@ class SinoCicatrizadoApp {
         this.nodesList.push(msg.payload);
         this.mapView.updateNodes(this.nodesList);
         this.nodeSequencer.setNodes(this.nodesList);
-        break;
-
-      case 'TWIN_MODE_CHANGED':
-        this.fetchNodes();
         break;
 
       default:
@@ -286,11 +293,13 @@ class SinoCicatrizadoApp {
       this.unlockAudio();
     });
 
-    // Somatic Chirp button
-    document.getElementById('btn-chirp').addEventListener('click', () => {
-      if (this.wsClient) {
-        this.wsClient.sendChirp(440.0, this.currentSomaticCoords);
-      }
+    // Somatic Chirp buttons (floating icon & settings modal button)
+    document.querySelectorAll('#btn-chirp, .btn-chirp-trigger').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (this.wsClient) {
+          this.wsClient.sendChirp(440.0, this.currentSomaticCoords);
+        }
+      });
     });
 
     // Rhythm Loop toggle button
@@ -314,68 +323,107 @@ class SinoCicatrizadoApp {
       });
     }
 
-    // Mock GPS Toggle button
-    document.getElementById('btn-mock-gps').addEventListener('click', () => {
-      if (this.gpsSensor) {
-        const nextState = !this.gpsSensor.mockMode;
-        this.gpsSensor.setMockMode(nextState);
+    // Mock GPS Toggle button (if element exists)
+    const mockGpsBtn = document.getElementById('btn-mock-gps');
+    if (mockGpsBtn) {
+      mockGpsBtn.addEventListener('click', () => {
+        if (this.gpsSensor) {
+          const nextState = !this.gpsSensor.mockMode;
+          this.gpsSensor.setMockMode(nextState);
 
-        const pill = document.getElementById('pill-gps');
-        if (pill) pill.textContent = `GPS: ${nextState ? 'MOCK/DESKTOP' : 'REAL/NATIVE'}`;
-      }
-    });
-
-    // Drop Static Reflector button
-    document.getElementById('btn-drop-reflector').addEventListener('click', async () => {
-      if (!this.currentSomaticCoords) {
-        alert('Position unknown. Please enable GPS or Mock simulation mode.');
-        return;
-      }
-
-      const intentInput = document.getElementById('input-reflector-intent');
-      const intentText = intentInput.value.trim() || 'Somatic Memory Deposit';
-
-      try {
-        const res = await fetch('/api/reflectors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            coordinates: this.currentSomaticCoords,
-            intentText
-          })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          intentInput.value = '';
-          console.log('[API] Reflector dropped successfully:', data.node);
+          const pill = document.getElementById('pill-gps');
+          if (pill) pill.textContent = `GPS: ${nextState ? 'MOCK/DESKTOP' : 'REAL/NATIVE'}`;
         }
-      } catch (err) {
-        console.error('[API] Error dropping reflector:', err);
+      });
+    }
+
+    // Settings & Acoustic Probes Modal handling
+    const fabSettingsBtn = document.getElementById('fab-settings');
+    const settingsModal = document.getElementById('modal-settings');
+    const closeSettingsBtn = document.getElementById('modal-settings-close-btn');
+
+    const openSettingsModal = () => {
+      if (settingsModal) settingsModal.style.display = 'flex';
+    };
+    const closeSettingsModal = () => {
+      if (settingsModal) settingsModal.style.display = 'none';
+    };
+
+    if (fabSettingsBtn) fabSettingsBtn.addEventListener('click', openSettingsModal);
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettingsModal);
+
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) closeSettingsModal();
+      });
+    }
+
+    // Reflection Deposit FAB & Modal handling
+    const fabBtn = document.getElementById('fab-reflector');
+    const modal = document.getElementById('modal-reflector');
+    const closeBtn = document.getElementById('modal-close-btn');
+    const cancelBtn = document.getElementById('btn-cancel-reflector');
+    const intentInput = document.getElementById('input-reflector-intent');
+
+    const openModal = () => {
+      if (modal) {
+        modal.style.display = 'flex';
+        if (intentInput) intentInput.focus();
+      }
+    };
+
+    const closeModal = () => {
+      if (modal) modal.style.display = 'none';
+    };
+
+    if (fabBtn) fabBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (settingsModal && settingsModal.style.display !== 'none') closeSettingsModal();
+        if (modal && modal.style.display !== 'none') closeModal();
       }
     });
 
-    // Dual-Twin Mode Toggle buttons
-    document.getElementById('btn-mode-living').addEventListener('click', () => this.switchTwinMode('LIVING'));
-    document.getElementById('btn-mode-twin').addEventListener('click', () => this.switchTwinMode('TWIN'));
-  }
+    // Drop Static Reflector button inside Modal
+    const dropBtn = document.getElementById('btn-drop-reflector');
+    if (dropBtn) {
+      dropBtn.addEventListener('click', async () => {
+        if (!this.currentSomaticCoords) {
+          alert('Position unknown. Please enable GPS or Mock simulation mode.');
+          return;
+        }
 
-  async switchTwinMode(mode) {
-    try {
-      const res = await fetch('/api/twin/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode })
+        const intentText = intentInput ? intentInput.value.trim() || 'Somatic Memory Deposit' : 'Somatic Memory Deposit';
+
+        try {
+          const res = await fetch('/api/reflectors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              coordinates: this.currentSomaticCoords,
+              intentText
+            })
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            if (intentInput) intentInput.value = '';
+            closeModal();
+            console.log('[API] Reflector dropped successfully:', data.node);
+          }
+        } catch (err) {
+          console.error('[API] Error dropping reflector:', err);
+        }
       });
-
-      const data = await res.json();
-      if (data.success) {
-        document.getElementById('btn-mode-living').className = mode === 'LIVING' ? 'btn btn-primary' : 'btn';
-        document.getElementById('btn-mode-twin').className = mode === 'TWIN' ? 'btn btn-primary' : 'btn';
-        await this.fetchNodes();
-      }
-    } catch (err) {
-      console.error('[API] Error toggling twin mode:', err);
     }
   }
 }

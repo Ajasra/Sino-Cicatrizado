@@ -20,7 +20,13 @@ export class LeafletMapView {
     }
 
     const center = CLIENT_CONFIG.OURO_PRETO_CENTER;
-    this.map = window.L.map(this.elementId).setView([center.lat, center.lng], center.zoom);
+    this.map = window.L.map(this.elementId, {
+      zoomControl: true,
+      tap: true,
+      touchZoom: true,
+      dragging: true,
+      bounceAtZoomLimits: false
+    }).setView([center.lat, center.lng], center.zoom);
 
     // Dark Map Tiles (CartoDB Dark Matter / OpenStreetMap)
     window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -36,20 +42,21 @@ export class LeafletMapView {
     nodesList.forEach((node) => {
       const { lat, lng } = node.coordinates;
       const dist = this.somaticCoords ? calculateHaversineMeters(this.somaticCoords, node.coordinates) : null;
-      const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance to you:</b> ${dist.toFixed(1)} meters` : '';
+      const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance:</b> ${dist.toFixed(1)}m` : '';
+      const soundType = node.stateVector?.soundType || 'bell_deep';
 
       if (node.nodeType === 'TOWER') {
-        const popupText = `<b>${node.name}</b>${distStr}<br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scars: ${node.scarIndex.toFixed(2)}`;
+        const popupText = `<b>${node.name}</b>${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
 
         if (!this.towerMarkers.has(node.nodeId)) {
           const marker = window.L.circleMarker([lat, lng], {
-            radius: 10,
+            radius: 5,
             color: '#d4af37',
             fillColor: '#d4af37',
-            fillOpacity: 0.8
+            fillOpacity: 0.85
           }).addTo(this.map);
 
-          marker._baseRadius = 10;
+          marker._baseRadius = 5;
           marker._baseColor = '#d4af37';
           marker.bindPopup(popupText);
           this.towerMarkers.set(node.nodeId, marker);
@@ -59,17 +66,17 @@ export class LeafletMapView {
           marker.setPopupContent(popupText);
         }
       } else if (node.nodeType === 'REFLECTOR') {
-        const popupText = `<b>${node.name}</b>${distStr}<br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
+        const popupText = `<b>${node.name}</b>${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
 
         if (!this.reflectorMarkers.has(node.nodeId)) {
           const marker = window.L.circleMarker([lat, lng], {
-            radius: 6,
+            radius: 3,
             color: '#00e5ff',
             fillColor: '#00e5ff',
-            fillOpacity: 0.6
+            fillOpacity: 0.7
           }).addTo(this.map);
 
-          marker._baseRadius = 6;
+          marker._baseRadius = 3;
           marker._baseColor = '#00e5ff';
           marker.bindPopup(popupText);
           this.reflectorMarkers.set(node.nodeId, marker);
@@ -87,13 +94,13 @@ export class LeafletMapView {
 
     if (!this.somaticMarker) {
       this.somaticMarker = window.L.circleMarker([coords.lat, coords.lng], {
-        radius: 8,
+        radius: 4,
         color: '#00e676',
         fillColor: '#00e676',
         fillOpacity: 1.0
       }).addTo(this.map);
 
-      this.somaticMarker._baseRadius = 8;
+      this.somaticMarker._baseRadius = 4;
       this.somaticMarker._baseColor = '#00e676';
       this.somaticMarker.bindPopup('<b>Your Somatic Node</b>');
     } else {
@@ -125,13 +132,13 @@ export class LeafletMapView {
 
       if (!this.otherUserMarkers.has(id)) {
         const marker = window.L.circleMarker([lat, lng], {
-          radius: 7,
+          radius: 3.5,
           color: color,
           fillColor: color,
           fillOpacity: 0.85
         }).addTo(this.map);
 
-        marker._baseRadius = 7;
+        marker._baseRadius = 3.5;
         marker._baseColor = color;
         marker.bindPopup(popupText);
         this.otherUserMarkers.set(id, marker);
@@ -176,12 +183,12 @@ export class LeafletMapView {
   pulseSomaticNode() {
     if (!this.map || !this.somaticMarker) return;
 
-    const baseRadius = 8;
+    const baseRadius = 4;
     const baseColor = '#00e676';
 
     if (this.somaticMarker._pulseTimeout) clearTimeout(this.somaticMarker._pulseTimeout);
 
-    this.somaticMarker.setRadius(baseRadius + 8);
+    this.somaticMarker.setRadius(baseRadius + 5);
     this.somaticMarker.setStyle({ fillColor: '#ffffff', color: '#00e676' });
 
     this.somaticMarker._pulseTimeout = setTimeout(() => {
@@ -203,7 +210,7 @@ export class LeafletMapView {
     if (!marker) return;
 
     const isTower = this.towerMarkers.has(nodeId);
-    const baseRadius = marker._baseRadius || (isTower ? 10 : 6);
+    const baseRadius = marker._baseRadius || (isTower ? 5 : 3);
     const baseColor = marker._baseColor || (isTower ? '#d4af37' : '#00e5ff');
 
     if (marker._pulseTimeout) clearTimeout(marker._pulseTimeout);
