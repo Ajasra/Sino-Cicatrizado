@@ -117,6 +117,7 @@ wss.on('connection', (ws) => {
   somaticNodesMap.set(clientSomaticId, {
     somaticId: clientSomaticId,
     ws,
+    cityKey: CONFIG.DEFAULT_CITY,
     coordinates: null,
     batteryLevel: 1.0,
     lastUpdated: Date.now()
@@ -149,12 +150,14 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log(`[WS] Somatic Node disconnected: ${clientSomaticId}`);
+    const clientNode = somaticNodesMap.get(clientSomaticId);
+    const cityKey = clientNode ? clientNode.cityKey : null;
     somaticNodesMap.delete(clientSomaticId);
     broadcastMessage({
       type: 'SOMATIC_DISCONNECTED',
       payload: { somaticId: clientSomaticId },
       timestamp: Date.now()
-    });
+    }, cityKey);
   });
 });
 
@@ -163,8 +166,16 @@ function handleClientMessage(somaticId, msg) {
   if (!node) return;
 
   switch (msg.type) {
+    case 'SUBSCRIBE_CITY': {
+      if (msg.payload && msg.payload.city) {
+        node.cityKey = msg.payload.city;
+      }
+      break;
+    }
+
     case 'SOMATIC_POSITION_UPDATE': {
-      const { coordinates, batteryLevel } = msg.payload || {};
+      const { coordinates, batteryLevel, city } = msg.payload || {};
+      if (city) node.cityKey = city;
       if (coordinates && coordinates.lat !== undefined && coordinates.lng !== undefined) {
         node.coordinates = {
           lat: Number(coordinates.lat),
@@ -180,7 +191,7 @@ function handleClientMessage(somaticId, msg) {
     }
 
     case 'SOMATIC_CHIRP': {
-      // Broadcast active echolocation strike pulse to all connected clients
+      // Broadcast active echolocation strike pulse to clients in same city
       broadcastMessage({
         type: 'SOMATIC_CHIRP_BROADCAST',
         payload: {
@@ -189,7 +200,7 @@ function handleClientMessage(somaticId, msg) {
           frequency: msg.payload?.chirpFrequency || 440.0
         },
         timestamp: Date.now()
-      });
+      }, node.cityKey);
       break;
     }
 
@@ -198,13 +209,32 @@ function handleClientMessage(somaticId, msg) {
   }
 }
 
-function broadcastMessage(dataObj) {
+function broadcastMessage(dataObj, targetCityKey = null) {
   const jsonStr = JSON.stringify(dataObj);
   for (const [, client] of somaticNodesMap) {
     if (client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(jsonStr);
+      if (!targetCityKey || targetCityKey === 'all' || client.cityKey === targetCityKey) {
+        client.ws.send(jsonStr);
+      }
     }
   }
+}
+
+// Spatial Grid Hysteresis Indexing Helper (~200m spatial grid resolution)
+function getGridCellKey(lat, lng) {
+  return `${Math.floor(lat / 0.002)}_${Math.floor(lng / 0.002)}`;
+}
+
+function getNeighborGridKeys(lat, lng) {
+  const cellLat = Math.floor(lat / 0.002);
+  const cellLng = Math.floor(lng / 0.002);
+  const keys = [];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      keys.push(`${cellLat + dx}_${cellLng + dy}`);
+    }
+  }
+  return keys;
 }
 
 // 4 Hz Broadcast & Proximity Hysteresis Evaluation Loop (250 ms interval)
@@ -212,12 +242,16 @@ const loopIntervalMs = Math.round(1000 / CONFIG.BROADCAST_RATE_HZ);
 setInterval(() => {
   const allDbNodes = getAllNodes();
 
-  // Collect somatic positions for frame broadcast
-  const somaticList = [];
+  // Partition somatic nodes by city for spatial room broadcasts
+  const somaticsByCity = new Map();
   const activeSomas = [];
+
   for (const [id, soma] of somaticNodesMap) {
-    if (soma.coordinates) {
-      somaticList.push({
+    if (soma.coordinates && soma.cityKey) {
+      if (!somaticsByCity.has(soma.cityKey)) {
+        somaticsByCity.set(soma.cityKey, []);
+      }
+      somaticsByCity.get(soma.cityKey).push({
         somaticId: id,
         coordinates: soma.coordinates,
         batteryLevel: soma.batteryLevel
@@ -226,24 +260,36 @@ setInterval(() => {
     }
   }
 
-  // Evaluate hysteretic mutations against active towers & reflectors with crowd damping & participant signatures
-  if (activeSomas.length > 0) {
+  // Evaluate hysteretic mutations using spatial grid indexing (O(1) bucket lookups)
+  if (activeSomas.length > 0 && allDbNodes.length > 0) {
+    // Build spatial grid map of DB nodes per city
+    const spatialGridMap = new Map(); // `${city}_${gridKey}` => Array<dbNode>
     for (const dbNode of allDbNodes) {
-      // Find all somatic nodes within proximity interaction threshold for this dbNode
-      const somasInProximity = activeSomas.filter(item => {
+      const city = dbNode.city || CONFIG.DEFAULT_CITY;
+      const gKey = `${city}_${getGridCellKey(dbNode.coordinates.lat, dbNode.coordinates.lng)}`;
+      if (!spatialGridMap.has(gKey)) {
+        spatialGridMap.set(gKey, []);
+      }
+      spatialGridMap.get(gKey).push(dbNode);
+    }
+
+    // Check each active soma against candidate dbNodes in neighbor grid cells
+    for (const item of activeSomas) {
+      const somaCity = item.soma.cityKey || CONFIG.DEFAULT_CITY;
+      const neighborKeys = getNeighborGridKeys(item.soma.coordinates.lat, item.soma.coordinates.lng);
+      
+      const candidateDbNodes = [];
+      for (const nKey of neighborKeys) {
+        const nodesInBucket = spatialGridMap.get(`${somaCity}_${nKey}`);
+        if (nodesInBucket) candidateDbNodes.push(...nodesInBucket);
+      }
+
+      for (const dbNode of candidateDbNodes) {
         const dist = calculateHaversineMeters(item.soma.coordinates, dbNode.coordinates);
-        return dist <= CONFIG.PROXIMITY_MUTATION_THRESHOLD_M;
-      });
-
-      const crowdCount = somasInProximity.length;
-      if (crowdCount > 0) {
-        const crowdDamping = CONFIG.CROWD_DAMPING_FACTOR || 0.3;
-        const crowdMultiplier = 1.0 / (1.0 + crowdDamping * (crowdCount - 1));
-
-        for (const item of somasInProximity) {
+        if (dist <= CONFIG.PROXIMITY_MUTATION_THRESHOLD_M) {
+          const crowdMultiplier = 1.0;
           const mutationResult = evaluateSomaticProximity(item.soma.coordinates, dbNode, item.id, crowdMultiplier);
           if (mutationResult) {
-            // Broadcast scar mutation to all clients
             broadcastMessage({
               type: 'NODE_MUTATED',
               payload: {
@@ -255,20 +301,22 @@ setInterval(() => {
                 signature: mutationResult.signature
               },
               timestamp: Date.now()
-            });
+            }, dbNode.city);
           }
         }
       }
     }
   }
 
-  // Broadcast current somatic positions snapshot frame
-  if (somaticList.length > 0) {
-    broadcastMessage({
-      type: 'SOMATIC_FRAME_UPDATE',
-      payload: { somaticNodes: somaticList },
-      timestamp: Date.now()
-    });
+  // Broadcast current somatic positions snapshot frames per city room
+  for (const [cityKey, somaticList] of somaticsByCity) {
+    if (somaticList.length > 0) {
+      broadcastMessage({
+        type: 'SOMATIC_FRAME_UPDATE',
+        payload: { city: cityKey, somaticNodes: somaticList },
+        timestamp: Date.now()
+      }, cityKey);
+    }
   }
 }, loopIntervalMs);
 

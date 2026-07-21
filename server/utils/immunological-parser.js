@@ -23,6 +23,9 @@ export function validateSynthPreset(rawPreset) {
     ? data.soundType.toLowerCase()
     : 'bell_sacred';
 
+  const validFilterTypes = ['lowpass', 'highpass', 'bandpass', 'notch', 'comb'];
+  const filterType = validFilterTypes.includes(data.filterType) ? data.filterType : 'lowpass';
+
   return {
     soundType,
     carrierType: ['sine', 'triangle', 'sawtooth'].includes(data.carrierType) ? data.carrierType : 'sine',
@@ -34,6 +37,10 @@ export function validateSynthPreset(rawPreset) {
     echoProbability: clamp(Number(data.echoProbability) || 0.7, bounds.echoProbability ? bounds.echoProbability.min : 0.1, bounds.echoProbability ? bounds.echoProbability.max : 0.9),
     fmIndex: clamp(Number(data.fmIndex) || 0.0, bounds.fmIndex ? bounds.fmIndex.min : 0.0, bounds.fmIndex ? bounds.fmIndex.max : 10.0),
     filterCutoff: clamp(Number(data.filterCutoff) || 1200.0, bounds.filterCutoff ? bounds.filterCutoff.min : 100.0, bounds.filterCutoff ? bounds.filterCutoff.max : 5000.0),
+    filterType,
+    delayTimeMs: clamp(Number(data.delayTimeMs) || 250.0, 50.0, 1000.0),
+    feedbackRatio: clamp(Number(data.feedbackRatio) || 0.3, 0.0, 0.85),
+    combResonance: clamp(Number(data.combResonance) || 0.0, 0.0, 0.95),
     bitDepth: Math.round(clamp(Number(data.bitDepth) || 16, bounds.bitDepth ? bounds.bitDepth.min : 2, bounds.bitDepth ? bounds.bitDepth.max : 16))
   };
 }
@@ -55,6 +62,10 @@ export function getBasalSoapstonePreset() {
     echoProbability: 0.7,
     fmIndex: 0.0,
     filterCutoff: 1200.0,
+    filterType: 'lowpass',
+    delayTimeMs: 250.0,
+    feedbackRatio: 0.3,
+    combResonance: 0.0,
     bitDepth: 16
   };
 }

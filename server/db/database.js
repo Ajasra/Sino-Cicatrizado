@@ -41,6 +41,10 @@ export function getDatabaseConnection() {
       sound_type TEXT DEFAULT 'bell_deep',
       fm_index REAL DEFAULT 0.0,
       filter_cutoff REAL DEFAULT 1200.0,
+      filter_type TEXT DEFAULT 'lowpass',
+      delay_time_ms REAL DEFAULT 250.0,
+      feedback_ratio REAL DEFAULT 0.3,
+      comb_resonance REAL DEFAULT 0.0,
       bit_depth INTEGER DEFAULT 16,
       carrier_type TEXT DEFAULT 'sine',
       scar_index REAL DEFAULT 0.0,
@@ -55,6 +59,10 @@ export function getDatabaseConnection() {
     `ALTER TABLE nodes ADD COLUMN sound_type TEXT DEFAULT 'bell_deep';`,
     `ALTER TABLE nodes ADD COLUMN fm_index REAL DEFAULT 0.0;`,
     `ALTER TABLE nodes ADD COLUMN filter_cutoff REAL DEFAULT 1200.0;`,
+    `ALTER TABLE nodes ADD COLUMN filter_type TEXT DEFAULT 'lowpass';`,
+    `ALTER TABLE nodes ADD COLUMN delay_time_ms REAL DEFAULT 250.0;`,
+    `ALTER TABLE nodes ADD COLUMN feedback_ratio REAL DEFAULT 0.3;`,
+    `ALTER TABLE nodes ADD COLUMN comb_resonance REAL DEFAULT 0.0;`,
     `ALTER TABLE nodes ADD COLUMN bit_depth INTEGER DEFAULT 16;`,
     `ALTER TABLE nodes ADD COLUMN carrier_type TEXT DEFAULT 'sine';`
   ];
@@ -267,6 +275,10 @@ export function getAllNodes(city = null) {
       echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7,
       fmIndex: row.fm_index !== undefined ? row.fm_index : 0.0,
       filterCutoff: row.filter_cutoff !== undefined ? row.filter_cutoff : 1200.0,
+      filterType: row.filter_type || 'lowpass',
+      delayTimeMs: row.delay_time_ms !== undefined ? row.delay_time_ms : 250.0,
+      feedbackRatio: row.feedback_ratio !== undefined ? row.feedback_ratio : 0.3,
+      combResonance: row.comb_resonance !== undefined ? row.comb_resonance : 0.0,
       bitDepth: row.bit_depth !== undefined ? row.bit_depth : 16
     },
     scarIndex: row.scar_index,
@@ -291,6 +303,7 @@ export function getNodeById(nodeId) {
       soundType: row.sound_type || 'bell_deep',
       carrierType: row.carrier_type || 'sine',
       baseFrequency: row.base_frequency,
+      initialBaseFrequency: row.base_frequency,
       harmonicity: row.harmonicity,
       decay: row.decay,
       gain: row.gain,
@@ -299,6 +312,10 @@ export function getNodeById(nodeId) {
       echoProbability: row.echo_probability !== undefined ? row.echo_probability : 0.7,
       fmIndex: row.fm_index !== undefined ? row.fm_index : 0.0,
       filterCutoff: row.filter_cutoff !== undefined ? row.filter_cutoff : 1200.0,
+      filterType: row.filter_type || 'lowpass',
+      delayTimeMs: row.delay_time_ms !== undefined ? row.delay_time_ms : 250.0,
+      feedbackRatio: row.feedback_ratio !== undefined ? row.feedback_ratio : 0.3,
+      combResonance: row.comb_resonance !== undefined ? row.comb_resonance : 0.0,
       bitDepth: row.bit_depth !== undefined ? row.bit_depth : 16
     },
     scarIndex: row.scar_index,
@@ -314,12 +331,12 @@ export function saveReflectorNode(node) {
     INSERT INTO nodes (
       node_id, node_type, city, name, lat, lng, alt,
       base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
-      echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
+      echo_probability, sound_type, fm_index, filter_cutoff, filter_type, delay_time_ms, feedback_ratio, comb_resonance, bit_depth, carrier_type,
       scar_index, interaction_count
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?
     )
   `);
@@ -342,6 +359,10 @@ export function saveReflectorNode(node) {
     sv.soundType || 'bell_deep',
     sv.fmIndex || 0.0,
     sv.filterCutoff || 1200.0,
+    sv.filterType || 'lowpass',
+    sv.delayTimeMs !== undefined ? sv.delayTimeMs : 250.0,
+    sv.feedbackRatio !== undefined ? sv.feedbackRatio : 0.3,
+    sv.combResonance !== undefined ? sv.combResonance : 0.0,
     sv.bitDepth || 16,
     sv.carrierType || 'sine',
     node.scarIndex || 0.0,

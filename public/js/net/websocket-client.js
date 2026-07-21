@@ -8,6 +8,7 @@ export class ScarredWebSocketClient {
     this.lastSentPosition = null;
     this.lastSentTime = 0;
     this.retryDelayMs = 1000;
+    this.currentCity = CLIENT_CONFIG.DEFAULT_CITY;
   }
 
   connect() {
@@ -19,6 +20,9 @@ export class ScarredWebSocketClient {
     this.ws.onopen = () => {
       console.log('[WS] Connected to Sino Cicatrizado Central Server');
       this.retryDelayMs = 1000;
+      if (this.currentCity) {
+        this.subscribeCity(this.currentCity);
+      }
     };
 
     this.ws.onmessage = (evt) => {
@@ -38,6 +42,11 @@ export class ScarredWebSocketClient {
     this.ws.onerror = (err) => {
       console.error('[WS] Error:', err);
     };
+  }
+
+  subscribeCity(cityKey) {
+    this.currentCity = cityKey;
+    this.send('SUBSCRIBE_CITY', { city: cityKey });
   }
 
   scheduleReconnect() {
@@ -60,6 +69,7 @@ export class ScarredWebSocketClient {
     this.lastSentPosition = { lat: coords.lat, lng: coords.lng };
 
     this.send('SOMATIC_POSITION_UPDATE', {
+      city: this.currentCity,
       coordinates: coords,
       batteryLevel
     });

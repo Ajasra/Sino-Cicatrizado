@@ -59,3 +59,20 @@ export function getEffectiveSpatialAudio(listenerCoords, nodeCoords, activeCityC
   return { distanceMeters, delaySeconds, gain, hasGpsFix };
 }
 
+/**
+ * Returns the maxN closest nodes relative to listener coordinates.
+ * Prevents Web Audio engine polyphony overload when hundreds of nodes exist.
+ */
+export function getNearestNodes(listenerCoords, nodesList = [], maxN = 100) {
+  if (!nodesList || nodesList.length === 0) return [];
+  if (!listenerCoords) return nodesList.slice(0, maxN);
+
+  const mapped = nodesList.map((node) => {
+    const dist = calculateHaversineMeters(listenerCoords, node.coordinates);
+    return { node, dist };
+  });
+
+  mapped.sort((a, b) => a.dist - b.dist);
+  return mapped.slice(0, maxN).map((item) => item.node);
+}
+

@@ -154,6 +154,10 @@ class SinoCicatrizadoApp {
       this.audioEngine.setCityAcousticProfile(cityKey);
     }
 
+    if (this.wsClient) {
+      this.wsClient.subscribeCity(cityKey);
+    }
+
     this.updateCityPill();
     this.mapView.setCityView(cityObj.center);
     this.mapView.clearAllNodeMarkers();

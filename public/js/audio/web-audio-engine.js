@@ -22,11 +22,15 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.convolverSteelBridge = null;
 
     this.currentCityProfile = 'ouro_preto';
+    this.continuousDrone = null;
   }
 
   setCityAcousticProfile(cityKey) {
     this.currentCityProfile = cityKey || 'ouro_preto';
     console.log(`[AudioEngine] Switched acoustic profile to: ${this.currentCityProfile}`);
+    if (this.continuousDrone) {
+      this.morphContinuousDrone(this.currentCityProfile);
+    }
   }
 
   async init() {
@@ -89,10 +93,223 @@ export class WebAudioEngine extends AbstractAudioEngine {
     bridgeGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
     this.convolverSteelBridge.connect(bridgeGain);
     bridgeGain.connect(this.masterGain);
+
+    // Initialize Continuous Evolving Drone Layer
+    this.startContinuousDrone();
   }
 
   async resume() {
-    return await AudioContextManager.ensureResumed();
+    const res = await AudioContextManager.ensureResumed();
+    if (!this.continuousDrone && this.ctx) {
+      this.startContinuousDrone();
+    }
+    return res;
+  }
+
+  startContinuousDrone() {
+    if (!this.ctx || this.continuousDrone) return;
+
+    const now = this.ctx.currentTime;
+    const droneMasterGain = this.ctx.createGain();
+    droneMasterGain.gain.setValueAtTime(0, now);
+    droneMasterGain.gain.linearRampToValueAtTime(0.35, now + 3.0); // 3s smooth fade-in
+
+    // 1. Detuned Binaural Sub-Bass Oscillators
+    const baseFreq = this.currentCityProfile === 'chicago' ? 45.0 : (this.currentCityProfile === 'shanghai' ? 65.0 : 55.0);
+    const subOsc1 = this.ctx.createOscillator();
+    const subOsc2 = this.ctx.createOscillator();
+    subOsc1.type = 'sine';
+    subOsc2.type = 'sine';
+    subOsc1.frequency.setValueAtTime(baseFreq, now);
+    subOsc2.frequency.setValueAtTime(baseFreq + 0.35, now); // 0.35 Hz binaural beating
+
+    const subGain = this.ctx.createGain();
+    subGain.gain.setValueAtTime(0.4, now);
+    subOsc1.connect(subGain);
+    subOsc2.connect(subGain);
+
+    // 2. Evolving Modal Overtones
+    const harmOsc1 = this.ctx.createOscillator();
+    const harmOsc2 = this.ctx.createOscillator();
+    harmOsc1.type = 'triangle';
+    harmOsc2.type = 'sine';
+    harmOsc1.frequency.setValueAtTime(baseFreq * 2.0, now);
+    harmOsc2.frequency.setValueAtTime(baseFreq * 3.0, now);
+
+    const harmGain = this.ctx.createGain();
+    harmGain.gain.setValueAtTime(0.2, now);
+    harmOsc1.connect(harmGain);
+    harmOsc2.connect(harmGain);
+
+    // 3. Ultra-slow LFO Filter Sweep (0.015 Hz = 66s cycle)
+    const droneFilter = this.ctx.createBiquadFilter();
+    droneFilter.type = 'lowpass';
+    const initialCutoff = this.currentCityProfile === 'chicago' ? 550.0 : 380.0;
+    droneFilter.frequency.setValueAtTime(initialCutoff, now);
+    droneFilter.Q.setValueAtTime(2.5, now);
+
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.015, now);
+    lfoGain.gain.setValueAtTime(160.0, now); // Sweeps cutoff between 220Hz and 540Hz
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(droneFilter.frequency);
+
+    subGain.connect(droneFilter);
+    harmGain.connect(droneFilter);
+    droneFilter.connect(droneMasterGain);
+
+    droneMasterGain.connect(this.masterGain);
+    if (this.convolverValley) {
+      droneMasterGain.connect(this.convolverValley);
+    }
+
+    subOsc1.start(now);
+    subOsc2.start(now);
+    harmOsc1.start(now);
+    harmOsc2.start(now);
+    lfo.start(now);
+
+    this.continuousDrone = {
+      subOsc1,
+      subOsc2,
+      harmOsc1,
+      harmOsc2,
+      droneFilter,
+      lfo,
+      droneMasterGain,
+      baseFreq
+    };
+  }
+
+  morphContinuousDrone(cityKey) {
+    if (!this.ctx || !this.continuousDrone) return;
+    const now = this.ctx.currentTime;
+    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'shanghai' ? 65.0 : 55.0);
+    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'shanghai' ? 420.0 : 380.0);
+
+    const d = this.continuousDrone;
+    try {
+      d.subOsc1.frequency.exponentialRampToValueAtTime(baseFreq, now + 4.0);
+      d.subOsc2.frequency.exponentialRampToValueAtTime(baseFreq + 0.35, now + 4.0);
+      d.harmOsc1.frequency.exponentialRampToValueAtTime(baseFreq * 2.0, now + 4.0);
+      d.harmOsc2.frequency.exponentialRampToValueAtTime(baseFreq * 3.0, now + 4.0);
+      d.droneFilter.frequency.exponentialRampToValueAtTime(targetCutoff, now + 4.0);
+    } catch (_) {}
+  }
+
+  /**
+   * Reflector Node DSP Chain Processor
+   * Multi-mode filter bank (lowpass, highpass, bandpass, notch, comb),
+   * FDN feedback delay, tape-warp pitch modulation, and scar timbral degradation.
+   */
+  applyReflectorDSPChain(sourceNode, params = {}, triggerTime = 0, decay = 2.0) {
+    if (!this.ctx || !sourceNode) return sourceNode;
+
+    const now = triggerTime || this.ctx.currentTime;
+    const filterType = params.filterType || 'lowpass';
+    const filterCutoff = params.filterCutoff || 1200.0;
+    const scarIndex = params.scarIndex || 0.0;
+
+    let outputChain = sourceNode;
+
+    // 1. Multi-Mode Filter Bank (lowpass, highpass, bandpass, notch, comb)
+    if (filterType === 'comb' || (params.combResonance && params.combResonance > 0.05)) {
+      const combDelayTime = 1.0 / Math.max(55.0, params.baseFrequency || 220.0);
+      const combDelay = this.ctx.createDelay(0.1);
+      combDelay.delayTime.setValueAtTime(combDelayTime, now);
+
+      const combFeedback = this.ctx.createGain();
+      const resonanceVal = Math.min(0.95, (params.combResonance || 0.6) + Math.min(scarIndex * 0.1, 0.2));
+      combFeedback.gain.setValueAtTime(resonanceVal, now);
+
+      sourceNode.connect(combDelay);
+      combDelay.connect(combFeedback);
+      combFeedback.connect(combDelay);
+
+      const combGain = this.ctx.createGain();
+      combGain.gain.setValueAtTime(0.7, now);
+      combDelay.connect(combGain);
+
+      outputChain = combGain;
+    } else {
+      const biquad = this.ctx.createBiquadFilter();
+      biquad.type = ['lowpass', 'highpass', 'bandpass', 'notch'].includes(filterType) ? filterType : 'lowpass';
+      biquad.frequency.setValueAtTime(filterCutoff, now);
+
+      const baseQ = filterType === 'bandpass' ? 4.0 : 1.5;
+      const qVal = Math.min(12.0, baseQ + scarIndex * 1.8);
+      biquad.Q.setValueAtTime(qVal, now);
+
+      sourceNode.connect(biquad);
+      outputChain = biquad;
+    }
+
+    // 2. Feedback Delay Network (FDN) & Tape-Warp Pitch Modulation
+    const delayTimeSec = (params.delayTimeMs || 250.0) / 1000.0;
+    const feedbackRatio = Math.min(0.85, params.feedbackRatio !== undefined ? params.feedbackRatio : 0.3);
+
+    if (feedbackRatio > 0.05 && delayTimeSec > 0.01) {
+      const fdnDelay = this.ctx.createDelay(2.0);
+      fdnDelay.delayTime.setValueAtTime(delayTimeSec, now);
+
+      // Tape-warp pitch modulation LFO (subtle analog delay flutter)
+      const warpLfo = this.ctx.createOscillator();
+      const warpGain = this.ctx.createGain();
+      warpLfo.type = 'sine';
+      warpLfo.frequency.setValueAtTime(0.5 + scarIndex * 0.4, now);
+      warpGain.gain.setValueAtTime(0.0025 * (1.0 + scarIndex), now);
+
+      warpLfo.connect(warpGain);
+      warpGain.connect(fdnDelay.delayTime);
+      warpLfo.start(now);
+      warpLfo.stop(now + decay + 2.0);
+
+      const fdnFeedback = this.ctx.createGain();
+      fdnFeedback.gain.setValueAtTime(feedbackRatio, now);
+      fdnFeedback.gain.exponentialRampToValueAtTime(0.0001, now + decay + 2.0);
+
+      const dampFilter = this.ctx.createBiquadFilter();
+      dampFilter.type = 'lowpass';
+      dampFilter.frequency.setValueAtTime(Math.min(3000.0, filterCutoff * 1.5), now);
+
+      outputChain.connect(fdnDelay);
+      fdnDelay.connect(dampFilter);
+      dampFilter.connect(fdnFeedback);
+      fdnFeedback.connect(outputChain);
+    }
+
+    // 3. Scarred Timbral Degradation (Ring Mod Flutter for high scar index)
+    if (scarIndex > 1.5) {
+      const ringOsc = this.ctx.createOscillator();
+      const ringGain = this.ctx.createGain();
+      ringOsc.type = 'triangle';
+      const baseF = params.baseFrequency || 220.0;
+      ringOsc.frequency.setValueAtTime(baseF * 1.73, now);
+
+      ringGain.gain.setValueAtTime(0.3, now);
+      ringOsc.connect(ringGain.gain);
+
+      outputChain.connect(ringGain);
+      ringOsc.start(now);
+      ringOsc.stop(now + decay + 0.5);
+
+      outputChain = ringGain;
+    }
+
+    // Connect final output chain to master gain and spatial convolvers
+    outputChain.connect(this.masterGain);
+    if (this.convolverCathedral && filterType === 'lowpass') {
+      outputChain.connect(this.convolverCathedral);
+    } else if (this.convolverWindCanyon && (filterType === 'bandpass' || filterType === 'highpass')) {
+      outputChain.connect(this.convolverWindCanyon);
+    } else if (this.convolverMine) {
+      outputChain.connect(this.convolverMine);
+    }
+
+    return outputChain;
   }
 
   /**
@@ -917,10 +1134,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
     });
 
     bellGainNode.connect(filter);
-    filter.connect(this.masterGain);
-    if (this.convolverCathedral) {
-      filter.connect(this.convolverCathedral);
-    }
+    this.applyReflectorDSPChain(filter, params, triggerTime, decay);
 
     this.scheduleCleanup([bellGainNode, filter], delaySeconds + decay + 1.0);
   }

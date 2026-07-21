@@ -1,5 +1,5 @@
 import { generateEuclideanPattern, isBeatActiveForNode } from './euclidean.js';
-import { getEffectiveSpatialAudio } from '../spatial.js';
+import { getEffectiveSpatialAudio, getNearestNodes } from '../spatial.js';
 import { CLIENT_CONFIG } from '../config.js';
 
 export class NodeSequencer {
@@ -60,7 +60,10 @@ export class NodeSequencer {
     const currentStep = this.stepIndex;
     this.stepIndex++;
 
-    this.nodes.forEach((node) => {
+    // Polyphony & CPU Protection: Cap active audio evaluation to N=100 closest nodes
+    const activeEvaluatedNodes = getNearestNodes(this.somaticCoords, this.nodes, 100);
+
+    activeEvaluatedNodes.forEach((node) => {
       let pattern = this.nodePatterns.get(node.nodeId);
       if (!pattern) {
         const k = node.stateVector?.euclideanDensity || 3;
@@ -107,7 +110,12 @@ export class NodeSequencer {
       gain: (state.gain !== undefined ? state.gain : 1.0) * spatialAudio.gain,
       fmIndex: state.fmIndex || 0.0,
       filterCutoff: state.filterCutoff || 1200.0,
-      bitDepth: state.bitDepth || 16
+      filterType: state.filterType || 'lowpass',
+      delayTimeMs: state.delayTimeMs !== undefined ? state.delayTimeMs : 250.0,
+      feedbackRatio: state.feedbackRatio !== undefined ? state.feedbackRatio : 0.3,
+      combResonance: state.combResonance !== undefined ? state.combResonance : 0.0,
+      bitDepth: state.bitDepth || 16,
+      scarIndex: node.scarIndex || 0.0
     };
 
     this.audioEngine.triggerBell(params, spatialAudio.delaySeconds);
