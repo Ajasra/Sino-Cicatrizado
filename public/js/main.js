@@ -83,11 +83,7 @@ class SinoCicatrizadoApp {
     // Battery level monitoring
     BatterySensor.watchLevel((level) => {
       this.batteryLevel = level;
-      this.audioEngine.updateBatteryLevel(level);
-
-      const bits = level >= 0.5 ? 16 : Math.round(4 + ((level - 0.15) / 0.35) * 12);
-      const pill = document.getElementById('pill-battery');
-      if (pill) pill.textContent = `BATTERY: ${Math.round(level * 100)}% (${bits}-BIT)`;
+      this.audioEngine.updateBatteryLevel(level); // also updates pill-battery UI
     });
 
     // Geolocation tracking

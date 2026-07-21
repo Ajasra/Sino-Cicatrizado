@@ -5,7 +5,7 @@ export const CLIENT_CONFIG = {
   DENSITY_RADIUS_M: 50.0,
   POSITION_DELTA_THRESHOLD_M: 5.0,
   TRANSMIT_INTERVAL_MS: 250, // 4 Hz maximum update frequency
-  SOUND_TRIGGER_RADIUS_M: 250.0, // Only trigger node sounds when within this distance (meters)
+  SOUND_TRIGGER_RADIUS_M: 1000.0, // Only trigger node sounds when within this distance (meters)
   AUDIO: {
     EXPONENTIAL_RAMP_DURATION_S: 2.5,
     ATTACK_TIME_S: 0.05,

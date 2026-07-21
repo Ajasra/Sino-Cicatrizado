@@ -15,54 +15,59 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.ctx = AudioContextManager.getContext();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
-
-    this.setupBitCrusherNode();
-    this.masterGain.connect(this.bitCrusher);
-    this.bitCrusher.connect(this.ctx.destination);
+    // ponytail: direct path by default — bitcrusher only inserted when battery < 50%
+    this.masterGain.connect(this.ctx.destination);
   }
 
   async resume() {
     return await AudioContextManager.ensureResumed();
   }
 
-  setupBitCrusherNode() {
-    // 4096 buffer size for ScriptProcessor downsampling
-    const bufferSize = 4096;
-    this.bitCrusher = this.ctx.createScriptProcessor(bufferSize, 1, 1);
-    this.bitCrusher.bits = 16;
-
-    this.bitCrusher.onaudioprocess = (e) => {
-      const input = e.inputBuffer.getChannelData(0);
-      const output = e.outputBuffer.getChannelData(0);
-
-      const bits = this.bitCrusher.bits || 16;
-      if (bits >= 16) {
-        // High fidelity state: direct pass-through
-        for (let i = 0; i < input.length; i++) {
-          output[i] = input[i];
-        }
-      } else {
-        // Quantization bit reduction representing thermodynamic node exhaustion
-        const step = Math.pow(0.5, bits);
-        for (let i = 0; i < input.length; i++) {
-          output[i] = step * Math.round(input[i] / step);
-        }
-      }
-    };
-  }
-
   updateBatteryLevel(batteryLevel) {
+    let newBits;
     if (batteryLevel >= 0.5) {
-      this.currentBits = 16;
-    } else if (batteryLevel < 0.5 && batteryLevel >= 0.15) {
-      this.currentBits = Math.round(4 + ((batteryLevel - 0.15) / 0.35) * 12);
+      newBits = 16;
+    } else if (batteryLevel >= 0.15) {
+      newBits = Math.round(4 + ((batteryLevel - 0.15) / 0.35) * 12);
     } else {
-      this.currentBits = 4; // Severe quantization and digital dirt
+      newBits = 4;
     }
 
-    if (this.bitCrusher) {
-      this.bitCrusher.bits = this.currentBits;
+    if (newBits === this.currentBits) return;
+    this.currentBits = newBits;
+
+    if (newBits >= 16) {
+      // Bypass bitcrusher — clean direct path
+      if (this.bitCrusher) {
+        try {
+          this.masterGain.disconnect(this.bitCrusher);
+          this.bitCrusher.disconnect(this.ctx.destination);
+        } catch (_) {}
+        this.bitCrusher = null;
+      }
+      this.masterGain.connect(this.ctx.destination);
+    } else {
+      // Insert bitcrusher for low-battery degradation effect
+      if (!this.bitCrusher) {
+        const bufferSize = 4096;
+        this.bitCrusher = this.ctx.createScriptProcessor(bufferSize, 1, 1);
+        this.bitCrusher.onaudioprocess = (e) => {
+          const input = e.inputBuffer.getChannelData(0);
+          const output = e.outputBuffer.getChannelData(0);
+          const step = Math.pow(0.5, this.bitCrusher.bits || 8);
+          for (let i = 0; i < input.length; i++) {
+            output[i] = step * Math.round(input[i] / step);
+          }
+        };
+        try { this.masterGain.disconnect(this.ctx.destination); } catch (_) {}
+        this.masterGain.connect(this.bitCrusher);
+        this.bitCrusher.connect(this.ctx.destination);
+      }
+      this.bitCrusher.bits = newBits;
     }
+
+    const pill = document.getElementById('pill-battery');
+    if (pill) pill.textContent = `BATTERY: ${Math.round(batteryLevel * 100)}% (${newBits}-BIT)`;
   }
 
   triggerBell(params = {}, delaySeconds = 0) {
