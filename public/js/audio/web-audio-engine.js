@@ -24,45 +24,45 @@ export class WebAudioEngine extends AbstractAudioEngine {
   async init() {
     this.ctx = AudioContextManager.getContext();
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+    this.masterGain.gain.setValueAtTime(0.7, this.ctx.currentTime);
 
     // Limiter: prevents polyphonic summing from clipping when multiple nodes fire simultaneously
     this.limiter = this.ctx.createDynamicsCompressor();
-    this.limiter.threshold.value = -6;   // start compressing at -6dBFS
-    this.limiter.knee.value = 3;
-    this.limiter.ratio.value = 20;       // hard limiting
-    this.limiter.attack.value = 0.003;   // 3ms — catches transients
-    this.limiter.release.value = 0.25;   // 250ms — preserves bell tails
+    this.limiter.threshold.value = -12;  // transparent ceiling at -12dBFS
+    this.limiter.knee.value = 6;
+    this.limiter.ratio.value = 12;       // smooth soft limiting
+    this.limiter.attack.value = 0.005;   // 5ms attack to catch transients smoothly
+    this.limiter.release.value = 0.20;   // 200ms release
 
     // Connect masterGain through limiter to destination
     this.masterGain.connect(this.limiter);
     this.limiter.connect(this.ctx.destination);
 
     // -------------------------------------------------------------------------
-    // 100% Procedural Convolver Impulse Response Generation (No Audio Files)
+    // 100% Procedural Convolver Impulse Response Generation (Smooth Velvety Acoustic Space)
     // -------------------------------------------------------------------------
 
-    // Cathedral / Church Tower Space (3.2s warm exponential decay)
+    // Cathedral / Church Tower Space (3.0s warm exponential lowpass decay)
     this.convolverCathedral = this.ctx.createConvolver();
-    this.convolverCathedral.buffer = this.createProceduralImpulseResponse(3.2, 3.2);
+    this.convolverCathedral.buffer = this.createProceduralImpulseResponse(3.0, 3.5, { lpCutoff: 1800 });
     const cathedralGain = this.ctx.createGain();
-    cathedralGain.gain.setValueAtTime(0.30, this.ctx.currentTime);
+    cathedralGain.gain.setValueAtTime(0.20, this.ctx.currentTime);
     this.convolverCathedral.connect(cathedralGain);
     cathedralGain.connect(this.masterGain);
 
-    // Mine / Subterranean Chamber Space (1.4s dense metallic early reflections)
+    // Mine / Subterranean Chamber Space (1.2s dense lowpass metallic reflections)
     this.convolverMine = this.ctx.createConvolver();
-    this.convolverMine.buffer = this.createProceduralImpulseResponse(1.4, 4.8, { metalRing: true });
+    this.convolverMine.buffer = this.createProceduralImpulseResponse(1.2, 5.0, { metalRing: true, lpCutoff: 2400 });
     const mineGain = this.ctx.createGain();
-    mineGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+    mineGain.gain.setValueAtTime(0.22, this.ctx.currentTime);
     this.convolverMine.connect(mineGain);
     mineGain.connect(this.masterGain);
 
-    // Mountain Valley Space (5.0s long diffuse tail)
+    // Mountain Valley Space (4.5s long lowpass diffuse tail)
     this.convolverValley = this.ctx.createConvolver();
-    this.convolverValley.buffer = this.createProceduralImpulseResponse(5.0, 2.2);
+    this.convolverValley.buffer = this.createProceduralImpulseResponse(4.5, 2.5, { lpCutoff: 1200 });
     const valleyGain = this.ctx.createGain();
-    valleyGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    valleyGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
     this.convolverValley.connect(valleyGain);
     valleyGain.connect(this.masterGain);
   }
@@ -73,6 +73,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
 
   /**
    * Generates a 100% procedural stereo Impulse Response AudioBuffer directly in JavaScript.
+   * Uses lowpass noise smoothing to eliminate static/hiss.
    */
   createProceduralImpulseResponse(durationSeconds = 2.0, decayRate = 3.0, options = {}) {
     const sampleRate = this.ctx.sampleRate;
@@ -81,22 +82,44 @@ export class WebAudioEngine extends AbstractAudioEngine {
     const left = buffer.getChannelData(0);
     const right = buffer.getChannelData(1);
 
+    const targetCutoff = options.lpCutoff || 2000;
+    const lpCoeff = Math.exp(-2 * Math.PI * targetCutoff / sampleRate);
+
+    let lastL = 0;
+    let lastR = 0;
+
     for (let i = 0; i < length; i++) {
       const t = i / length;
       const envelope = Math.exp(-t * decayRate);
+      const damp = Math.exp(-t * (decayRate * 2.2));
 
-      let nL = (Math.random() * 2 - 1);
-      let nR = (Math.random() * 2 - 1);
+      let rawL = (Math.random() * 2 - 1);
+      let rawR = (Math.random() * 2 - 1);
 
       if (options.metalRing) {
-        // Metallic modal comb ringing for subterranean mine acoustics
-        const ring = Math.sin(i * 0.08) * 0.35 + Math.sin(i * 0.21) * 0.2;
-        nL = nL * 0.6 + ring;
-        nR = nR * 0.6 + ring;
+        const ring = Math.sin(i * 0.08) * 0.25 + Math.sin(i * 0.21) * 0.15;
+        rawL = rawL * 0.6 + ring;
+        rawR = rawR * 0.6 + ring;
       }
 
-      left[i] = nL * envelope;
-      right[i] = nR * envelope;
+      // Lowpass filtering to eliminate static hiss
+      lastL = lastL * lpCoeff + rawL * (1 - lpCoeff);
+      lastR = lastR * lpCoeff + rawR * (1 - lpCoeff);
+
+      left[i] = (lastL * damp + rawL * envelope * 0.08);
+      right[i] = (lastR * damp + rawR * envelope * 0.08);
+    }
+
+    // Peak normalization
+    let maxPeak = 0;
+    for (let i = 0; i < length; i++) {
+      maxPeak = Math.max(maxPeak, Math.abs(left[i]), Math.abs(right[i]));
+    }
+    if (maxPeak > 0) {
+      for (let i = 0; i < length; i++) {
+        left[i] = (left[i] / maxPeak) * 0.35;
+        right[i] = (right[i] / maxPeak) * 0.35;
+      }
     }
 
     return buffer;
@@ -185,18 +208,18 @@ export class WebAudioEngine extends AbstractAudioEngine {
     }
   }
 
-  // 1. Deep Atmospheric Bronze Bell (Physical Modal Synthesis + Cathedral Convolver)
+  // 1. Deep Atmospheric Bronze Bell (Clean Physical Modal Synthesis + Lowpass Cathedral Convolver)
   triggerDeepBell(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || 110.0;
     const decay = params.decay || 6.0;
-    const gainVal = params.gain !== undefined ? params.gain : 1.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.8;
 
-    // Physical bronze modal frequency ratios: Hum, Prime, Tierce (minor 3rd), Quint, Nominal, Supernominal
+    // Physical bronze modal ratios: Hum, Prime, Tierce (minor 3rd), Quint, Nominal, Supernominal
     const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
 
     const gainNode = this.ctx.createGain();
     gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.08);
+    gainNode.gain.linearRampToValueAtTime(0.45, triggerTime + 0.06);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
 
     const filter = this.ctx.createBiquadFilter();
@@ -204,16 +227,15 @@ export class WebAudioEngine extends AbstractAudioEngine {
     const cutoff = params.filterCutoff || 800.0;
     filter.frequency.setValueAtTime(cutoff, triggerTime);
     filter.frequency.exponentialRampToValueAtTime(140.0, triggerTime + decay);
-    filter.Q.setValueAtTime(2.2, triggerTime);
+    filter.Q.setValueAtTime(1.8, triggerTime);
 
     modalRatios.forEach((ratio, idx) => {
-      // Twin detuned oscillators for physical acoustic beating (cast metal warble)
       const oscA = this.ctx.createOscillator();
       const oscB = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
 
       const freq = baseFreq * ratio;
-      const detuneHz = idx === 0 ? 0.0 : 0.35 * (idx % 2 === 0 ? 1 : -1);
+      const detuneHz = idx === 0 ? 0.0 : 0.25 * (idx % 2 === 0 ? 1 : -1);
 
       oscA.type = params.carrierType || 'sine';
       oscB.type = params.carrierType || 'sine';
@@ -221,9 +243,9 @@ export class WebAudioEngine extends AbstractAudioEngine {
       oscA.frequency.setValueAtTime(freq, triggerTime);
       oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
 
-      const partialAmp = (1.0 / (idx * 0.75 + 1)) * gainVal * 0.5;
+      const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.25;
       oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
-      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.06);
+      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.05);
       oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (idx === 0 ? 0.75 : ratio)));
 
       oscA.connect(oscGain);
@@ -245,15 +267,15 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.scheduleCleanup([gainNode, filter], delaySeconds + decay + 1.0);
   }
 
-  // 2. Continuous Sub-Bass Flux Drone (Procedural Mountain Valley Convolver)
+  // 2. Continuous Sub-Bass Flux Drone (Subtle Mountain Valley Convolver)
   triggerDrone(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || 65.0;
     const decay = params.decay || 8.0;
-    const gainVal = params.gain !== undefined ? params.gain : 0.8;
+    const gainVal = params.gain !== undefined ? params.gain : 0.6;
 
     const droneGainNode = this.ctx.createGain();
     droneGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    droneGainNode.gain.linearRampToValueAtTime(gainVal * 0.7, triggerTime + 1.5);
+    droneGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 1.2);
     droneGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
 
     const filter = this.ctx.createBiquadFilter();
@@ -264,22 +286,22 @@ export class WebAudioEngine extends AbstractAudioEngine {
     // LFO modulation for filter cutoff
     const lfo = this.ctx.createOscillator();
     const lfoGain = this.ctx.createGain();
-    lfo.frequency.setValueAtTime(0.15, triggerTime); // 0.15 Hz slow LFO
-    lfoGain.gain.setValueAtTime(250.0, triggerTime);
+    lfo.frequency.setValueAtTime(0.12, triggerTime); // 0.12 Hz slow LFO
+    lfoGain.gain.setValueAtTime(180.0, triggerTime);
     lfo.connect(lfoGain);
     lfoGain.connect(filter.frequency);
     lfo.start(triggerTime);
     lfo.stop(triggerTime + decay + 0.5);
 
-    // Layered detuned sub-oscillators
-    [0.995, 1.0, 1.005, 2.0].forEach((ratio) => {
+    // Layered detuned sub-oscillators (pure sine & triangle)
+    [0.997, 1.0, 1.003, 2.0].forEach((ratio) => {
       const osc = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
 
-      osc.type = params.carrierType || (ratio > 1.5 ? 'triangle' : 'sawtooth');
+      osc.type = ratio > 1.5 ? 'triangle' : 'sine';
       osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
 
-      const amp = ratio > 1.5 ? 0.3 : 0.5;
+      const amp = ratio > 1.5 ? 0.2 : 0.35;
       oscGain.gain.setValueAtTime(amp, triggerTime);
 
       osc.connect(oscGain);
@@ -298,23 +320,23 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.scheduleCleanup([droneGainNode, filter, lfoGain], delaySeconds + decay + 1.0);
   }
 
-  // 3. Industrial Somatic Friction (FM Synthesis + Metallic Noise Strike + Mine Chamber Convolver)
+  // 3. Industrial Somatic Friction (FM Synthesis + Soft Saturation + Mine Convolver)
   triggerIndustrial(params, triggerTime, delaySeconds) {
     const carrierFreq = params.baseFrequency || 140.0;
     const fmRatio = params.harmonicity || 2.71;
     const modFreq = carrierFreq * fmRatio;
-    const fmIndex = params.fmIndex !== undefined ? params.fmIndex : 4.5;
+    const fmIndex = params.fmIndex !== undefined ? Math.min(params.fmIndex, 4.0) : 2.5;
     const decay = params.decay || 1.2;
-    const gainVal = params.gain !== undefined ? params.gain : 0.9;
+    const gainVal = params.gain !== undefined ? params.gain : 0.6;
 
     const mainGainNode = this.ctx.createGain();
     mainGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    mainGainNode.gain.linearRampToValueAtTime(gainVal, triggerTime + 0.01);
+    mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.01);
     mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
 
     // FM Carrier
     const carrier = this.ctx.createOscillator();
-    carrier.type = params.carrierType || 'sawtooth';
+    carrier.type = 'triangle';
     carrier.frequency.setValueAtTime(carrierFreq, triggerTime);
 
     // FM Modulator
@@ -330,27 +352,27 @@ export class WebAudioEngine extends AbstractAudioEngine {
     modulator.start(triggerTime);
     modulator.stop(triggerTime + decay);
 
-    // Resonant Metallic Noise Strike
-    const noiseBuffer = this.createNoiseBuffer(0.15); // 150ms noise burst
+    // Subtle Metallic Pick Attack
+    const noiseBuffer = this.createNoiseBuffer(0.08); // 80ms click
     const noiseSource = this.ctx.createBufferSource();
     noiseSource.buffer = noiseBuffer;
 
     const noiseFilter = this.ctx.createBiquadFilter();
     noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.setValueAtTime(params.filterCutoff || 2500.0, triggerTime);
-    noiseFilter.Q.setValueAtTime(18.0, triggerTime); // High Q metallic ring
+    noiseFilter.frequency.setValueAtTime(params.filterCutoff || 2200.0, triggerTime);
+    noiseFilter.Q.setValueAtTime(8.0, triggerTime);
 
     const noiseGain = this.ctx.createGain();
-    noiseGain.gain.setValueAtTime(gainVal * 0.8, triggerTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + 0.15);
+    noiseGain.gain.setValueAtTime(gainVal * 0.15, triggerTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + 0.08);
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseSource.start(triggerTime);
 
-    // Distortion WaveShaper
+    // Soft Saturation WaveShaper
     const waveShaper = this.ctx.createWaveShaper();
-    waveShaper.curve = this.makeDistortionCurve(15);
+    waveShaper.curve = this.makeDistortionCurve(3); // Gentle warm saturation
 
     carrier.connect(mainGainNode);
     noiseGain.connect(mainGainNode);
@@ -366,18 +388,18 @@ export class WebAudioEngine extends AbstractAudioEngine {
     this.scheduleCleanup([mainGainNode, noiseGain, noiseFilter, waveShaper], delaySeconds + decay + 0.5);
   }
 
-  // 4. Forensic Glitch (Ring Modulation multiplier + micro-stutter bursts + Mine Convolver)
+  // 4. Forensic Glitch (Clean Ring Modulation + Mine Convolver)
   triggerGlitch(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || 330.0;
     const decay = params.decay || 0.4;
-    const gainVal = params.gain !== undefined ? params.gain : 0.9;
+    const gainVal = params.gain !== undefined ? params.gain : 0.5;
 
     const glitchGain = this.ctx.createGain();
     glitchGain.gain.setValueAtTime(0, this.ctx.currentTime);
-    glitchGain.gain.linearRampToValueAtTime(gainVal, triggerTime + 0.005);
+    glitchGain.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.005);
     glitchGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
 
-    // Primary Square Carrier
+    // Primary Carrier
     const carrier = this.ctx.createOscillator();
     carrier.type = 'square';
     carrier.frequency.setValueAtTime(baseFreq, triggerTime);
@@ -385,10 +407,9 @@ export class WebAudioEngine extends AbstractAudioEngine {
     // Ring Modulator Multiplier
     const ringMod = this.ctx.createOscillator();
     const ringGain = this.ctx.createGain();
-    ringMod.type = 'square';
+    ringMod.type = 'triangle';
     ringMod.frequency.setValueAtTime(baseFreq * (params.harmonicity || 1.73), triggerTime);
 
-    // Multiply signals via Gain Node modulation
     ringMod.connect(ringGain.gain);
     carrier.connect(ringGain);
     ringGain.connect(glitchGain);
@@ -398,38 +419,26 @@ export class WebAudioEngine extends AbstractAudioEngine {
     ringMod.stop(triggerTime + decay);
     carrier.stop(triggerTime + decay);
 
-    // Micro-stutter noise impulse
-    const noiseBuffer = this.createNoiseBuffer(0.04);
-    const noiseSource = this.ctx.createBufferSource();
-    noiseSource.buffer = noiseBuffer;
-    const noiseFilter = this.ctx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.setValueAtTime(params.filterCutoff || 3500.0, triggerTime);
-
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(glitchGain);
-    noiseSource.start(triggerTime);
-
     glitchGain.connect(this.masterGain);
     if (this.convolverMine) {
       glitchGain.connect(this.convolverMine);
     }
 
-    this.scheduleCleanup([glitchGain, ringGain, noiseFilter], delaySeconds + decay + 0.5);
+    this.scheduleCleanup([glitchGain, ringGain], delaySeconds + decay + 0.5);
   }
 
-  // 5. Classic Sacred Bronze Bell (Physical Modal Synthesis + Cathedral Convolver)
+  // 5. Classic Sacred Bronze Bell (Clean Physical Modal Synthesis + Lowpass Cathedral Convolver)
   triggerSacredBell(params, triggerTime, delaySeconds) {
     const baseFreq = params.baseFrequency || CLIENT_CONFIG.AUDIO.DEFAULT_FREQUENCY_HZ;
     const decay = params.decay || 1.5;
-    const gainVal = params.gain !== undefined ? params.gain : 1.0;
+    const gainVal = params.gain !== undefined ? params.gain : 0.8;
 
     // Physical colonial bronze bell modal ratios (Hum, Prime, Tierce minor 3rd, Quint, Nominal, Supernominal)
     const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
 
     const bellGainNode = this.ctx.createGain();
     bellGainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-    bellGainNode.gain.linearRampToValueAtTime(1.0, triggerTime + 0.05);
+    bellGainNode.gain.linearRampToValueAtTime(0.5, triggerTime + 0.04);
     bellGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
 
     const filter = this.ctx.createBiquadFilter();
@@ -438,13 +447,12 @@ export class WebAudioEngine extends AbstractAudioEngine {
     filter.Q.setValueAtTime(1.5, triggerTime);
 
     modalRatios.forEach((ratio, idx) => {
-      // Twin detuned oscillators for physical acoustic beating
       const oscA = this.ctx.createOscillator();
       const oscB = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
 
       const freq = baseFreq * ratio;
-      const detuneHz = idx === 0 ? 0.0 : 0.35 * (idx % 2 === 0 ? 1 : -1);
+      const detuneHz = idx === 0 ? 0.0 : 0.25 * (idx % 2 === 0 ? 1 : -1);
 
       oscA.type = params.carrierType || 'sine';
       oscB.type = params.carrierType || 'sine';
@@ -452,9 +460,9 @@ export class WebAudioEngine extends AbstractAudioEngine {
       oscA.frequency.setValueAtTime(freq, triggerTime);
       oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
 
-      const partialAmp = (1.0 / (idx + 1)) * gainVal * 0.5;
+      const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.25;
       oscGain.gain.setValueAtTime(0, this.ctx.currentTime);
-      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.05);
+      oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.04);
       oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay / ratio);
 
       oscA.connect(oscGain);
@@ -487,8 +495,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
     return buffer;
   }
 
-  // Helper: Soft-clipping WaveShaper Curve
-  makeDistortionCurve(amount = 20) {
+  // Helper: Soft-clipping WaveShaper Curve (Gentle warm saturation)
+  makeDistortionCurve(amount = 3) {
     const k = amount;
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
