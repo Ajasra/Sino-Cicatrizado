@@ -140,18 +140,15 @@ The system consists of three distinct node types cooperating within a shared coo
 | **Leaflet Map Visualization** | ✅ Implemented | `public/js/ui/map-view.js` |
 | **Automated Verification Test Suite** | ✅ Implemented | `test/verification.js` (7/7 tests passing) |
 
-### Currently Unimplemented / Future Roadmap Items
+### Sovereign Isolation & System Status
 1. **Sovereign Isolation Audio Tone Filter (Offline Mode):**
    * *Status:* ✅ Implemented (`public/js/audio/web-audio-engine.js` & `public/index.html`)
    * *Detail:* Client handles disconnects gracefully without crashing and continues local synthesis, automatically engaging a heavy lowpass filter (450Hz cutoff) in Sovereign Isolation mode (smoothly ramping back over 5s upon reconnection). Offline state is visually indicated by changing the header brand circle (`#brand-dot`) from cyan (`ONLINE`) to red (`OFFLINE`).
 
+2. **Automated Conference End S3 Twin Archive Sync:**
+   * *Status:* 📋 Deferred to [`TODO.md`](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/TODO.md)
+   * *Detail:* Scarred Twin snapshot is served locally from `data/scarred_twin.json`. External cloud S3 archiving deferred to post-conference roadmap.
 
-2. **CPU Watchdog Dynamic Partial Shedding:**
-   * *Status:* ⚠️ Unimplemented / Optional Optimization
-   * *Detail:* Sound engine runs smoothly on tested mobile/desktop hardware without partial shedding logic; dynamic partial shedding on CPU threshold $>40\%$ is not active in the current Web Audio graph loop.
-3. **Automated Conference End S3 Twin Archive Sync:**
-   * *Status:* ⚠️ Local File Only
-   * *Detail:* Scarred Twin snapshot is served locally from `data/scarred_twin.json` rather than synced to an external AWS S3 bucket.
 
 ---
 
