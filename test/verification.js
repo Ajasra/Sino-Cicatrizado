@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { calculateHaversineMeters, calculateInverseSquareGain } from '../server/services/spatial.js';
 import { validateSynthPreset } from '../server/utils/immunological-parser.js';
-import { getDatabaseConnection, updateNodeStateVector } from '../server/db/database.js';
+import { getDatabaseConnection, updateNodeStateVector, saveReflectorNode, updateFullNode, getNodeById, deleteNode } from '../server/db/database.js';
 import { CONFIG } from '../server/config.js';
 import { getSomaticSignature, evaluateSomaticProximity } from '../server/services/hysteresis.js';
 
@@ -179,6 +179,54 @@ runTest('Non-Compounding Pitch Drift Stability & User Reflector Scarring', () =>
   // Verify pitch did not explode exponentially (must remain within microtonal range 420Hz - 460Hz)
   assert(finalFreq >= 420.0 && finalFreq <= 460.0, `Pitch exploded unexpectedly: ${finalFreq}Hz`);
   assert(mutatedNode.scarIndex > 0, 'User reflector scar index must increase over proximity updates');
+});
+
+// ----------------------------------------------------
+// TEST 8: Admin Tower CRUD & Multilingual Description Storage
+// ----------------------------------------------------
+runTest('Admin Tower CRUD & Multilingual JSON Description Storage', () => {
+  const testNodeId = `test_admin_tower_${Date.now()}`;
+  const testNode = {
+    nodeId: testNodeId,
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: 'Test Historic Chapel Tower',
+    description: {
+      en: 'Baroque chapel bell tower built in 1740.',
+      pt: 'Torre de capela barroca construída em 1740.'
+    },
+    coordinates: { lat: -20.3850, lng: -43.5030, alt: 0 },
+    stateVector: {
+      soundType: 'bell_sacred',
+      carrierType: 'sine',
+      baseFrequency: 330.0,
+      harmonicity: 1.414,
+      decay: 2.5,
+      gain: 0.95,
+      euclideanDensity: 3,
+      filterCutoff: 1500.0
+    }
+  };
+
+  // 1. Create / Save
+  saveReflectorNode(testNode);
+  let retrieved = getNodeById(testNodeId);
+  assert(retrieved !== null, 'Saved node must be retrieved from database');
+  assert.strictEqual(retrieved.description.en, 'Baroque chapel bell tower built in 1740.', 'English description must match');
+  assert.strictEqual(retrieved.description.pt, 'Torre de capela barroca construída em 1740.', 'Portuguese description must match');
+
+  // 2. Update
+  testNode.name = 'Updated Chapel Bell Tower';
+  testNode.stateVector.baseFrequency = 440.0;
+  updateFullNode(testNode);
+  retrieved = getNodeById(testNodeId);
+  assert.strictEqual(retrieved.name, 'Updated Chapel Bell Tower', 'Updated name must persist');
+  assert.strictEqual(retrieved.stateVector.baseFrequency, 440.0, 'Updated base frequency must persist');
+
+  // 3. Delete
+  deleteNode(testNodeId);
+  retrieved = getNodeById(testNodeId);
+  assert.strictEqual(retrieved, null, 'Deleted node must no longer exist in database');
 });
 
 console.log(`\n=======================================================`);

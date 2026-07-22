@@ -219,7 +219,15 @@ export class LeafletMapView {
       const soundType = node.stateVector?.soundType || 'bell_deep';
 
       if (node.nodeType === 'TOWER') {
-        const popupText = `<b>${node.name}</b>${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
+        let descHtml = '';
+        if (node.description) {
+          const currentLang = (window.i18n && window.i18n.currentLang) || 'en';
+          const text = typeof node.description === 'object' ? (node.description[currentLang] || node.description.en || '') : node.description;
+          if (text) {
+            descHtml = `<br><div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;"><i>${text}</i></div>`;
+          }
+        }
+        const popupText = `<b>${node.name}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
 
         if (!this.towerMarkers.has(node.nodeId)) {
           const style = this._getMarkerStyle('TOWER');

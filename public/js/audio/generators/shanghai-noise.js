@@ -357,3 +357,99 @@ export function createContinuousEmitterShanghaiNoiseSubRumble(engine, params = {
     }
   };
 }
+
+// H. Distorted Metallic Industrial Burst
+export function triggerShanghaiIndustrialBurst(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const baseFreq = params.baseFrequency || 320.0;
+  const decay = params.decay || 1.6;
+  const gainVal = params.gain !== undefined ? params.gain : 0.9;
+
+  const mainGain = ctx.createGain();
+  mainGain.gain.setValueAtTime(0, ctx.currentTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.6, triggerTime + 0.008);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+  // Square & Sawtooth metallic pair
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  osc1.type = 'square';
+  osc2.type = 'sawtooth';
+
+  osc1.frequency.setValueAtTime(baseFreq, triggerTime);
+  osc1.frequency.exponentialRampToValueAtTime(baseFreq * 0.3, triggerTime + 0.15);
+
+  osc2.frequency.setValueAtTime(baseFreq * 2.414, triggerTime);
+  osc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, triggerTime + 0.2);
+
+  const noiseBuffer = engine.createNoiseBuffer(0.2);
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'peaking';
+  filter.frequency.setValueAtTime(params.filterCutoff || 2800.0, triggerTime);
+  filter.Q.setValueAtTime(6.0, triggerTime);
+  filter.gain.setValueAtTime(12.0, triggerTime);
+
+  const shaper = ctx.createWaveShaper();
+  if (typeof engine.makeDistortionCurve === 'function') {
+    shaper.curve = engine.makeDistortionCurve(16);
+  }
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  noiseSource.connect(filter);
+  filter.connect(shaper);
+  shaper.connect(mainGain);
+  mainGain.connect(engine.masterGain);
+
+  osc1.start(triggerTime);
+  osc2.start(triggerTime);
+  noiseSource.start(triggerTime);
+  osc1.stop(triggerTime + decay);
+  osc2.stop(triggerTime + decay);
+
+  engine.scheduleCleanup([mainGain, filter, shaper], delaySeconds + decay + 0.3);
+}
+
+// I. Radio Interference & Resonance Sweep
+export function triggerShanghaiRadioGlitch(engine, params, triggerTime, delaySeconds) {
+  if (!engine.ctx) return;
+  const ctx = engine.ctx;
+  const baseFreq = params.baseFrequency || 880.0;
+  const decay = params.decay || 1.4;
+  const gainVal = params.gain !== undefined ? params.gain : 0.8;
+
+  const mainGain = ctx.createGain();
+  mainGain.gain.setValueAtTime(0, ctx.currentTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.01);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+
+  const noiseBuffer = engine.createNoiseBuffer(decay * 0.8);
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+
+  const carrier = ctx.createOscillator();
+  carrier.type = 'triangle';
+  carrier.frequency.setValueAtTime(baseFreq, triggerTime);
+  carrier.frequency.exponentialRampToValueAtTime(baseFreq * 0.4, triggerTime + decay * 0.5);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(params.filterCutoff || 3500.0, triggerTime);
+  filter.frequency.exponentialRampToValueAtTime(800.0, triggerTime + decay * 0.8);
+  filter.Q.setValueAtTime(10.0, triggerTime);
+
+  noiseSource.connect(filter);
+  carrier.connect(filter);
+  filter.connect(mainGain);
+  mainGain.connect(engine.masterGain);
+
+  noiseSource.start(triggerTime);
+  carrier.start(triggerTime);
+  carrier.stop(triggerTime + decay);
+
+  engine.scheduleCleanup([mainGain, filter], delaySeconds + decay + 0.3);
+}

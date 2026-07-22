@@ -35,6 +35,8 @@ import {
   triggerShanghaiHarshFeedback,
   triggerShanghaiCircuitBend,
   triggerShanghaiSubRumble,
+  triggerShanghaiIndustrialBurst,
+  triggerShanghaiRadioGlitch,
   createContinuousEmitterShanghaiNoiseStatic,
   createContinuousEmitterShanghaiNoiseDrone,
   createContinuousEmitterShanghaiNoiseSubRumble
@@ -401,8 +403,25 @@ export class WebAudioEngine extends AbstractAudioEngine {
     if (pill) pill.textContent = `BATTERY: ${Math.round(batteryLevel * 100)}%`;
   }
 
+  setSoloNode(nodeId) {
+    this.soloNodeId = nodeId;
+    if (this.continuousDrone && this.continuousDrone.droneMasterGain) {
+      try { this.continuousDrone.droneMasterGain.gain.setValueAtTime(0, this.ctx ? this.ctx.currentTime : 0); } catch (_) {}
+    }
+  }
+
+  clearSoloNode() {
+    this.soloNodeId = null;
+    if (this.continuousDrone && this.continuousDrone.droneMasterGain) {
+      try { this.continuousDrone.droneMasterGain.gain.setValueAtTime(0.12, this.ctx ? this.ctx.currentTime : 0); } catch (_) {}
+    }
+  }
+
   triggerBell(params = {}, delaySeconds = 0) {
     if (!this.ctx) return;
+    if (this.soloNodeId && params.nodeId && params.nodeId !== this.soloNodeId) {
+      return; // Solo mode: mute other nodes
+    }
 
     const now = this.ctx.currentTime;
     const triggerTime = now + Math.max(0, delaySeconds);
@@ -452,6 +471,14 @@ export class WebAudioEngine extends AbstractAudioEngine {
       case 'shanghai_sub_rumble':
       case 'sub_rumble':
         triggerShanghaiSubRumble(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_industrial_burst':
+      case 'industrial_burst':
+        triggerShanghaiIndustrialBurst(this, params, triggerTime, delaySeconds);
+        break;
+      case 'shanghai_radio_glitch':
+      case 'radio_glitch':
+        triggerShanghaiRadioGlitch(this, params, triggerTime, delaySeconds);
         break;
       case 'chicago_rail':
       case 'rail':

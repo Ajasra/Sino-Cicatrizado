@@ -7,7 +7,21 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
-import { getAllNodes, saveReflectorNode, getDatabaseConnection } from './db/database.js';
+import { getAllNodes, saveReflectorNode, updateFullNode, deleteNode, getNodeById, getDatabaseConnection } from './db/database.js';
+
+// ... (keep previous middleware)
+// Helper middleware to verify per-city admin password
+function verifyAdminAuth(req, res, next) {
+  const city = req.body?.city || req.query?.city || req.headers['x-city'] || CONFIG.DEFAULT_CITY;
+  const authPass = req.headers['x-admin-password'] || req.body?.adminPassword;
+  const expectedPass = CONFIG.ADMIN_PASSWORDS[city] || CONFIG.ADMIN_PASSWORD_GLOBAL;
+
+  if (!authPass || (authPass !== expectedPass && authPass !== CONFIG.ADMIN_PASSWORD_GLOBAL)) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid city admin password.' });
+  }
+  req.targetCity = city;
+  next();
+}
 import { evaluateSomaticProximity, getSomaticSignature } from './services/hysteresis.js';
 import { calculateHaversineMeters } from './services/spatial.js';
 import { generateReflectorPresetFromPrompt } from './llm-membrane.js';
@@ -102,10 +116,134 @@ app.post('/api/cities/create', async (req, res) => {
   }
 });
 
-// SPA fallback for city routes (e.g. /chicago, /ouro_preto)
+// Admin verification & management routes
+app.post('/api/admin/verify', verifyAdminAuth, (req, res) => {
+  return res.json({ success: true, city: req.targetCity });
+});
+
+app.post('/api/admin/nodes', verifyAdminAuth, (req, res) => {
+  try {
+    const { nodeId, name, description, city, coordinates, stateVector } = req.body;
+    const targetCity = city || req.targetCity || CONFIG.DEFAULT_CITY;
+    const id = nodeId || `tower_${targetCity}_${Date.now()}`;
+
+    const newNode = {
+      nodeId: id,
+      nodeType: 'TOWER',
+      city: targetCity,
+      name: name || `Tower: ${id}`,
+      description: description || {},
+      coordinates: {
+        lat: Number(coordinates.lat),
+        lng: Number(coordinates.lng),
+        alt: Number(coordinates.alt || 0.0)
+      },
+      stateVector: {
+        soundType: stateVector.soundType || 'bell_deep',
+        carrierType: stateVector.carrierType || 'sine',
+        baseFrequency: Number(stateVector.baseFrequency || 220.0),
+        harmonicity: Number(stateVector.harmonicity || 1.414),
+        decay: Number(stateVector.decay || 1.5),
+        gain: Number(stateVector.gain || 1.0),
+        euclideanDensity: Number(stateVector.euclideanDensity || 3),
+        euclideanSteps: Number(stateVector.euclideanSteps || 8),
+        echoProbability: Number(stateVector.echoProbability || 0.7),
+        fmIndex: Number(stateVector.fmIndex || 0.0),
+        filterCutoff: Number(stateVector.filterCutoff || 1200.0),
+        filterType: stateVector.filterType || 'lowpass',
+        delayTimeMs: Number(stateVector.delayTimeMs || 250.0),
+        feedbackRatio: Number(stateVector.feedbackRatio || 0.3),
+        combResonance: Number(stateVector.combResonance || 0.0),
+        bitDepth: Number(stateVector.bitDepth || 16)
+      },
+      scarIndex: 0.0,
+      interactionCount: 0
+    };
+
+    saveReflectorNode(newNode);
+
+    broadcastMessage({
+      type: 'NODE_CREATED',
+      payload: newNode,
+      timestamp: Date.now()
+    });
+
+    return res.status(201).json({ success: true, node: newNode });
+  } catch (err) {
+    console.error('[API] Error creating tower node:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/nodes/:id', verifyAdminAuth, (req, res) => {
+  try {
+    const nodeId = req.params.id;
+    const existing = getNodeById(nodeId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Node not found' });
+    }
+
+    const { name, description, coordinates, stateVector } = req.body;
+    const updatedNode = {
+      ...existing,
+      name: name !== undefined ? name : existing.name,
+      description: description !== undefined ? description : existing.description,
+      coordinates: coordinates ? {
+        lat: Number(coordinates.lat !== undefined ? coordinates.lat : existing.coordinates.lat),
+        lng: Number(coordinates.lng !== undefined ? coordinates.lng : existing.coordinates.lng),
+        alt: Number(coordinates.alt !== undefined ? coordinates.alt : existing.coordinates.alt)
+      } : existing.coordinates,
+      stateVector: stateVector ? {
+        ...existing.stateVector,
+        ...stateVector
+      } : existing.stateVector
+    };
+
+    updateFullNode(updatedNode);
+
+    broadcastMessage({
+      type: 'NODE_UPDATED',
+      payload: updatedNode,
+      timestamp: Date.now()
+    });
+
+    return res.json({ success: true, node: updatedNode });
+  } catch (err) {
+    console.error('[API] Error updating tower node:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/nodes/:id', verifyAdminAuth, (req, res) => {
+  try {
+    const nodeId = req.params.id;
+    const existing = getNodeById(nodeId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Node not found' });
+    }
+
+    deleteNode(nodeId);
+
+    broadcastMessage({
+      type: 'NODE_DELETED',
+      payload: { nodeId },
+      timestamp: Date.now()
+    });
+
+    return res.json({ success: true, nodeId });
+  } catch (err) {
+    console.error('[API] Error deleting tower node:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// SPA fallback for edit route and city routes (e.g. /edit/ouro_preto, /chicago)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.includes('.')) {
     return next();
+  }
+  if (req.path.startsWith('/edit')) {
+    return res.sendFile(path.join(PUBLIC_DIR, 'edit.html'));
   }
   return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });

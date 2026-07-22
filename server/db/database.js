@@ -64,7 +64,8 @@ export function getDatabaseConnection() {
     `ALTER TABLE nodes ADD COLUMN feedback_ratio REAL DEFAULT 0.3;`,
     `ALTER TABLE nodes ADD COLUMN comb_resonance REAL DEFAULT 0.0;`,
     `ALTER TABLE nodes ADD COLUMN bit_depth INTEGER DEFAULT 16;`,
-    `ALTER TABLE nodes ADD COLUMN carrier_type TEXT DEFAULT 'sine';`
+    `ALTER TABLE nodes ADD COLUMN carrier_type TEXT DEFAULT 'sine';`,
+    `ALTER TABLE nodes ADD COLUMN description TEXT DEFAULT '';`
   ];
   for (const sql of migrations) {
     try { dbInstance.exec(sql); } catch (e) { /* column already exists */ }
@@ -304,6 +305,16 @@ function seedInitialTowers(db) {
 
 
 
+function parseDescription(descStr) {
+  if (!descStr) return {};
+  if (typeof descStr === 'object') return descStr;
+  try {
+    return JSON.parse(descStr);
+  } catch (e) {
+    return { en: descStr };
+  }
+}
+
 export function getAllNodes(city = null) {
   const db = getDatabaseConnection();
   const stmt = city
@@ -316,6 +327,7 @@ export function getAllNodes(city = null) {
     nodeType: row.node_type,
     city: row.city,
     name: row.name,
+    description: parseDescription(row.description),
     coordinates: {
       lat: row.lat,
       lng: row.lng,
@@ -357,6 +369,7 @@ export function getNodeById(nodeId) {
     nodeType: row.node_type,
     city: row.city,
     name: row.name,
+    description: parseDescription(row.description),
     coordinates: { lat: row.lat, lng: row.lng, alt: row.alt },
     stateVector: {
       soundType: row.sound_type || 'bell_deep',
@@ -386,14 +399,15 @@ export function getNodeById(nodeId) {
 export function saveReflectorNode(node) {
   const db = getDatabaseConnection();
   const sv = node.stateVector || {};
+  const descStr = typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description || '');
   const stmt = db.prepare(`
     INSERT INTO nodes (
-      node_id, node_type, city, name, lat, lng, alt,
+      node_id, node_type, city, name, description, lat, lng, alt,
       base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
       echo_probability, sound_type, fm_index, filter_cutoff, filter_type, delay_time_ms, feedback_ratio, comb_resonance, bit_depth, carrier_type,
       scar_index, interaction_count
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?
@@ -405,6 +419,7 @@ export function saveReflectorNode(node) {
     node.nodeType || 'REFLECTOR',
     node.city || CONFIG.DEFAULT_CITY,
     node.name || 'Static Reflector Deposit',
+    descStr,
     node.coordinates.lat,
     node.coordinates.lng,
     node.coordinates.alt || 0.0,
@@ -427,6 +442,69 @@ export function saveReflectorNode(node) {
     node.scarIndex || 0.0,
     node.interactionCount || 0
   );
+}
+
+export function updateFullNode(node) {
+  const db = getDatabaseConnection();
+  const sv = node.stateVector || {};
+  const descStr = typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description || '');
+
+  const stmt = db.prepare(`
+    UPDATE nodes SET
+      name = ?,
+      description = ?,
+      lat = ?,
+      lng = ?,
+      alt = ?,
+      base_frequency = ?,
+      harmonicity = ?,
+      decay = ?,
+      gain = ?,
+      euclidean_density = ?,
+      euclidean_steps = ?,
+      echo_probability = ?,
+      sound_type = ?,
+      fm_index = ?,
+      filter_cutoff = ?,
+      filter_type = ?,
+      delay_time_ms = ?,
+      feedback_ratio = ?,
+      comb_resonance = ?,
+      bit_depth = ?,
+      carrier_type = ?
+    WHERE node_id = ?
+  `);
+
+  stmt.run(
+    node.name,
+    descStr,
+    node.coordinates.lat,
+    node.coordinates.lng,
+    node.coordinates.alt || 0.0,
+    sv.baseFrequency,
+    sv.harmonicity,
+    sv.decay,
+    sv.gain,
+    sv.euclideanDensity,
+    sv.euclideanSteps || 8,
+    sv.echoProbability || 0.7,
+    sv.soundType || 'bell_deep',
+    sv.fmIndex || 0.0,
+    sv.filterCutoff || 1200.0,
+    sv.filterType || 'lowpass',
+    sv.delayTimeMs !== undefined ? sv.delayTimeMs : 250.0,
+    sv.feedbackRatio !== undefined ? sv.feedbackRatio : 0.3,
+    sv.combResonance !== undefined ? sv.combResonance : 0.0,
+    sv.bitDepth || 16,
+    sv.carrierType || 'sine',
+    node.nodeId
+  );
+}
+
+export function deleteNode(nodeId) {
+  const db = getDatabaseConnection();
+  const stmt = db.prepare('DELETE FROM nodes WHERE node_id = ?');
+  return stmt.run(nodeId);
 }
 
 export function updateNodeStateVector(nodeId, newStateVector, scarIndexIncrement = 0.01) {

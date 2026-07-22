@@ -27,7 +27,7 @@
 - [x] **Center on Current Location**: Added button to center map on current location (`#fab-recenter` floating control).
 
 
-- [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
+- [x] **Per-City Admin Editing Panel**: Protected route `/edit/:cityname` with city password auth. Supports interactive Leaflet map editing, manual & LLM sound presets, solo sound auditioning, click-to-move listener preview, and multilingual tower descriptions.
 - [ ] add to config all distances/parameters if there no
 - [ ] Audio distortion/bitcrusher effect (re-evaluate trigger logic: e.g. movement speed, network latency, or node proximity instead of device battery status)
 - [ ] Audio distortion effect (re-evaluate trigger logic using native WebAudio nodes like WaveShaperNode instead of deprecated ScriptProcessorNode: e.g. movement speed, network latency, or node proximity)

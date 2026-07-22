@@ -73,14 +73,14 @@ export const CONFIG = {
   SPATIAL_DECAY_LAMBDA: 0.15,
   CROWD_DAMPING_FACTOR: 0.3,
   PARAMETER_BOUNDS: {
-    baseFrequency: { min: 55.0, max: 880.0, limit: 880.0 },
-    harmonicity: { min: 0.5, max: 4.0, limit: 4.0 },
-    decay: { min: 0.1, max: 15.0, limit: 15.0 },
-    gain: { min: 0.0, max: 1.0, limit: 1.0 },
-    euclideanDensity: { min: 1, max: 3, limit: 3 },
-    echoProbability: { min: 0.1, max: 0.9, limit: 0.9 },
-    fmIndex: { min: 0.0, max: 10.0, limit: 10.0 },
-    filterCutoff: { min: 100.0, max: 5000.0, limit: 5000.0 },
+    baseFrequency: { min: 20.0, max: 2500.0, limit: 2500.0 },
+    harmonicity: { min: 0.1, max: 10.0, limit: 10.0 },
+    decay: { min: 0.1, max: 30.0, limit: 30.0 },
+    gain: { min: 0.0, max: 2.0, limit: 2.0 },
+    euclideanDensity: { min: 1, max: 16, limit: 16 },
+    echoProbability: { min: 0.1, max: 1.0, limit: 1.0 },
+    fmIndex: { min: 0.0, max: 20.0, limit: 20.0 },
+    filterCutoff: { min: 20.0, max: 15000.0, limit: 15000.0 },
     bitDepth: { min: 2, max: 16, limit: 16 }
   },
   LLM: {
@@ -90,6 +90,14 @@ export const CONFIG = {
     THINKING_LEVEL: (process.env.LLM_THINKING_LEVEL || 'none').toLowerCase(),
     DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || '',
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || ''
+  },
+  ADMIN_PASSWORD_GLOBAL: process.env.ADMIN_PASSWORD || 'scarred2026',
+  ADMIN_PASSWORDS: {
+    ouro_preto: process.env.ADMIN_PASS_OURO_PRETO || 'ouro123',
+    chicago: process.env.ADMIN_PASS_CHICAGO || 'chicago123',
+    shanghai: process.env.ADMIN_PASS_SHANGHAI || 'shanghai123',
+    shanghai_noise: process.env.ADMIN_PASS_SHANGHAI_NOISE || 'noise123',
+    montreal: process.env.ADMIN_PASS_MONTREAL || 'montreal123'
   }
 };
 

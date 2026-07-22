@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>City Admin Panel - Sino Cicatrizado</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/vendor/leaflet.css"/>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0c10;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+    }
+    #admin-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+    #admin-sidebar {
+      width: 540px;
+      min-width: 440px;
+      max-width: 650px;
+      background: #0f172a;
+      border-right: 1px solid #1e293b;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      overflow-y: auto;
+      box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+    }
+    #admin-map-container {
+      flex: 1;
+      position: relative;
+      background: #020617;
+    }
+    #admin-map {
+      width: 100%;
+      height: 100%;
+    }
+    .admin-header {
+      padding: 16px 20px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .admin-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+    }
+    .auth-card h3 {
+      margin-top: 0;
+      color: #38bdf8;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+    }
+    input[type="text"], input[type="number"], input[type="password"], select, textarea {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #38bdf8;
+    }
+    .btn {
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .btn-solo {
+      background: #8b5cf6;
+      color: white;
+    }
+    .btn-solo.active {
+      background: #a855f7;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+    }
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #334155;
+      margin-bottom: 10px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      font-size: 0.85rem;
+    }
+    .tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+    }
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .range-wrap input[type="range"] {
+      flex: 1;
+    }
+    .range-wrap span {
+      width: 45px;
+      text-align: right;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+    }
+    .tower-item {
+      padding: 10px 12px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.2s;
+    }
+    .tower-item:hover, .tower-item.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .lang-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .lang-chip {
+      padding: 4px 8px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .lang-chip.active {
+      background: #0284c7;
+      color: white;
+      border-color: #38bdf8;
+    }
+    .top-bar-badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #0369a1;
+      color: #e0f2fe;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Admin Password Verification Modal -->
+  <div id="auth-modal" class="auth-overlay">
+    <div class="auth-card">
+      <h3 id="auth-city-title">CITY ADMIN LOGIN</h3>
+      <p style="font-size: 0.85rem; color: #94a3b8;">Enter management key for city editing panel access.</p>
+      <form id="auth-form" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="form-group">
+          <label>City Password</label>
+          <input type="password" id="auth-password" placeholder="Enter key..." required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary">UNLOCK PANEL</button>
+        <div id="auth-error" style="color: #f87171; font-size: 0.8rem; display: none;">Invalid password key.</div>
+      </form>
+    </div>
+  </div>
+
+  <div id="admin-layout">
+    <!-- Left Admin Sidebar -->
+    <div id="admin-sidebar">
+      <div class="admin-header">
+        <h2>
+          <span>⚙️ CITY EDITOR</span>
+        </h2>
+        <span id="current-city-badge" class="top-bar-badge">OURO PRETO</span>
+      </div>
+
+      <div class="admin-body">
+        <!-- City Selector -->
+        <div class="form-group">
+          <label>Target Acoustic City</label>
+          <select id="city-select"></select>
+        </div>
+
+        <!-- Mode Tab Bar -->
+        <div class="tab-bar">
+          <button id="tab-btn-towers" class="tab-btn active">TOWERS LIST</button>
+          <button id="tab-btn-manual" class="tab-btn">MANUAL EDIT</button>
+          <button id="tab-btn-llm" class="tab-btn">LLM SYNTH</button>
+        </div>
+
+        <!-- Section 1: Towers List View -->
+        <div id="section-towers" class="section-view" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.85rem; color: #94a3b8;">Existing Acoustic Towers</span>
+            <button id="btn-add-new-tower" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">+ NEW TOWER</button>
+          </div>
+          <div id="towers-list-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto;">
+            <div style="font-size: 0.85rem; color: #64748b;">Loading towers...</div>
+          </div>
+        </div>
+
+        <!-- Section 2: Manual Edit/Create Form -->
+        <div id="section-edit" class="section-view" style="display: none; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <h4 id="editor-form-title" style="margin: 0; color: #38bdf8;">Edit Tower</h4>
+            <div style="display: flex; gap: 6px;">
+              <button id="btn-play-preview" class="btn btn-primary" style="padding: 6px 10px; font-size: 0.8rem;">🔊 PLAY SOUND</button>
+              <button id="btn-solo-toggle" class="btn btn-solo" style="padding: 6px 10px; font-size: 0.8rem;">🎵 SOLO: OFF</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tower Name</label>
+            <input type="text" id="edit-name" placeholder="e.g. DuSable Bridge Tower">
+          </div>
+
+          <!-- Multilingual Description Field -->
+          <div class="form-group">
+            <label>Tower Description (Multilingual Context)</label>
+            <div id="lang-chips-container" class="lang-tabs"></div>
+            <textarea id="edit-desc" rows="3" placeholder="Historical context description..."></textarea>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label>Sound Type Preset</label>
+              <select id="edit-sound-type"></select>
+            </div>
+            <div class="form-group">
+              <label>Carrier Waveform</label>
+              <select id="edit-carrier-type">
+                <option value="sine">Sine</option>
+                <option value="triangle">Triangle</option>
+                <option value="sawtooth">Sawtooth</option>
+                <option value="square">Square</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Parameter Sliders -->
+          <div class="form-group">
+            <label>Base Frequency (20Hz - 2500Hz)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-freq" min="20" max="2500" step="1" value="220">
+              <span id="val-freq">220</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Harmonicity Ratio (0.1 - 10.0)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-harmonicity" min="0.1" max="10.0" step="0.05" value="1.41">
+              <span id="val-harmonicity">1.41</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Decay Time (0.1s - 30.0s)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-decay" min="0.1" max="30.0" step="0.1" value="1.5">
+              <span id="val-decay">1.5</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Gain Level (0.0 - 2.0)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-gain" min="0.0" max="2.0" step="0.05" value="0.9">
+              <span id="val-gain">0.9</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Filter Cutoff (20Hz - 15000Hz)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-cutoff" min="20" max="15000" step="50" value="1200">
+              <span id="val-cutoff">1200</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>FM Index (0.0 - 20.0)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-fm" min="0.0" max="20.0" step="0.1" value="0.0">
+              <span id="val-fm">0.0</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Euclidean Density (1 - 16)</label>
+            <div class="range-wrap">
+              <input type="range" id="edit-density" min="1" max="16" step="1" value="3">
+              <span id="val-density">3</span>
+            </div>
+          </div>
+
+          <!-- Coordinates -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label>Latitude</label>
+              <input type="number" id="edit-lat" step="0.000001">
+            </div>
+            <div class="form-group">
+              <label>Longitude</label>
+              <input type="number" id="edit-lng" step="0.000001">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button id="btn-save-tower" class="btn btn-primary" style="flex: 1;">SAVE TOWER</button>
+            <button id="btn-delete-tower" class="btn btn-danger">DELETE</button>
+          </div>
+        </div>
+
+        <!-- Section 3: LLM Synthesizer -->
+        <div id="section-llm" class="section-view" style="display: none; flex-direction: column; gap: 12px;">
+          <h4 style="margin: 0; color: #38bdf8;">LLM Natural Language Generator</h4>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;">Type an acoustic description to synthesize synth parameters for this city.</p>
+
+          <div class="form-group">
+            <label>Acoustic Prompt</label>
+            <textarea id="llm-prompt" rows="3" placeholder="e.g. A heavy bronze cathedral bell with slow low-end reverberation..."></textarea>
+          </div>
+
+          <button id="btn-generate-llm" class="btn btn-primary">⚡ GENERATE PRESET WITH LLM</button>
+          <div id="llm-status" style="font-size: 0.8rem; color: #38bdf8; display: none;">Synthesizing preset...</div>
+        </div>
+
+        <!-- Listener Positioning Control -->
+        <div style="padding-top: 12px; border-top: 1px solid #334155; display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Listener Positioning Preview</span>
+          <button id="btn-move-listener" class="btn btn-secondary">📍 CLICK MAP TO MOVE LISTENER</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right Map View -->
+    <div id="admin-map-container">
+      <div id="admin-map"></div>
+    </div>
+  </div>
+
+  <script src="/vendor/leaflet.js"></script>
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>
