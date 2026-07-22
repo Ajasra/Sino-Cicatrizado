@@ -1,116 +1,80 @@
 # *Sino Cicatrizado (The Scarred Bell)*
 
-> **Site-Specific, Distributed, Hysteretic Acoustic Apparatus & System-Environment Hybrid (SEH)**
+> **A Site-Specific, Hysteretic Acoustic Apparatus — System-Environment Hybrid (SEH) for Ouro Preto, Brazil**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-green.svg)](https://nodejs.org/)
 [![Database](https://img.shields.io/badge/Database-SQLite%20WAL-blue.svg)](https://www.sqlite.org/)
 [![Web Audio](https://img.shields.io/badge/Audio-Native%20Web%20Audio-orange.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 
-*Sino Cicatrizado (The Scarred Bell)* converts the physical topography of Ouro Preto, Brazil into an active, self-organizing acoustic feedback loop. The system rejects the digital "undo/reset" myth: every somatic interaction deforms the phase space of future sound synthesis, leaving behind an irreversible parameter trace—a **scar** ($z_{t+1} = g(x_t, z_t)$).
+*Sino Cicatrizado* converts the physical topography of Ouro Preto, Brazil into a self-organizing acoustic feedback loop. It entangles your movement, the city's colonial architecture, and the legacy of Afro-diasporic acoustic resistance (*Linguagem dos Sinos*) into a single evolving soundscape. The system rejects the digital myth of "undo": every interaction deforms the phase space of future sound synthesis, leaving behind an irreversible parameter trace — a **scar**.
 
 ---
 
-## 🌟 Key Features & Cybernetic Foundations
+## Inspiration & Conceptual Grounding
 
-- 🔔 **Irreversible Hysteretic Scars & Somatic Signatures**: Somatic node encounters permanently mutate bell parameter vectors with participant-specific fingerprints (unique weights, pitch directions, filter shifts, and FM biases) time-scaled for 30–60 minute real-world presence and protected by sub-linear crowd damping.
-- 🎛️ **Native Additive Bell DSP**: 5 inharmonic sine partials ($1.0, 1.21, 1.47, 1.94, 2.52$) simulating bronze and soapstone acoustic structures without external audio framework bloat.
-- 🔋 **Thermodynamic Battery Degradation**: Real-time hardware battery monitoring (`navigator.getBattery()`) mapped to a ScriptProcessor BitCrusher node (16-bit high-fidelity down to 4-bit digital dirt).
-- 🌐 **Decentered Spatial Propagation**: Spatial wave delay calculated at the speed of sound ($v_{\text{sound}} = 343\text{ m/s}$) via client-side Haversine distance math.
-- 📶 **Rate-Limited WebSocket Protocol**: Real-time somatic position broadcasts throttled to $4\text{ Hz}$ ($250\text{ ms}$) and a $5.0\text{m}$ movement delta threshold.
-- 🛡️ **Immunological Parsing Layer**: Strict schema validation clamping missing or corrupted LLM synthesis presets to safe boundaries or defaulting to the Basal Soapstone Drone ($220\text{ Hz}$).
-- 🏛️ **Dual-Twin Ontology**: Toggle seamlessly between the mutating **Living City** (SQLite WAL autopoiesis) and the read-only **Scarred Twin** (frozen historical monument snapshot).
-- 🎛️ **Analog Sound Apparatus Aesthetic & Theme Switch**: Minimal, flat hardware panel UI inspired by Eurorack modules and test equipment. Features a zero-shadow monospace layout, custom 6px hardware scrollbars, desaturated monochrome Leaflet map rendering, and a settings switch between Dark Mode (industrial chassis) and Light Mode (brushed aluminum for outdoor sunlight readability) persisted in `localStorage`.
-- 🗺️ **Interactive Radar Map**: Leaflet topography map overlaid with an HTML5 Canvas spatial wave radar displaying expanding echolocation pulses.
+### The Scar Instead of the Reset
 
----
+First-order cybernetics — and most interactive software — chase the myth of equilibrium: a feedback loop that returns to a pristine, untouched state. Noise is treated as a bug, and the material act of computation is rendered invisible. *Sino Cicatrizado* adopts second-order cybernetics instead: the system's internal state is a recursive archive of its own history. Every visit, every chirp, every placed reflector permanently alters what comes next. The bell you hear carries the microscopic frequency shifts left by every person who walked here before you.
 
-## 📁 Repository Architecture & Documentation
+### System-Environment Hybrid
 
-```text
-c:\Users\user\Desktop\ASC\The Scarred Bell\
-├── README.md                 # Project Overview & Quick Start
-├── package.json              # Dependencies (express, ws, better-sqlite3, dotenv)
-├── docs/                     # Philosophical & Technical Governance
-│   ├── CONCEPT.md            # Second-Order Cybernetics & Decolonial Acoustic Framework
-│   ├── PRD.md                # Product Requirement Document
-│   ├── TS.md                 # Technical Specification Document
-│   ├── SPEC.md               # Master Consolidated System Specification
-│   ├── IMPLEMENTATION.md     # Architectural Blueprint & Component Roadmap
-│   ├── DEV_PRACTICES.md      # Development Standards & Directory Layout Rules
-│   ├── Audio Research.md     # Spectralism & Acoustic Resistance Foundations
-│   ├── SETUP.md              # Comprehensive Setup, Installation & Developer Guide
-│   └── systems/              # Detailed Cybernetic Subsystem Specifications
-│       ├── SCARRING_SYSTEM.md        # Cybernetic Scarring System Specification
-│       ├── SOMATIC_NODES_SYSTEM.md   # Somatic Nodes (Type 3 Mobile Clients) Specification
-│       ├── REFLECTOR_NODES_SYSTEM.md # Reflector Nodes (Type 2 User Reflectors) Specification
-│       ├── SOUND_ENGINE_SYSTEM.md    # Real-Time Procedural Sound Engine Specification
-│       └── CITY_GENERATION_SYSTEM.md # Multi-City Generation & Landmark Synthesis Specification
-├── data/                     # Persistent Data Storage
-│   ├── scarred_bell.db       # Local SQLite Database (WAL Mode)
-│   └── scarred_twin.json     # Immutable ASC 2026 Snapshot
-├── server/                   # Node.js Server & Hysteresis Engine
-│   ├── config.js             # Centralized Server Parameters
-│   ├── server.js             # Express Host + WS Handler + 4Hz Broadcast Loop
-│   ├── db/
-│   │   └── database.js       # SQLite Connection & Seed Queries
-│   ├── services/
-│   │   ├── spatial.js        # Haversine Distance Engine
-│   │   └── hysteresis.js     # State Mutation Engine
-│   ├── utils/
-│   │   └── immunological-parser.js # Safety Validator
-│   ├── llm-membrane.js       # Reflector Preset Generator
-│   └── prompts/
-│       └── reflector_preset_system.txt # LLM System Prompt
-├── public/                   # Frontend Web Application
-│   ├── index.html            # App Shell & Audio Unlock Overlay Membrane
-│   ├── css/
-│   │   ├── variables.css     # Centralized Theme Tokens & Design System
-│   │   └── main.css          # Visualizer & UI Styling
-│   └── js/
-│       ├── config.js         # Client Constants & Configuration
-│       ├── main.js           # App Lifecycle Coordinator
-│       ├── audio/            # Native Web Audio Engine & AudioContext Manager
-│       ├── sensors/          # Cross-Platform Adapters (Battery, GPS, WakeLock)
-│       ├── net/              # Throttled WebSocket Client
-│       ├── spatial.js        # Client Distance & Wave Metrics
-│       ├── membrane.js       # Client Immunological Validator
-│       └── ui/               # Leaflet Map & Canvas Radar Visualizer
-└── test/
-    └── verification.js       # Automated Verification Matrix Test Suite
-```
+The city is not a passive stage — it is a co-composer. GPS drift, cellular latency, battery drain, and terrain are treated as active agents that shape the sound. This is not a simulation running on top of the world; the environment *in-forms* the system, and hardware limits become part of the composition.
+
+### The Language of the Bells (Toque dos Sinos)
+
+For centuries, the church bells of Ouro Preto served as a city-wide acoustic communication network — distinct rhythmic sequences signaled births, deaths, fires, invasions. Enslaved *sineiros* (bell ringers), forced to perform rigid European ecclesiastical scores, injected African syncopation and polyrhythms into the bell patterns — acoustic resistance that embedded hidden messages of safety and rebellion into the colonial soundscape. This work inherits that legacy: virtual Euclidean rhythms are detuned and syncopated by your physical presence, reclaiming the algorithmic grid as a site of organic improvisation.
+
+### Confluence, Not Assimilation
+
+Drawing on the decolonial philosophy of the Piaui intellectual **Nego Bispo**, the system models *confluence* — the meeting of differing currents that mutually amplify each other without erasing distinct identities. When two participants' acoustic signatures merge, neither is flattened. The rivers meet, the combined current grows stronger, but each sediment trail remains visible.
+
+### Acoustic Resistance & Chico Rei
+
+In Ouro Preto, the legendary King of Kongo — **Chico Rei** (Galanga) — covertly accumulated gold dust to purchase freedom for himself and his community, eventually buying the very mine where he had been enslaved. The Church of Santa Efigenia, funded by his emancipated community, stands as a monument to structural subversion from within. The virtual bells of *Sino Cicatrizado* echo this logic: they sound from within the apparatus, but they carry frequencies the apparatus was never designed to transmit.
 
 ---
 
-## 🚀 Quick Start
+## What It Does
 
-### 1. Prerequisites
-- **Node.js**: v20.0.0 LTS or higher
-- **npm**: v10.0.0 or higher
+- **Irreversible Scars**: Every interaction permanently mutates the bell parameters — pitch, timbre, rhythm — for everyone who follows. No reset, no undo.
+- **Active Echolocation**: Emit acoustic chirps that travel at the physical speed of sound, returning echoes from towers and reflectors up to 500m away.
+- **Native Additive Bell Synthesis**: Bells synthesized from inharmonic partials modeled on bronze and soapstone — no sample libraries, no audio framework bloat.
+- **Battery as an Aesthetic Material**: As your device battery drains, the sound degrades in fidelity — from 16-bit clarity down to 4-bit digital grit. The system performs its own material exhaustion.
+- **Dual-Twin Ontology**: Toggle between the continuously mutating *Living City* and the frozen *Scarred Twin* — an immutable snapshot from the close of the ASC 2026 conference.
+- **The Right to Decline**: When too many participants crowd one location, the system deadens that node permanently rather than rebalancing. A structural reminder that not every wound can be healed.
+- **Multi-City Soundscapes**: While born from Ouro Preto's acoustic history, the system adapts to any city — mapping local topography, towers, and spatial character into site-specific experiences.
+- **Analog Hardware UI**: Flat panel interface inspired by Eurorack modules and test equipment. Dark and light modes for indoor and outdoor sunlight visibility.
 
-### 2. Installation & Server Start
+---
+
+## Quick Start
+
+See [`docs/SETUP.md`](docs/SETUP.md) for full installation, mobile deployment, HTTPS configuration, and environment overrides.
+
 ```bash
-# Clone or navigate to project directory
-cd "The Scarred Bell"
-
-# Install dependencies
 npm install
-
-# Start the application server
-npm start
+npm start        # Open http://localhost:3000
+npm test         # Run verification suite
 ```
-
-Open your browser to `http://localhost:3000`.
-
-### 3. Run Automated Verification Tests
-```bash
-npm test
-```
-
-For detailed setup instructions, mobile device deployment, HTTPS configuration, and environment overrides, refer to [`docs/SETUP.md`](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/docs/SETUP.md).
 
 ---
 
-## 📜 License
+## Documentation
+
+| Document | What It Covers |
+|---|---|
+| [`CONCEPT.md`](docs/CONCEPT.md) | Second-order cybernetics, decolonial framework, scar ontology |
+| [`PRD.md`](docs/PRD.md) | Product requirements and feature scope |
+| [`SPEC.md`](docs/SPEC.md) | Master consolidated system specification |
+| [`SETUP.md`](docs/SETUP.md) | Installation, deployment, environment configuration |
+| [`IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) | Architectural blueprint and component roadmap |
+| [`DEV_PRACTICES.md`](docs/DEV_PRACTICES.md) | Development standards and directory layout |
+| [`Audio Research.md`](docs/Audio%20Research.md) | Spectralism and acoustic resistance foundations |
+| [`docs/systems/`](docs/systems/) | Detailed cybernetic subsystem specifications |
+
+---
+
+## License
 
 Distributed under the [MIT License](LICENSE).

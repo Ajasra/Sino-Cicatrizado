@@ -3,7 +3,6 @@
  */
 export class AboutModal {
   static render() {
-    // If modal already exists in DOM, skip injection
     if (document.getElementById('modal-about')) return;
 
     const modalHTML = `
@@ -17,20 +16,33 @@ export class AboutModal {
       <div class="modal-body modal-scrollable">
         <h2 class="about-heading">The Scarred Bell (Sino Cicatrizado)</h2>
         <p class="about-p">
-          <strong>Sino Cicatrizado</strong> is an interactive, location-based acoustic installation that transforms physical landscapes into living, sound-emitting surfaces. Rather than treating cities as static maps, the system turns your real-world movement and location into an active participant in an evolving soundscape.
+          <strong>Sino Cicatrizado</strong> is an interactive acoustic installation that turns a city into a living, self-organizing sound system. Your movement entangles with the urban architecture and its sonic history to create an evolving soundscape.
+        </p>
+        <p class="about-p">
+          Inspired by the <em>Toque dos Sinos</em> — the centuries-old Language of the Bells in Ouro Preto, Brazil — the system adapts to any city, mapping its unique topography, bell towers, and acoustic character into a site-specific experience.
         </p>
 
-        <h3 class="about-subheading">Acoustic Confluence & The Memory of Sound</h3>
+        <h3 class="about-subheading">The Scar</h3>
         <p class="about-p">
-          Inspired by the Afro-diasporic acoustic tradition of <em>Linguagem dos Sinos</em> (the Language of Bells) in historic Ouro Preto, Brazil, the project rejects the idea of a clean digital "reset." Every interaction and movement leaves a lasting acoustic mark—a <em>scar</em>. As participants walk through physical coordinates or place memory reflectors, spatial waves propagate outward at the physical speed of sound (343 m/s), creating echoes that refract off surrounding bell towers and somatic nodes.
+          Digital tools promise "undo." This work rejects that fiction. Every action you take leaves a permanent trace — a <strong>scar</strong> — that irreversibly changes what future visitors hear. The observer is inside the loop, and observation is a physical act that changes what it touches.
+        </p>
+
+        <h3 class="about-subheading">System-Environment Hybrid</h3>
+        <p class="about-p">
+          The city is not just a stage — it is a co-composer. Drawing on second-order cybernetics, the system treats GPS drift, cellular latency, battery drain, and terrain as active agents that shape the sound. This is not a simulation running on top of the world; it is a <strong>System-Environment Hybrid (SEH)</strong> where hardware limits, topography, and signal noise become part of the composition.
+        </p>
+
+        <h3 class="about-subheading">Echolocation & Confluence</h3>
+        <p class="about-p">
+          Trigger an acoustic chirp and it travels outward at the physical speed of sound (343 m/s), reflecting off nearby towers and memory reflectors. The echoes carry the histories — the scars — left by everyone who came before you. When two participants cross paths, their distinct acoustic signatures merge in real time: each current stays distinct, but the combined flow grows stronger.
         </p>
 
         <h3 class="about-subheading">How to Experience</h3>
         <ul class="about-list">
-          <li><strong>Select a Soundscape:</strong> Explore site-specific acoustic profiles in cities like Ouro Preto, Chicago, or Shanghai.</li>
-          <li><strong>Emit Acoustic Probes:</strong> Trigger a "chirp" to sound your presence and hear real-time environmental echoes from nearby virtual towers.</li>
-          <li><strong>Deposit Memory Reflectors:</strong> Leave an acoustic memory node at your physical coordinates for other wanderers to encounter.</li>
-          <li><strong>Shared Acoustic Currents:</strong> When multiple participants cross paths, their audio fields naturally weave together in real-time confluence.</li>
+          <li><strong>Select a City:</strong> Site-specific soundscape tuned to local topography and acoustic character.</li>
+          <li><strong>Emit a Chirp:</strong> Send a sonar pulse and hear real-time echoes from bell towers and memory reflectors.</li>
+          <li><strong>Place a Reflector:</strong> Leave a memory node at your coordinates for others to encounter.</li>
+          <li><strong>Move & Merge:</strong> When participants converge, their sound fields weave together without losing individual identity.</li>
         </ul>
 
         <div class="about-footer-links">
@@ -38,7 +50,7 @@ export class AboutModal {
             Source Code & Repository: <a href="https://github.com/Ajasra/Sino-Cicatrizado" target="_blank" rel="noopener noreferrer">github.com/Ajasra/Sino-Cicatrizado</a>
           </p>
           <p class="about-copyright">
-            © <a href="http://sympoietic.systems" target="_blank" rel="noopener noreferrer">sympoietic.systems</a> — All Rights Reserved
+            &copy; <a href="http://sympoietic.systems" target="_blank" rel="noopener noreferrer">sympoietic.systems</a> — All Rights Reserved
           </p>
         </div>
       </div>

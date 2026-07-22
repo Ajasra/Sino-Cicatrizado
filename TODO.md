@@ -19,13 +19,12 @@
   - *Future Solutions:* Implement WebAudio `AudioWorklet`, pre-rendered audio buffer queues, or native background audio service worker to ensure zero-latency sound synthesis when screen is off.
 
 
-
-- [ ] add to config all distances/parameters if there no
 - [x] **Node Creation Proximity Rules**: No distance limits (e.g. 50m) or complex auto-merging (Ponytail/YAGNI). Allow spatial acoustic confluence & natural sound overlapping as defined in CONCEPT.md (Section 4.1 & 6). Only basic micro-distance check (< 1m) to avoid exact coordinate stacking if needed.
-- [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
 - [x] **Background Audio Underrun Prevention**: Added silent WAV keep-alive anchor (`AudioContextManager.enableBackgroundKeepAlive()`) with MediaSession integration so mobile browsers retain real-time WebAudio priority during screen-off / background movement.
-- [ ] Audio distortion effect (re-evaluate trigger logic using native WebAudio nodes like WaveShaperNode instead of deprecated ScriptProcessorNode: e.g. movement speed, network latency, or node proximity)
-- [ ] languages
 - [x] **About/Description Page**: Added accessible modal explaining concept, soundscape features, and physical acoustics in public-friendly language.
 - [x] **Footer Links**: Added Git repository link (`https://github.com/Ajasra/Sino-Cicatrizado`) and copyright link (`http://sympoietic.systems`).
 - [ ] Audio distortion/bitcrusher effect (re-evaluate trigger logic: e.g. movement speed, network latency, or node proximity instead of device battery status)
+- [ ] Audio distortion effect (re-evaluate trigger logic using native WebAudio nodes like WaveShaperNode instead of deprecated ScriptProcessorNode: e.g. movement speed, network latency, or node proximity)
+- [ ] languages
+- [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
+- [ ] add to config all distances/parameters if there no
