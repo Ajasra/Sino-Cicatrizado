@@ -424,8 +424,12 @@
     </div>
 
     <!-- Right Map View -->
-    <div id="admin-map-container">
+    <div id="admin-map-container" style="position: relative;">
       <div id="admin-map"></div>
+      <div id="map-style-toggle-bar" style="position: absolute; top: 12px; right: 12px; z-index: 1000; display: flex; gap: 6px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); padding: 4px 8px; border-radius: 8px; border: 1px solid #334155;">
+        <button id="btn-map-style-voyager" class="btn btn-secondary active" style="padding: 4px 10px; font-size: 0.75rem;">🗺️ High-Vis Labels (Voyager)</button>
+        <button id="btn-map-style-dark" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">🌙 Dark Map</button>
+      </div>
     </div>
   </div>
 

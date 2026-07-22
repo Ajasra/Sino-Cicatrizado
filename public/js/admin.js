@@ -1,10 +1,13 @@
 import { WebAudioEngine } from './audio/web-audio-engine.js';
+import { wgs84ToGcj02 } from './spatial.js';
 
 let audioEngine = null;
 let currentCityKey = 'ouro_preto';
 let currentCityData = null;
 let adminPassword = '';
 let map = null;
+let adminTileLayer = null;
+let currentAdminStyle = 'voyager'; // 'voyager' (high-visibility with labels) or 'dark'
 let markersMap = new Map();
 let listenerMarker = null;
 let isMoveListenerMode = false;
@@ -244,20 +247,68 @@ function switchTab(tabName) {
   }
 }
 
+function updateAdminTileLayer(provider, useGcj02) {
+  if (!map) return;
+  if (adminTileLayer) {
+    map.removeLayer(adminTileLayer);
+  }
+
+  const prov = provider || currentCityData?.tileProvider || 'carto';
+  let url = '';
+  let options = {};
+
+  if (prov === 'autonavi' || prov === 'amap') {
+    url = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+    options = { subdomains: ['1', '2', '3', '4'], maxZoom: 19, attribution: '&copy; AutoNavi &copy; OpenStreetMap' };
+  } else {
+    // ponytail: voyager style provides high-visibility labels, street names, and building footprints for editing alignment
+    const style = currentAdminStyle === 'dark' ? 'dark_all' : 'rastertiles/voyager';
+    url = `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`;
+    options = { subdomains: 'abcd', maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' };
+  }
+
+  adminTileLayer = L.tileLayer(url, options).addTo(map);
+}
+
 function initMap() {
   if (map) return;
-  const center = currentCityData ? currentCityData.center : { lat: -20.3856, lng: -43.5035, zoom: 15 };
+  const center = currentCityData ? currentCityData.center : { lat: -20.3856, lng: -43.5035, zoom: 16 };
+  const provider = currentCityData?.tileProvider || 'carto';
+  const useGcj02 = !!currentCityData?.useGcj02;
+
+  let centerLat = center.lat;
+  let centerLng = center.lng;
+  if (useGcj02 && centerLat >= 18 && centerLat <= 54 && centerLng >= 73 && centerLng <= 135) {
+    const pt = wgs84ToGcj02(centerLat, centerLng);
+    centerLat = pt.lat;
+    centerLng = pt.lng;
+  }
 
   map = L.map('admin-map', {
-    center: [center.lat, center.lng],
+    center: [centerLat, centerLng],
     zoom: center.zoom || 15,
     zoomControl: true
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    maxZoom: 19
-  }).addTo(map);
+  updateAdminTileLayer(provider, useGcj02);
+
+  // Setup Map Style toggle buttons
+  const btnVoyager = document.getElementById('btn-map-style-voyager');
+  const btnDark = document.getElementById('btn-map-style-dark');
+  if (btnVoyager && btnDark) {
+    btnVoyager.addEventListener('click', () => {
+      currentAdminStyle = 'voyager';
+      btnVoyager.classList.add('active');
+      btnDark.classList.remove('active');
+      updateAdminTileLayer(provider, useGcj02);
+    });
+    btnDark.addEventListener('click', () => {
+      currentAdminStyle = 'dark';
+      btnDark.classList.add('active');
+      btnVoyager.classList.remove('active');
+      updateAdminTileLayer(provider, useGcj02);
+    });
+  }
 
   map.on('click', (e) => {
     const { lat, lng } = e.latlng;
