@@ -32,19 +32,20 @@ The engine is decomposed into single-responsibility ES modules under `public/js/
  │   Master Gain Node     │◄───────────────────┤ Convolver Gain Returns │
  └───────────┬────────────┘                    └────────────────────────┘
              │
-             ├── [ High Battery (>=50%): Clean Path ] ──────────┐
-             │                                                  │
-             └── [ Low Battery (<50%): ScriptProcessor Bitcrusher ]
-                                 │
-                                 ▼
-                     ┌───────────────────────┐
-                     │ Transparent Limiter   │ (-12dBFS threshold, 12:1 ratio)
-                     └───────────┬───────────┘
-                                 │
-                                 ▼
-                     ┌───────────────────────┐
-                     │ AudioContext.dest     │ (Physical Device Speakers)
-                     └───────────────────────┘
+             ▼
+ ┌────────────────────────┐
+ │ Sovereign Isolation    │ (20kHz Open / 450Hz Lowpass Offline Filter)
+ └───────────┬────────────┘
+             │
+             ▼
+ ┌────────────────────────┐
+ │ Transparent Limiter    │ (-12dBFS threshold, 12:1 ratio)
+ └───────────┬────────────┘
+             │
+             ▼
+ ┌────────────────────────┐
+ │ AudioContext.dest      │ (Physical Device Speakers / Earphones)
+ └────────────────────────┘
 ```
 
 ---

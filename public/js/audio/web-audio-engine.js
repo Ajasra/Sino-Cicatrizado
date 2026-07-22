@@ -397,50 +397,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
   }
 
   updateBatteryLevel(batteryLevel) {
-    let newBits;
-    if (batteryLevel >= 0.5) {
-      newBits = 16;
-    } else if (batteryLevel >= 0.15) {
-      newBits = Math.round(4 + ((batteryLevel - 0.15) / 0.35) * 12);
-    } else {
-      newBits = 4;
-    }
-
-    if (newBits === this.currentBits) return;
-    this.currentBits = newBits;
-
-    if (newBits >= 16) {
-      // Bypass bitcrusher — clean direct path through limiter
-      if (this.bitCrusher) {
-        try {
-          this.masterGain.disconnect(this.bitCrusher);
-          this.bitCrusher.disconnect(this.limiter);
-        } catch (_) {}
-        this.bitCrusher = null;
-      }
-      this.masterGain.connect(this.limiter);
-    } else {
-      // Insert bitcrusher for low-battery degradation effect
-      if (!this.bitCrusher) {
-        const bufferSize = 4096;
-        this.bitCrusher = this.ctx.createScriptProcessor(bufferSize, 1, 1);
-        this.bitCrusher.onaudioprocess = (e) => {
-          const input = e.inputBuffer.getChannelData(0);
-          const output = e.outputBuffer.getChannelData(0);
-          const step = Math.pow(0.5, this.bitCrusher.bits || 8);
-          for (let i = 0; i < input.length; i++) {
-            output[i] = step * Math.round(input[i] / step);
-          }
-        };
-        try { this.masterGain.disconnect(this.limiter); } catch (_) {}
-        this.masterGain.connect(this.bitCrusher);
-        this.bitCrusher.connect(this.limiter);
-      }
-      this.bitCrusher.bits = newBits;
-    }
-
     const pill = document.getElementById('pill-battery');
-    if (pill) pill.textContent = `BATTERY: ${Math.round(batteryLevel * 100)}% (${newBits}-BIT)`;
+    if (pill) pill.textContent = `BATTERY: ${Math.round(batteryLevel * 100)}%`;
   }
 
   triggerBell(params = {}, delaySeconds = 0) {
@@ -458,15 +416,6 @@ export class WebAudioEngine extends AbstractAudioEngine {
       } else {
         soundType = 'bell_sacred';
       }
-    }
-
-    // Temporary local bitcrusher override if specified by params
-    if (params.bitDepth && params.bitDepth < 16 && this.bitCrusher) {
-      const origBits = this.bitCrusher.bits;
-      this.bitCrusher.bits = Math.min(origBits, params.bitDepth);
-      setTimeout(() => {
-        if (this.bitCrusher) this.bitCrusher.bits = origBits;
-      }, (delaySeconds + (params.decay || 2.0) + 1.0) * 1000);
     }
 
     switch (soundType) {

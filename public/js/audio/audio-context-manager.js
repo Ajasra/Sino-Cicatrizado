@@ -1,5 +1,6 @@
 export class AudioContextManager {
   static instance = null;
+  static keepAliveAudio = null;
 
   static getContext() {
     if (!AudioContextManager.instance) {
@@ -14,6 +15,27 @@ export class AudioContextManager {
     if (ctx.state === 'suspended') {
       await ctx.resume();
     }
+    AudioContextManager.enableBackgroundKeepAlive();
     return ctx;
   }
+
+  static enableBackgroundKeepAlive() {
+    if (AudioContextManager.keepAliveAudio) return;
+    try {
+      // 1s silent WAV URI to anchor background WebAudio execution on mobile OSes
+      const silentWav = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
+      const audio = new Audio(silentWav);
+      audio.loop = true;
+      audio.play().catch(() => {});
+      AudioContextManager.keepAliveAudio = audio;
+
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'Sino Cicatrizado',
+          artist: 'Acoustic Membrane'
+        });
+      }
+    } catch (_) {}
+  }
 }
+
