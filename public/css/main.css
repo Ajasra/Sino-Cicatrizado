@@ -619,6 +619,83 @@ header {
   line-height: 1.4;
 }
 
+/* About / Concept Modal Styling */
+.modal-card-large {
+  max-width: 600px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-scrollable {
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.about-heading {
+  font-family: var(--font-family-mono);
+  font-size: 1.15rem;
+  color: var(--accent-telemetry);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.about-subheading {
+  font-family: var(--font-family-mono);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-top: 16px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.about-p {
+  font-family: var(--font-family-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.about-list {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-left: 18px;
+  margin-bottom: 20px;
+}
+
+.about-list li {
+  margin-bottom: 6px;
+}
+
+.about-footer-links {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-family-mono);
+  font-size: 0.78rem;
+}
+
+.about-git-link a, .about-copyright a {
+  color: var(--accent-telemetry);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.about-git-link a:hover, .about-copyright a:hover {
+  color: var(--text-primary);
+}
+
+.about-copyright {
+  color: var(--text-muted);
+}
+
 /* Mobile Browser Safe Area & URL Bar Clearance */
 @media (max-width: 768px) {
   .fab-settings {

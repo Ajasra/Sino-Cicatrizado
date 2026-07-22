@@ -5,6 +5,7 @@ import { WakeLockAdapter } from './sensors/wakelock.js';
 import { ScarredWebSocketClient } from './net/websocket-client.js';
 import { LeafletMapView } from './ui/map-view.js';
 import { SpatialWaveRadar } from './ui/visualizer.js';
+import { ModalManager } from './ui/modal-manager.js';
 import { calculateHaversineMeters, calculateWaveDelaySeconds, calculateInverseSquareGain } from './spatial.js';
 import { CLIENT_CONFIG } from './config.js';
 
@@ -29,6 +30,7 @@ class SinoCicatrizadoApp {
     this.mySomaticId = null;
     this.showUsers = true;
     this.currentTheme = localStorage.getItem('sino_theme') || 'dark';
+    this.modalManager = null;
   }
 
   detectCityFromURL() {
@@ -97,6 +99,7 @@ class SinoCicatrizadoApp {
     this.setupUIListeners();
     this.renderMembraneCitySelector();
     this.renderCitySelector();
+    this.modalManager = new ModalManager(this);
   }
 
   async fetchCities() {
@@ -210,14 +213,22 @@ class SinoCicatrizadoApp {
   }
 
   openCityModal() {
-    this.renderCitySelector();
-    const modal = document.getElementById('modal-city-select');
-    if (modal) modal.style.display = 'flex';
+    if (this.modalManager) {
+      this.modalManager.openCityModal();
+    } else {
+      this.renderCitySelector();
+      const modal = document.getElementById('modal-city-select');
+      if (modal) modal.style.display = 'flex';
+    }
   }
 
   closeCityModal() {
-    const modal = document.getElementById('modal-city-select');
-    if (modal) modal.style.display = 'none';
+    if (this.modalManager) {
+      this.modalManager.closeCityModal();
+    } else {
+      const modal = document.getElementById('modal-city-select');
+      if (modal) modal.style.display = 'none';
+    }
   }
 
   enableDebugFeatures() {
@@ -548,87 +559,12 @@ class SinoCicatrizadoApp {
       });
     }
 
-    // Settings & Acoustic Probes Modal handling
-    const fabSettingsBtn = document.getElementById('fab-settings');
-    const settingsModal = document.getElementById('modal-settings');
-    const closeSettingsBtn = document.getElementById('modal-settings-close-btn');
-
-    const openSettingsModal = () => {
-      if (settingsModal) settingsModal.style.display = 'flex';
-    };
-    const closeSettingsModal = () => {
-      if (settingsModal) settingsModal.style.display = 'none';
-    };
-
-    if (fabSettingsBtn) fabSettingsBtn.addEventListener('click', openSettingsModal);
-    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettingsModal);
-
+    // Theme toggle button
     const btnThemeToggle = document.getElementById('btn-theme-toggle');
-
     if (btnThemeToggle) {
       btnThemeToggle.addEventListener('click', () => {
         const nextTheme = this.currentTheme === 'light' ? 'dark' : 'light';
         this.applyTheme(nextTheme);
-      });
-    }
-
-    if (settingsModal) {
-      settingsModal.addEventListener('click', (e) => {
-        if (e.target === settingsModal) closeSettingsModal();
-      });
-    }
-
-    // Reflection Deposit FAB & Modal handling
-    const fabBtn = document.getElementById('fab-reflector');
-    const modal = document.getElementById('modal-reflector');
-    const closeBtn = document.getElementById('modal-close-btn');
-    const cancelBtn = document.getElementById('btn-cancel-reflector');
-    const intentInput = document.getElementById('input-reflector-intent');
-
-    const openModal = () => {
-      if (modal) {
-        modal.style.display = 'flex';
-        if (intentInput) intentInput.focus();
-      }
-    };
-
-    const closeModal = () => {
-      if (modal) modal.style.display = 'none';
-    };
-
-    if (fabBtn) fabBtn.addEventListener('click', openModal);
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-
-    if (modal) {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-      });
-    }
-
-    // City Selector listeners
-    const pillCity = document.getElementById('pill-city');
-    if (pillCity) {
-      pillCity.addEventListener('click', () => this.openCityModal());
-    }
-
-    const switchCityBtn = document.getElementById('btn-switch-city');
-    if (switchCityBtn) {
-      switchCityBtn.addEventListener('click', () => {
-        closeSettingsModal();
-        this.openCityModal();
-      });
-    }
-
-    const closeCityBtn = document.getElementById('modal-city-close-btn');
-    if (closeCityBtn) {
-      closeCityBtn.addEventListener('click', () => this.closeCityModal());
-    }
-
-    const cityModal = document.getElementById('modal-city-select');
-    if (cityModal) {
-      cityModal.addEventListener('click', (e) => {
-        if (e.target === cityModal) this.closeCityModal();
       });
     }
 
@@ -637,14 +573,6 @@ class SinoCicatrizadoApp {
       const urlCity = this.detectCityFromURL();
       if (urlCity && urlCity !== this.currentCity) {
         this.selectCity(urlCity, false);
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (cityModal && cityModal.style.display !== 'none') this.closeCityModal();
-        if (settingsModal && settingsModal.style.display !== 'none') closeSettingsModal();
-        if (modal && modal.style.display !== 'none') closeModal();
       }
     });
 
@@ -681,7 +609,7 @@ class SinoCicatrizadoApp {
           const data = await res.json();
           if (data.success) {
             if (intentInput) intentInput.value = '';
-            closeModal();
+            if (this.modalManager) this.modalManager.closeReflectorModal();
             console.log('[API] Reflector dropped successfully:', data.node);
           } else {
             alert(data.error || 'Failed to create reflection deposit.');
