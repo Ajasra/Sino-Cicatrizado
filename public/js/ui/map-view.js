@@ -138,6 +138,9 @@ export class LeafletMapView {
       this.somaticMarker._baseRadius = 4;
       this.somaticMarker._baseColor = '#00e676';
       this.somaticMarker.bindPopup('<b>Your Somatic Node</b>');
+
+      // Center map on user's initial real-time location fix
+      this.map.setView([coords.lat, coords.lng], this.map.getZoom() || 15);
     } else {
       this.somaticMarker.setLatLng([coords.lat, coords.lng]);
     }

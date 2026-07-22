@@ -10,3 +10,9 @@
       - Disable hysteretic state mutations (proximity updates do not mutate the twin node parameters in DB).
     - **City In-App Toggle:** Inside each city view (or city selector modal), add a toggle switch (`LIVING` vs `TWIN`) allowing participants to seamlessly switch between the live mutating soundscape and the frozen historical Scarred Twin dataset.
 
+
+  
+
+- [ ] ad to config all distances/parameters if there no
+- [ ] if users create nodes too close, what we do? we limit node creatin some minimum distance? like 50m? or we make them merge? 
+- [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map

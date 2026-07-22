@@ -230,6 +230,7 @@ header {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
 }
 
 #map {
@@ -384,13 +385,13 @@ header {
 
 .fab-settings {
   position: absolute;
-  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 20px;
 }
 
 .fab-group-right {
   position: absolute;
-  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   right: 20px;
   z-index: 500;
   display: flex;
@@ -400,14 +401,14 @@ header {
 
 @media (max-width: 768px) {
   .fab-settings {
-    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     width: 48px;
     height: 48px;
   }
 
   .fab-group-right {
-    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     right: 16px;
     gap: 14px;
   }

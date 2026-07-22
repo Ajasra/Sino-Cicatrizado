@@ -92,15 +92,6 @@ class SinoCicatrizadoApp {
       this.gpsSensor.setCityCenter(cityObj.center);
     }
 
-    // Enable touch/click tap-to-move location on map for mobile devices
-    this.mapView.enableTapToMove((coords) => {
-      if (this.gpsSensor) {
-        this.gpsSensor.setCustomMockLocation(coords);
-      } else {
-        this.handlePositionUpdate(coords);
-      }
-    });
-
     // 7. Setup UI Event Listeners & City Selectors
     this.setupUIListeners();
     this.renderMembraneCitySelector();
@@ -227,9 +218,9 @@ class SinoCicatrizadoApp {
   enableDebugFeatures() {
     if (this.isDebugEnabled) return;
     this.isDebugEnabled = true;
-    console.log('[DEBUG] Debug mode active. Map right-click position simulation enabled.');
+    console.log('[DEBUG] Debug mode active. Map click/contextmenu position simulation enabled.');
 
-    this.mapView.enableDebugContextMenu((coords) => {
+    const onSetLocation = (coords) => {
       console.log('[DEBUG] Teleporting simulated location to:', coords);
       if (this.gpsSensor) {
         this.gpsSensor.setCustomMockLocation(coords);
@@ -242,7 +233,10 @@ class SinoCicatrizadoApp {
         pill.textContent = 'GPS 🟢';
         pill.title = `Simulated Coords: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
       }
-    });
+    };
+
+    this.mapView.enableTapToMove(onSetLocation);
+    this.mapView.enableDebugContextMenu(onSetLocation);
   }
 
   async unlockAudio() {

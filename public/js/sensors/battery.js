@@ -1,30 +1,37 @@
 export class BatterySensor {
   static async getLevel() {
-    if ('getBattery' in navigator) {
+    if ('getBattery' in navigator && typeof navigator.getBattery === 'function') {
       try {
         const battery = await navigator.getBattery();
-        return battery.level;
+        if (battery && typeof battery.level === 'number' && !isNaN(battery.level)) {
+          return battery.level;
+        }
       } catch {
         return 1.0;
       }
     }
-    // iOS Safari fallback (Battery API unsupported)
     return 1.0;
   }
 
   static async watchLevel(onChangeCallback) {
-    if ('getBattery' in navigator) {
+    if ('getBattery' in navigator && typeof navigator.getBattery === 'function') {
       try {
         const battery = await navigator.getBattery();
-        battery.addEventListener('levelchange', () => {
-          onChangeCallback(battery.level);
-        });
-        onChangeCallback(battery.level);
-      } catch {
-        onChangeCallback(1.0);
+        if (battery && typeof battery.level === 'number' && !isNaN(battery.level)) {
+          const update = () => {
+            if (typeof battery.level === 'number' && !isNaN(battery.level)) {
+              onChangeCallback(battery.level);
+            }
+          };
+          battery.addEventListener('levelchange', update);
+          battery.addEventListener('chargingchange', update);
+          update();
+          return;
+        }
+      } catch (e) {
+        console.warn('[BatterySensor] getBattery error:', e);
       }
-    } else {
-      onChangeCallback(1.0);
     }
+    onChangeCallback(1.0);
   }
 }
