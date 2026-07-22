@@ -212,7 +212,7 @@ export class WebAudioEngine extends AbstractAudioEngine {
     droneFilter.type = 'lowpass';
     const initialCutoff = this.currentCityProfile === 'chicago' ? 550.0 : (this.currentCityProfile === 'shanghai' ? 420.0 : 380.0);
     droneFilter.frequency.setValueAtTime(initialCutoff, now);
-    droneFilter.Q.setValueAtTime(2.5, now);
+    droneFilter.Q.setValueAtTime(1.0, now);
 
     const lfo1 = this.ctx.createOscillator();
     const lfoGain1 = this.ctx.createGain();

@@ -26,8 +26,19 @@ export class AudioContextManager {
       const silentWav = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==';
       const audio = new Audio(silentWav);
       audio.loop = true;
+      audio.volume = 0.01; // minimal non-zero stream activity for iOS hardware priority
       audio.play().catch(() => {});
       AudioContextManager.keepAliveAudio = audio;
+
+      // Pipe keep-alive media element through MediaElementAudioSourceNode to explicitly lock AudioContext thread
+      const ctx = AudioContextManager.getContext();
+      if (ctx) {
+        const source = ctx.createMediaElementSource(audio);
+        const silentGain = ctx.createGain();
+        silentGain.gain.value = 0.0001; // virtually silent
+        source.connect(silentGain);
+        silentGain.connect(ctx.destination);
+      }
 
       if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
