@@ -50,13 +50,42 @@ DEFAULT_CITY=ouro_preto
 - `BROADCAST_RATE_HZ`: Real-time WebSocket frame & proximity evaluation loop frequency (default: `4` Hz).
 - `PROXIMITY_MUTATION_THRESHOLD_M`: Geographic distance in meters triggering hysteretic scar parameter drift (default: `15.0` m).
 
-### 3.2 Client Configuration (`public/js/config.js`)
+### 3.2 Adding a New City & Multi-Language Configuration (`server/config.js` & `public/js/config.js`)
+
+Each city in *Sino Cicatrizado* defines its center coordinates, acoustic profile, and available UI languages. To add a new city (e.g., Montreal or Tokyo), register it in both `server/config.js` and `public/js/config.js`:
+
+```javascript
+// Example City Definition with Multi-Language Support
+montreal: {
+  key: 'montreal',
+  name: 'Montreal',
+  country: 'Canada',
+  languages: ['en', 'fr'],   // Supported language codes
+  defaultLang: 'en',          // Default initial language
+  center: { lat: 45.5017, lng: -73.5673, zoom: 14 },
+  description: 'Mount Royal steeples, Saint Lawrence port reverberations & underground city reflections'
+}
+```
+
+#### Multi-Language (i18n) Rules:
+- **`languages`**: Array of language codes available in the top header pill (e.g. `['en', 'fr']`).
+- **`defaultLang`**: Default language loaded on initial visit (defaults to `'en'`).
+- **Adding New Translations**:
+  To add strings for a new language (e.g. French `'fr'` or Japanese `'ja'`), add a dictionary key under `TRANSLATIONS` in `public/js/i18n.js`:
+  ```javascript
+  export const TRANSLATIONS = {
+    en: { enter: "ENTER", select_acoustic_city: "SELECT ACOUSTIC CITY", ... },
+    fr: { enter: "ENTRER", select_acoustic_city: "SÉLECTIONNER LA VILLE ACOUSTIQUE", ... }
+  };
+  ```
+
+### 3.3 Client Configuration (`public/js/config.js`)
 Adjust client-side physical constants:
 - `SPEED_OF_SOUND_MPS`: Wave propagation speed ($343.0\text{ m/s}$).
 - `ATTENUATION_REFERENCE_DISTANCE_M`: Inverse-square reference distance ($100.0\text{ m}$).
 - `DENSITY_RADIUS_M`: Acoustic density impedance proximity radius ($50.0\text{ m}$).
 
-### 3.3 Theme & Visual Customization (`public/css/variables.css`)
+### 3.4 Theme & Visual Customization (`public/css/variables.css`)
 All colors, font families, glow effects, and animation speeds live in `:root` CSS variables. To change the visual identity or theme of the application, **only edit `public/css/variables.css`**.
 
 ---

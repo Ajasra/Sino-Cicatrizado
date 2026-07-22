@@ -8,6 +8,7 @@ import { SpatialWaveRadar } from './ui/visualizer.js';
 import { ModalManager } from './ui/modal-manager.js';
 import { calculateHaversineMeters, calculateWaveDelaySeconds, calculateInverseSquareGain } from './spatial.js';
 import { CLIENT_CONFIG } from './config.js';
+import { setLanguage, getCurrentLanguage } from './i18n.js';
 
 class SinoCicatrizadoApp {
   constructor() {
@@ -64,6 +65,10 @@ class SinoCicatrizadoApp {
 
     const cityObj = this.availableCities[this.currentCity] || CLIENT_CONFIG.CITIES.ouro_preto;
 
+    // Apply city default language
+    const initialLang = cityObj.defaultLang || cityObj.languages?.[0] || 'en';
+    setLanguage(initialLang);
+
     // Initialize default fallback somatic coordinates for active city
     this.currentSomaticCoords = {
       lat: Number(cityObj.center.lat),
@@ -80,6 +85,7 @@ class SinoCicatrizadoApp {
     this.mapView.init(cityObj.center);
     this.applyTheme(this.currentTheme);
     this.updateCityPill();
+    this.updateLanguagePill();
 
     // 4. Fetch Initial Nodes for active city
     await this.fetchNodes();
@@ -125,11 +131,42 @@ class SinoCicatrizadoApp {
     }
   }
 
+  updateLanguagePill() {
+    const pillLang = document.getElementById('pill-lang');
+    const cityObj = this.availableCities[this.currentCity] || CLIENT_CONFIG.CITIES.ouro_preto;
+    const langs = cityObj.languages || ['en'];
+    const activeLang = getCurrentLanguage();
+    
+    if (pillLang) {
+      pillLang.textContent = activeLang.toUpperCase();
+      pillLang.title = `Current Language: ${activeLang.toUpperCase()} (${langs.map(l => l.toUpperCase()).join('/')}) — Click to toggle language`;
+    }
+  }
+
+  toggleLanguage() {
+    const cityObj = this.availableCities[this.currentCity] || CLIENT_CONFIG.CITIES.ouro_preto;
+    const langs = cityObj.languages || ['en'];
+    const activeLang = getCurrentLanguage();
+    const currentIndex = langs.indexOf(activeLang);
+    const nextIndex = (currentIndex + 1) % langs.length;
+    const nextLang = langs[nextIndex];
+
+    setLanguage(nextLang);
+    this.updateLanguagePill();
+  }
+
   async selectCity(cityKey, updateUrl = true) {
     if (!this.availableCities[cityKey]) return;
 
     this.currentCity = cityKey;
     const cityObj = this.availableCities[cityKey];
+
+    // Automatically switch to city's default language if active language is not supported
+    const langs = cityObj.languages || ['en'];
+    const activeLang = getCurrentLanguage();
+    if (!langs.includes(activeLang)) {
+      setLanguage(cityObj.defaultLang || langs[0] || 'en');
+    }
 
     // Update fallback somatic position for active city
     this.currentSomaticCoords = {
@@ -154,6 +191,7 @@ class SinoCicatrizadoApp {
     }
 
     this.updateCityPill();
+    this.updateLanguagePill();
     this.mapView.setCityView(cityObj.center);
     this.mapView.clearAllNodeMarkers();
 
@@ -520,6 +558,17 @@ class SinoCicatrizadoApp {
     if (recenterBtn) {
       recenterBtn.addEventListener('click', () => {
         this.mapView.centerOnSomaticLocation();
+      });
+    }
+
+    // Language toggle button pill
+    const pillLang = document.getElementById('pill-lang');
+    if (pillLang) {
+      pillLang.style.cursor = 'pointer';
+      pillLang.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleLanguage();
       });
     }
 

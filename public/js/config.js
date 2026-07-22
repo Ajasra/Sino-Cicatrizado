@@ -80,6 +80,8 @@ export const CLIENT_CONFIG = {
       key: 'ouro_preto',
       name: 'Ouro Preto',
       country: 'Brazil',
+      languages: ['en', 'pt'],
+      defaultLang: 'en',
       center: { lat: -20.3856, lng: -43.5035, zoom: 16 },
       description: 'Colonial soapstone bells & baroque valley echoes'
     },
@@ -87,6 +89,8 @@ export const CLIENT_CONFIG = {
       key: 'chicago',
       name: 'Chicago',
       country: 'USA',
+      languages: ['en', 'es'],
+      defaultLang: 'en',
       center: { lat: 41.8818, lng: -87.6231, zoom: 14 },
       description: 'Windy lakefront, steel bridges & industrial L-train resonance'
     },
@@ -94,6 +98,8 @@ export const CLIENT_CONFIG = {
       key: 'shanghai',
       name: 'Shanghai',
       country: 'China',
+      languages: ['en', 'cn'],
+      defaultLang: 'en',
       center: { lat: 31.2304, lng: 121.4737, zoom: 14 },
       description: 'Huangpu River ferries, Bund custom clock, temple gongs & Maglev resonance'
     },
@@ -101,8 +107,19 @@ export const CLIENT_CONFIG = {
       key: 'shanghai_noise',
       name: 'SH Noise',
       country: 'China',
+      languages: ['en', 'cn'],
+      defaultLang: 'en',
       center: { lat: 31.2290, lng: 121.4420, zoom: 14 },
       description: 'Underground noise clubs, circuit bends, digital glitches & harsh industrial feedback'
+    },
+    montreal: {
+      key: 'montreal',
+      name: 'Montreal',
+      country: 'Canada',
+      languages: ['en', 'fr'],
+      defaultLang: 'en',
+      center: { lat: 45.5017, lng: -73.5673, zoom: 14 },
+      description: 'Mount Royal steeples, Saint Lawrence port reverberations & underground city acoustic reflections'
     }
   },
 
