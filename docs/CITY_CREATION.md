@@ -116,25 +116,46 @@ When a city landmark is created:
 
 ---
 
-## 4. Frontend Map View Configuration
+## 4. Frontend Map View & Tile Provider Configuration
 
-To make the new city selectable on the web interface, register its center coordinates in `public/js/config.js`:
+To make a city selectable and correctly rendered on the web interface, register its configuration in `server/config.js` and `public/js/config.js`:
 
 ```javascript
-// in public/js/config.js
-CITY_CENTERS: {
-  ouro_preto: { lat: -20.3856, lng: -43.5035, zoom: 16 },
-  potosi:     { lat: -19.5886, lng: -65.7533, zoom: 15 },
-  kyoto:      { lat: 34.9949,  lng: 135.7850, zoom: 15 }
+// in server/config.js and public/js/config.js
+CITIES: {
+  ouro_preto: {
+    key: 'ouro_preto',
+    name: 'Ouro Preto',
+    country: 'Brazil',
+    languages: ['en', 'pt'],
+    defaultLang: 'en',
+    tileProvider: 'carto',  // 'carto' for global WGS84, 'autonavi' for China domestic
+    useGcj02: false,       // true only for China domestic map offset alignment
+    center: { lat: -20.3856, lng: -43.5035, zoom: 16 },
+    description: 'Colonial soapstone bells & baroque valley echoes'
+  },
+  shanghai: {
+    key: 'shanghai',
+    name: 'Shanghai',
+    country: 'China',
+    languages: ['en', 'cn'],
+    defaultLang: 'en',
+    tileProvider: 'autonavi',
+    useGcj02: true,
+    center: { lat: 31.2304, lng: 121.4737, zoom: 14 },
+    description: 'Huangpu River ferries, Bund custom clock, temple gongs & Maglev resonance'
+  }
 }
 ```
+
+Node names and descriptions support bilingual/multilingual objects (e.g. `{ en: "...", pt: "..." }`), which automatically resolve to the viewer's active language choice.
 
 ---
 
 ## 5. Summary Checklist for Adding a City
 
 - [ ] Write prompt context file: `server/prompts/cities/<city_key>.txt`
-- [ ] Prepare list of historical landmark coordinates (`lat`, `lng`, `name`, `intentText`)
+- [ ] Prepare list of historical landmark coordinates (`lat`, `lng`, `name` object/string, `intentText`)
 - [ ] Call `POST /api/cities/create` or run `createNewCity()`
 - [ ] Verify nodes created in database via `GET /api/nodes?city=<city_key>`
-- [ ] Update frontend map configuration in `public/js/config.js`
+- [ ] Register city center, `tileProvider`, `useGcj02`, and supported `languages` in `server/config.js` and `public/js/config.js`

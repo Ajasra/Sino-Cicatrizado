@@ -179,9 +179,9 @@ Generated city landmarks are saved into `scarred_bell.db` via `saveReflectorNode
 
 ## 8. Summary Checklist for Creating a New City
 
-- [ ] Define city key and center coordinates (`lat`, `lng`).
+- [ ] Define city key, center coordinates (`lat`, `lng`), `tileProvider` (`'carto'` or `'autonavi'`), and `useGcj02` (`false` for global WGS-84, `true` for China domestic maps).
 - [ ] Compose acoustic context prompt file in `server/prompts/cities/<cityKey>.txt`.
-- [ ] Prepare list of historical landmarks with coordinates and `intentText` descriptions.
+- [ ] Prepare list of historical landmarks with coordinates and `intentText` descriptions (supporting multilingual name/description objects).
 - [ ] Call `POST /api/cities/create` or invoke `createNewCity()`.
 - [ ] Verify node creation via `GET /api/nodes?city=<cityKey>`.
-- [ ] Register center coordinates in `CLIENT_CONFIG.CITIES` ([config.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/config.js)).
+- [ ] Register city definition in `server/config.js` and `public/js/config.js`.
