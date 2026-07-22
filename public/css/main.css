@@ -249,6 +249,19 @@ header {
   text-decoration: underline;
 }
 
+.status-sq {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--accent-active);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.status-sq.offline {
+  background: var(--accent-scar);
+}
+
 /* Viewport Stack */
 #viewport {
   position: relative;

@@ -320,7 +320,7 @@ class SinoCicatrizadoApp {
 
     const pillGps = document.getElementById('pill-gps');
     if (pillGps) {
-      pillGps.textContent = coords ? 'GPS 🟢' : 'GPS --';
+      pillGps.innerHTML = coords ? 'GPS <span class="status-sq active"></span>' : 'GPS <span class="status-sq offline"></span>';
       if (coords) {
         const latStr = coords.lat >= 0 ? `${coords.lat.toFixed(4)}°N` : `${Math.abs(coords.lat).toFixed(4)}°S`;
         const lngStr = coords.lng >= 0 ? `${coords.lng.toFixed(4)}°E` : `${Math.abs(coords.lng).toFixed(4)}°W`;
