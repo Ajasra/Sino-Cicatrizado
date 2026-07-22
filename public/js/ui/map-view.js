@@ -11,6 +11,8 @@ export class LeafletMapView {
     this.somaticCoords = null;
     this.otherUserMarkers = new Map();
     this.lastNodesList = [];
+    this.currentTheme = 'dark';
+    this._fallbackTileLayer = null;
   }
 
   init(initialCenter) {
@@ -30,8 +32,6 @@ export class LeafletMapView {
 
     // Multi-source resilient tile layer (Amap / CartoDB fallback for CN and global networks)
     const primaryTileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
-    const fallbackTileUrl = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png';
-
     this._isGcj02Provider = true;
 
     const tiles = window.L.tileLayer(primaryTileUrl, {
@@ -47,11 +47,7 @@ export class LeafletMapView {
         this._isGcj02Provider = false;
         console.warn('[Map] Primary tiles unreachable. Switching to global fallback tiles...');
         this.map.removeLayer(tiles);
-        window.L.tileLayer(fallbackTileUrl, {
-          subdomains: 'abcd',
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-        }).addTo(this.map);
+        this._loadFallbackTiles();
         if (this.lastNodesList.length > 0) {
           this.updateNodes(this.lastNodesList);
         }
@@ -59,6 +55,27 @@ export class LeafletMapView {
     });
 
     tiles.addTo(this.map);
+  }
+
+  /* ponytail: dynamic map theme switching (dark/light tiles) */
+  setTheme(theme) {
+    this.currentTheme = theme;
+    if (this._hasSwitchedFallback && this.map) {
+      this._loadFallbackTiles();
+    }
+  }
+
+  _loadFallbackTiles() {
+    if (this._fallbackTileLayer && this.map) {
+      this.map.removeLayer(this._fallbackTileLayer);
+    }
+    const tileStyle = this.currentTheme === 'light' ? 'light_all' : 'dark_all';
+    const fallbackTileUrl = `https://cartodb-basemaps-{s}.global.ssl.fastly.net/${tileStyle}/{z}/{x}/{y}{r}.png`;
+    this._fallbackTileLayer = window.L.tileLayer(fallbackTileUrl, {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    }).addTo(this.map);
   }
 
   _getDisplayCoords(lat, lng) {

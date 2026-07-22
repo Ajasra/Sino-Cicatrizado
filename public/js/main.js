@@ -29,6 +29,7 @@ class SinoCicatrizadoApp {
     this.isDebugEnabled = false;
     this.mySomaticId = null;
     this.showUsers = true;
+    this.currentTheme = localStorage.getItem('sino_theme') || 'dark';
   }
 
   detectCityFromURL() {
@@ -76,6 +77,7 @@ class SinoCicatrizadoApp {
 
     // 3. Initialize Map View centered on active city
     this.mapView.init(cityObj.center);
+    this.applyTheme(this.currentTheme);
     this.updateCityPill();
 
     // 4. Fetch Initial Nodes for active city
@@ -170,9 +172,11 @@ class SinoCicatrizadoApp {
     container.innerHTML = '';
     Object.values(this.availableCities).forEach((c) => {
       const card = document.createElement('div');
-      card.className = `membrane-city-card ${c.key === this.currentCity ? 'active' : ''}`;
+      const isActive = c.key === this.currentCity;
+      card.className = `membrane-city-card ${isActive ? 'active' : ''}`;
+      const prefix = isActive ? '>> ' : '';
       card.innerHTML = `
-        <div class="membrane-city-name">${c.name}</div>
+        <div class="membrane-city-name">${prefix}${c.name}</div>
         <div class="membrane-city-country">${c.country || ''}</div>
       `;
       card.addEventListener('click', () => {
@@ -189,13 +193,15 @@ class SinoCicatrizadoApp {
     container.innerHTML = '';
     Object.values(this.availableCities).forEach((c) => {
       const card = document.createElement('div');
-      card.className = `city-card ${c.key === this.currentCity ? 'active' : ''}`;
+      const isActive = c.key === this.currentCity;
+      card.className = `city-card-item ${isActive ? 'active' : ''}`;
+      const prefix = isActive ? '>> ' : '';
       card.innerHTML = `
         <div class="city-card-header">
-          <span class="city-card-title">${c.name}</span>
-          <span class="city-card-country">${c.country || ''}</span>
+          <span class="city-name">${prefix}${c.name}</span>
+          <span class="city-country">${c.country || ''}</span>
         </div>
-        <div class="city-card-desc">${c.description || ''}</div>
+        <div class="city-desc">${c.description || ''}</div>
       `;
       card.addEventListener('click', () => {
         this.selectCity(c.key);
@@ -582,6 +588,15 @@ class SinoCicatrizadoApp {
     if (fabSettingsBtn) fabSettingsBtn.addEventListener('click', openSettingsModal);
     if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettingsModal);
 
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+
+    if (btnThemeToggle) {
+      btnThemeToggle.addEventListener('click', () => {
+        const nextTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.applyTheme(nextTheme);
+      });
+    }
+
     if (settingsModal) {
       settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) closeSettingsModal();
@@ -704,9 +719,28 @@ class SinoCicatrizadoApp {
           dropBtn.disabled = false;
           dropBtn.textContent = 'DROP REFLECTOR';
           dropBtn.style.opacity = '1';
-          dropBtn.style.cursor = 'pointer';
         }
       });
+    }
+  }
+
+  /* ponytail: simple minimal dark/light theme switcher without icons or heavy abstractions */
+  applyTheme(theme) {
+    this.currentTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('sino_theme', theme);
+    } catch (e) {
+      console.warn('[Theme] Could not persist theme preference:', e);
+    }
+
+    const themeBtn = document.getElementById('btn-theme-toggle');
+    if (themeBtn) {
+      themeBtn.textContent = `THEME: ${theme.toUpperCase()}`;
+    }
+
+    if (this.mapView && typeof this.mapView.setTheme === 'function') {
+      this.mapView.setTheme(theme);
     }
   }
 }

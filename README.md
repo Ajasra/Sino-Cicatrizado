@@ -20,6 +20,7 @@
 - 📶 **Rate-Limited WebSocket Protocol**: Real-time somatic position broadcasts throttled to $4\text{ Hz}$ ($250\text{ ms}$) and a $5.0\text{m}$ movement delta threshold.
 - 🛡️ **Immunological Parsing Layer**: Strict schema validation clamping missing or corrupted LLM synthesis presets to safe boundaries or defaulting to the Basal Soapstone Drone ($220\text{ Hz}$).
 - 🏛️ **Dual-Twin Ontology**: Toggle seamlessly between the mutating **Living City** (SQLite WAL autopoiesis) and the read-only **Scarred Twin** (frozen historical monument snapshot).
+- 🎛️ **Analog Sound Apparatus Aesthetic & Theme Switch**: Minimal, flat hardware panel UI inspired by Eurorack modules and test equipment. Features a zero-shadow monospace layout, custom 6px hardware scrollbars, desaturated monochrome Leaflet map rendering, and a settings switch between Dark Mode (industrial chassis) and Light Mode (brushed aluminum for outdoor sunlight readability) persisted in `localStorage`.
 - 🗺️ **Interactive Radar Map**: Leaflet topography map overlaid with an HTML5 Canvas spatial wave radar displaying expanding echolocation pulses.
 
 ---
