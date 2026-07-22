@@ -274,10 +274,11 @@ header {
   -webkit-filter: grayscale(100%) invert(100%) hue-rotate(180deg) brightness(35%) contrast(90%);
 }
 
-/* ponytail: light mode filter: bright desaturated light map for outdoor sunlight */
+/* ponytail: light mode filter: subtle desaturated soft light map */
 [data-theme="light"] .leaflet-tile-pane {
-  filter: grayscale(100%) brightness(115%) contrast(110%) !important;
-  -webkit-filter: grayscale(100%) brightness(115%) contrast(110%) !important;
+  filter: grayscale(100%) brightness(105%) contrast(95%) !important;
+  -webkit-filter: grayscale(100%) brightness(105%) contrast(95%) !important;
+  opacity: 0.5 !important;
 }
 
 /* Leaflet Map Controls Custom Positioning (Left Center) */
