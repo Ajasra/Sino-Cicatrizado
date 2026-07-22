@@ -263,13 +263,19 @@ function initMap() {
     if (isMoveListenerMode) {
       moveTestListener(lat, lng);
     } else {
-      // Set coordinates for tower in edit form
+      // Set coordinates for tower in edit form & update marker on map
       document.getElementById('edit-lat').value = lat.toFixed(6);
       document.getElementById('edit-lng').value = lng.toFixed(6);
       if (activeTower) {
         activeTower.coordinates = activeTower.coordinates || {};
         activeTower.coordinates.lat = lat;
         activeTower.coordinates.lng = lng;
+
+        const activeMarker = markersMap.get(activeTower.nodeId);
+        if (activeMarker) {
+          activeMarker.setLatLng([lat, lng]);
+          showToast(`📍 Relocated "${activeTower.name}" to [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
+        }
       }
       switchTab('edit');
     }
@@ -370,6 +376,7 @@ async function loadTowersList() {
     nodes.forEach((node) => {
       // Add list item
       const item = document.createElement('div');
+      item.dataset.nodeId = node.nodeId;
       item.className = `tower-item ${activeTower && activeTower.nodeId === node.nodeId ? 'active' : ''}`;
       item.innerHTML = `
         <div>
@@ -381,26 +388,35 @@ async function loadTowersList() {
       item.addEventListener('click', () => selectTower(node));
       container.appendChild(item);
 
-      // Add map marker
+      // Add map marker with interactive drag-and-drop
       if (node.coordinates && node.coordinates.lat != null) {
         const isSelected = activeTower && activeTower.nodeId === node.nodeId;
         const markerColor = node.nodeType === 'TOWER' ? (isSelected ? '#0284c7' : '#f59e0b') : '#38bdf8';
         
         const customIcon = L.divIcon({
           className: 'tower-marker-icon',
-          html: `<div style="background: ${markerColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 12px ${markerColor}; cursor: pointer;"></div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
+          html: `<div style="background: ${markerColor}; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 12px ${markerColor}; cursor: grab; transition: transform 0.15s ease;"></div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
         });
 
         const marker = L.marker([node.coordinates.lat, node.coordinates.lng], {
           icon: customIcon,
-          title: node.name,
+          title: `${node.name} (Drag to move)`,
           draggable: true
         }).addTo(map);
 
         marker.on('click', () => selectTower(node));
-        marker.on('dragend', (e) => {
+
+        marker.on('dragstart', (e) => {
+          selectTower(node, { isDragging: true });
+          const iconDiv = e.target.getElement()?.querySelector('div');
+          if (iconDiv) {
+            iconDiv.style.cursor = 'grabbing';
+          }
+        });
+
+        marker.on('drag', (e) => {
           const { lat, lng } = e.target.getLatLng();
           document.getElementById('edit-lat').value = lat.toFixed(6);
           document.getElementById('edit-lng').value = lng.toFixed(6);
@@ -408,6 +424,28 @@ async function loadTowersList() {
             activeTower.coordinates.lat = lat;
             activeTower.coordinates.lng = lng;
           }
+        });
+
+        marker.on('dragend', async (e) => {
+          const { lat, lng } = e.target.getLatLng();
+          document.getElementById('edit-lat').value = lat.toFixed(6);
+          document.getElementById('edit-lng').value = lng.toFixed(6);
+
+          const iconDiv = e.target.getElement()?.querySelector('div');
+          if (iconDiv) {
+            iconDiv.style.cursor = 'grab';
+          }
+
+          node.coordinates.lat = lat;
+          node.coordinates.lng = lng;
+
+          if (activeTower && activeTower.nodeId === node.nodeId) {
+            activeTower.coordinates.lat = lat;
+            activeTower.coordinates.lng = lng;
+          }
+
+          // Auto-save new drag-and-drop location to backend API
+          await saveTowerCoordinatesSilent(node.nodeId, lat, lng);
         });
 
         markersMap.set(node.nodeId, marker);
@@ -422,7 +460,7 @@ async function loadTowersList() {
   }
 }
 
-function selectTower(node) {
+function selectTower(node, options = {}) {
   activeTower = JSON.parse(JSON.stringify(node));
   document.getElementById('editor-form-title').textContent = `Edit Tower (${node.nodeId})`;
   document.getElementById('edit-name').value = node.name || '';
@@ -458,6 +496,42 @@ function selectTower(node) {
     document.getElementById('edit-lat').value = node.coordinates.lat || '';
     document.getElementById('edit-lng').value = node.coordinates.lng || '';
   }
+
+  // 1. Highlight and scroll into view the corresponding list item in the towers list
+  const container = document.getElementById('towers-list-container');
+  if (container) {
+    const items = container.querySelectorAll('.tower-item');
+    items.forEach((item) => {
+      if (item.dataset.nodeId === node.nodeId) {
+        item.classList.add('active');
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  // 2. Highlight selected map marker (skip setIcon on active dragged marker to avoid detaching drag listeners)
+  markersMap.forEach((marker, id) => {
+    const isSelected = id === node.nodeId;
+    if (isSelected && (options.isDragging || (marker.dragging && marker.dragging._dragging))) {
+      return;
+    }
+    const baseColor = node.nodeType === 'TOWER' ? '#f59e0b' : '#38bdf8';
+    const markerColor = isSelected ? '#0284c7' : baseColor;
+    const glowColor = isSelected ? '#38bdf8' : markerColor;
+    const border = isSelected ? '3px solid #ffffff' : '2px solid #ffffff';
+    const size = isSelected ? 22 : 18;
+    const anchor = isSelected ? 11 : 9;
+
+    const customIcon = L.divIcon({
+      className: 'tower-marker-icon',
+      html: `<div style="background: ${markerColor}; width: ${size}px; height: ${size}px; border-radius: 50%; border: ${border}; box-shadow: 0 0 16px ${glowColor}; cursor: grab; transition: transform 0.15s ease;"></div>`,
+      iconSize: [size + 4, size + 4],
+      iconAnchor: [anchor + 2, anchor + 2]
+    });
+    marker.setIcon(customIcon);
+  });
 
   if (isSoloActive && audioEngine) {
     audioEngine.setSoloNode(node.nodeId);
@@ -645,4 +719,43 @@ function triggerPreviewAudio() {
   };
 
   audioEngine.triggerBell(sv, 0);
+}
+
+async function saveTowerCoordinatesSilent(nodeId, lat, lng) {
+  if (!nodeId || !adminPassword) return;
+  try {
+    const res = await fetch(`/api/admin/nodes/${nodeId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': adminPassword,
+        'x-city': currentCityKey
+      },
+      body: JSON.stringify({
+        coordinates: { lat: Number(lat), lng: Number(lng), alt: 0 }
+      })
+    });
+    if (res.ok) {
+      showToast(`📍 Relocated: [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
+    }
+  } catch (err) {
+    console.error('Failed to auto-save dragged coordinates:', err);
+  }
+}
+
+function showToast(message) {
+  let toast = document.getElementById('admin-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    toast.style.cssText = 'position: absolute; top: 16px; right: 16px; background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8; color: #f8fafc; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; font-family: monospace; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: none; transition: opacity 0.3s; opacity: 0;';
+    const mapContainer = document.getElementById('admin-map-container');
+    if (mapContainer) mapContainer.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.style.opacity = '0';
+  }, 2500);
 }

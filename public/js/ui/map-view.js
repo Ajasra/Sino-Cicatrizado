@@ -222,15 +222,21 @@ export class LeafletMapView {
       const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance:</b> ${dist.toFixed(1)}m` : '';
       const soundType = node.stateVector?.soundType || 'bell_deep';
 
-      if (node.nodeType === 'TOWER') {
-        let descHtml = '';
-        if (node.description) {
+      let descHtml = '';
+      if (node.description) {
+        let text = '';
+        if (typeof node.description === 'object' && node.description !== null) {
           const currentLang = (window.i18n && window.i18n.currentLang) || 'en';
-          const text = typeof node.description === 'object' ? (node.description[currentLang] || node.description.en || '') : node.description;
-          if (text) {
-            descHtml = `<br><div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;"><i>${text}</i></div>`;
-          }
+          text = node.description[currentLang] || node.description.en || Object.values(node.description)[0] || '';
+        } else {
+          text = node.description;
         }
+        if (text) {
+          descHtml = `<br><div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;"><i>${text}</i></div>`;
+        }
+      }
+
+      if (node.nodeType === 'TOWER') {
         const popupText = `<b>${node.name}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
 
         if (!this.towerMarkers.has(node.nodeId)) {
@@ -247,7 +253,7 @@ export class LeafletMapView {
           marker.setPopupContent(popupText);
         }
       } else if (node.nodeType === 'REFLECTOR') {
-        const popupText = `<b>${node.name}</b>${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
+        const popupText = `<b>${node.name}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
 
         if (!this.reflectorMarkers.has(node.nodeId)) {
           const style = this._getMarkerStyle('REFLECTOR');
