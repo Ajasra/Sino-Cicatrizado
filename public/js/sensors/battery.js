@@ -7,17 +7,20 @@ export class BatterySensor {
           return battery.level;
         }
       } catch {
-        return 1.0;
+        // Fallback below
       }
     }
     return 1.0;
   }
 
   static async watchLevel(onChangeCallback) {
+    let handled = false;
+
     if ('getBattery' in navigator && typeof navigator.getBattery === 'function') {
       try {
         const battery = await navigator.getBattery();
         if (battery && typeof battery.level === 'number' && !isNaN(battery.level)) {
+          handled = true;
           const update = () => {
             if (typeof battery.level === 'number' && !isNaN(battery.level)) {
               onChangeCallback(battery.level);
@@ -32,6 +35,11 @@ export class BatterySensor {
         console.warn('[BatterySensor] getBattery error:', e);
       }
     }
-    onChangeCallback(1.0);
+
+    if (!handled) {
+      // Fallback: Notify initial state (1.0). Allow double-clicking battery pill to simulate lower battery levels for testing.
+      onChangeCallback(1.0);
+    }
   }
 }
+
