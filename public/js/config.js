@@ -153,6 +153,19 @@ export const CLIENT_CONFIG = {
       scarRadiusMeters: 150,      // ~7.5% of max distance (150m scar mutation radius)
       center: { lat: -23.5505, lng: -46.6333, zoom: 14 },
       description: 'Concrete brutalism, subterranean Metrô friction, cathedral bells & skyline chopper Doppler'
+    },
+    edmonton: {
+      key: 'edmonton',
+      name: 'Edmonton',
+      country: 'Canada',
+      languages: ['en', 'fr'],
+      defaultLang: 'en',
+      tileProvider: 'carto',
+      useGcj02: false,
+      maxDistanceMeters: 2000,    // 2 km max trigger radius for river valley grid
+      scarRadiusMeters: 150,      // ~7.5% of max distance (150m scar mutation radius)
+      center: { lat: 53.5461, lng: -113.4938, zoom: 14 },
+      description: 'North Saskatchewan River valley echo, prairie sub-zero frost wind, LRT rail clatter & conservatory acoustics'
     }
   },
 

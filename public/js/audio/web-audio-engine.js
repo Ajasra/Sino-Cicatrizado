@@ -49,6 +49,18 @@ import {
   createContinuousEmitterSaoPauloTraffic,
   createContinuousEmitterSaoPauloSubway
 } from './generators/sao-paulo.js';
+import {
+  triggerEdmontonWind,
+  triggerEdmontonLRT,
+  triggerEdmontonPyramid,
+  triggerEdmontonBridge,
+  triggerEdmontonDrum,
+  triggerEdmontonCold,
+  triggerEdmontonBrass,
+  triggerEdmontonCoyote,
+  createContinuousEmitterEdmontonRiver,
+  createContinuousEmitterEdmontonLRT
+} from './generators/edmonton.js';
 
 import { calculateHaversineMeters } from '../spatial.js';
 
@@ -274,8 +286,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
   morphContinuousDrone(cityKey) {
     if (!this.ctx || !this.continuousDrone) return;
     const now = this.ctx.currentTime;
-    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'shanghai_noise' ? 48.0 : (cityKey === 'shanghai' ? 65.0 : 55.0));
-    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'shanghai_noise' ? 650.0 : (cityKey === 'shanghai' ? 420.0 : 380.0));
+    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'edmonton' ? 42.0 : (cityKey === 'shanghai_noise' ? 48.0 : (cityKey === 'shanghai' ? 65.0 : 55.0)));
+    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'edmonton' ? 450.0 : (cityKey === 'shanghai_noise' ? 650.0 : (cityKey === 'shanghai' ? 420.0 : 380.0)));
 
     const d = this.continuousDrone;
     d.targetCutoff = targetCutoff;
@@ -371,6 +383,10 @@ export class WebAudioEngine extends AbstractAudioEngine {
         emitterInstance = idx % 2 === 0
           ? createContinuousEmitterSaoPauloTraffic(this, { baseFrequency: 220 + idx * 30 })
           : createContinuousEmitterSaoPauloSubway(this, { baseFrequency: 55 + idx * 5 });
+      } else if (this.currentCityProfile === 'edmonton') {
+        emitterInstance = idx % 2 === 0
+          ? createContinuousEmitterEdmontonRiver(this, { baseFrequency: 50 + idx * 8 })
+          : createContinuousEmitterEdmontonLRT(this, { baseFrequency: 220 + idx * 15 });
       } else {
         emitterInstance = createContinuousEmitterOuroPreto(this, { baseFrequency: 55 + idx * 15 });
       }
@@ -526,6 +542,34 @@ export class WebAudioEngine extends AbstractAudioEngine {
       case 'sp_chopper':
       case 'chopper':
         triggerSaoPauloChopper(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_wind':
+      case 'edmonton_frost':
+        triggerEdmontonWind(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_lrt':
+      case 'edmonton_transit':
+        triggerEdmontonLRT(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_pyramid':
+      case 'edmonton_glass':
+        triggerEdmontonPyramid(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_bridge':
+      case 'edmonton_river':
+        triggerEdmontonBridge(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_drum':
+        triggerEdmontonDrum(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_cold':
+        triggerEdmontonCold(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_brass':
+        triggerEdmontonBrass(this, params, triggerTime, delaySeconds);
+        break;
+      case 'edmonton_coyote':
+        triggerEdmontonCoyote(this, params, triggerTime, delaySeconds);
         break;
 
       case 'bell_deep':
