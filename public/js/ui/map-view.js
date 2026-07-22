@@ -57,12 +57,91 @@ export class LeafletMapView {
     tiles.addTo(this.map);
   }
 
-  /* ponytail: dynamic map theme switching (dark/light tiles) */
+  /* ponytail: dynamic map theme switching (dark/light tiles & markers) */
   setTheme(theme) {
     this.currentTheme = theme;
     if (this._hasSwitchedFallback && this.map) {
       this._loadFallbackTiles();
     }
+    this._refreshAllMarkerStyles();
+  }
+
+  _getMarkerStyle(type) {
+    const isLight = this.currentTheme === 'light';
+    switch (type) {
+      case 'TOWER':
+        return {
+          radius: 5,
+          color: isLight ? '#000000' : '#ffffff',
+          fillColor: isLight ? '#d97706' : '#f59e0b',
+          weight: 1.5,
+          fillOpacity: 0.95
+        };
+      case 'REFLECTOR':
+        return {
+          radius: 4,
+          color: isLight ? '#000000' : '#ffffff',
+          fillColor: isLight ? '#0284c7' : '#38bdf8',
+          weight: 1.5,
+          fillOpacity: 0.9
+        };
+      case 'SOMATIC':
+        return {
+          radius: 5,
+          color: isLight ? '#000000' : '#ffffff',
+          fillColor: isLight ? '#059669' : '#34d399',
+          weight: 2.0,
+          fillOpacity: 1.0
+        };
+      case 'VIRTUAL':
+        return {
+          radius: 4,
+          color: isLight ? '#000000' : '#ffffff',
+          fillColor: isLight ? '#db2777' : '#f472b6',
+          weight: 1.5,
+          fillOpacity: 0.9
+        };
+      case 'OTHER_USER':
+        return {
+          radius: 4,
+          color: isLight ? '#000000' : '#ffffff',
+          fillColor: isLight ? '#9333ea' : '#c084fc',
+          weight: 1.5,
+          fillOpacity: 0.9
+        };
+      default:
+        return {
+          radius: 5,
+          color: isLight ? '#000000' : '#ffffff',
+          fillColor: isLight ? '#d97706' : '#f59e0b',
+          weight: 1.5,
+          fillOpacity: 0.95
+        };
+    }
+  }
+
+  _refreshAllMarkerStyles() {
+    this.towerMarkers.forEach((marker) => {
+      const style = this._getMarkerStyle('TOWER');
+      marker.setStyle(style);
+      marker._baseColor = style.fillColor;
+    });
+    this.reflectorMarkers.forEach((marker) => {
+      const style = this._getMarkerStyle('REFLECTOR');
+      marker.setStyle(style);
+      marker._baseColor = style.fillColor;
+    });
+    if (this.somaticMarker) {
+      const style = this._getMarkerStyle('SOMATIC');
+      this.somaticMarker.setStyle(style);
+      this.somaticMarker._baseColor = style.fillColor;
+    }
+    this.otherUserMarkers.forEach((marker, id) => {
+      const isVirtual = id.startsWith('vuser_');
+      const style = this._getMarkerStyle(isVirtual ? 'VIRTUAL' : 'OTHER_USER');
+      marker.setStyle(style);
+      marker._baseColor = style.fillColor;
+    });
   }
 
   _loadFallbackTiles() {
@@ -136,15 +215,11 @@ export class LeafletMapView {
         const popupText = `<b>${node.name}</b>${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
 
         if (!this.towerMarkers.has(node.nodeId)) {
-          const marker = window.L.circleMarker([lat, lng], {
-            radius: 5,
-            color: '#d4af37',
-            fillColor: '#d4af37',
-            fillOpacity: 0.85
-          }).addTo(this.map);
+          const style = this._getMarkerStyle('TOWER');
+          const marker = window.L.circleMarker([lat, lng], style).addTo(this.map);
 
-          marker._baseRadius = 5;
-          marker._baseColor = '#d4af37';
+          marker._baseRadius = style.radius;
+          marker._baseColor = style.fillColor;
           marker.bindPopup(popupText);
           this.towerMarkers.set(node.nodeId, marker);
         } else {
@@ -156,15 +231,11 @@ export class LeafletMapView {
         const popupText = `<b>${node.name}</b>${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
 
         if (!this.reflectorMarkers.has(node.nodeId)) {
-          const marker = window.L.circleMarker([lat, lng], {
-            radius: 3,
-            color: '#00e5ff',
-            fillColor: '#00e5ff',
-            fillOpacity: 0.7
-          }).addTo(this.map);
+          const style = this._getMarkerStyle('REFLECTOR');
+          const marker = window.L.circleMarker([lat, lng], style).addTo(this.map);
 
-          marker._baseRadius = 3;
-          marker._baseColor = '#00e5ff';
+          marker._baseRadius = style.radius;
+          marker._baseColor = style.fillColor;
           marker.bindPopup(popupText);
           this.reflectorMarkers.set(node.nodeId, marker);
         } else {
@@ -182,15 +253,11 @@ export class LeafletMapView {
     const pt = this._getDisplayCoords(coords.lat, coords.lng);
 
     if (!this.somaticMarker) {
-      this.somaticMarker = window.L.circleMarker([pt.lat, pt.lng], {
-        radius: 4,
-        color: '#00e676',
-        fillColor: '#00e676',
-        fillOpacity: 1.0
-      }).addTo(this.map);
+      const style = this._getMarkerStyle('SOMATIC');
+      this.somaticMarker = window.L.circleMarker([pt.lat, pt.lng], style).addTo(this.map);
 
-      this.somaticMarker._baseRadius = 4;
-      this.somaticMarker._baseColor = '#00e676';
+      this.somaticMarker._baseRadius = style.radius;
+      this.somaticMarker._baseColor = style.fillColor;
       this.somaticMarker.bindPopup('<b>Your Somatic Node</b>');
 
       // Center map on user's initial real-time location fix
@@ -222,18 +289,14 @@ export class LeafletMapView {
       const label = isVirtual ? `Virtual User (${id})` : `Somatic Node (${id})`;
       const popupText = `<b>${label}</b><br>Lat: ${soma.coordinates.lat.toFixed(5)}<br>Lng: ${soma.coordinates.lng.toFixed(5)}`;
 
-      const color = isVirtual ? '#ff4081' : '#ab47bc';
+      const type = isVirtual ? 'VIRTUAL' : 'OTHER_USER';
+      const style = this._getMarkerStyle(type);
 
       if (!this.otherUserMarkers.has(id)) {
-        const marker = window.L.circleMarker([lat, lng], {
-          radius: 3.5,
-          color: color,
-          fillColor: color,
-          fillOpacity: 0.85
-        }).addTo(this.map);
+        const marker = window.L.circleMarker([lat, lng], style).addTo(this.map);
 
-        marker._baseRadius = 3.5;
-        marker._baseColor = color;
+        marker._baseRadius = style.radius;
+        marker._baseColor = style.fillColor;
         marker.bindPopup(popupText);
         this.otherUserMarkers.set(id, marker);
       } else {
