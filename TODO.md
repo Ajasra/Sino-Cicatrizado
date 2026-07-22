@@ -23,9 +23,11 @@
 - [x] **Background Audio Underrun Prevention**: Added silent WAV keep-alive anchor (`AudioContextManager.enableBackgroundKeepAlive()`) with MediaSession integration so mobile browsers retain real-time WebAudio priority during screen-off / background movement.
 - [x] **About/Description Page**: Added accessible modal explaining concept, soundscape features, and physical acoustics in public-friendly language.
 - [x] **Footer Links**: Added Git repository link (`https://github.com/Ajasra/Sino-Cicatrizado`) and copyright link (`http://sympoietic.systems`).
-- [ ] Audio distortion/bitcrusher effect (re-evaluate trigger logic: e.g. movement speed, network latency, or node proximity instead of device battery status)
-- [ ] Audio distortion effect (re-evaluate trigger logic using native WebAudio nodes like WaveShaperNode instead of deprecated ScriptProcessorNode: e.g. movement speed, network latency, or node proximity)
 - [x] **Multi-Language Support (i18n)**: Zero-dependency city-based language switching (Shanghai/SH Noise: EN/CN, Ouro Preto: EN/PT, Chicago: EN/ES, Montreal: EN/FR).
+- [x] **Center on Current Location**: Added button to center map on current location (`#fab-recenter` floating control).
+
+
 - [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
 - [ ] add to config all distances/parameters if there no
-- [x] **Center on Current Location**: Added button to center map on current location (`#fab-recenter` floating control).
+- [ ] Audio distortion/bitcrusher effect (re-evaluate trigger logic: e.g. movement speed, network latency, or node proximity instead of device battery status)
+- [ ] Audio distortion effect (re-evaluate trigger logic using native WebAudio nodes like WaveShaperNode instead of deprecated ScriptProcessorNode: e.g. movement speed, network latency, or node proximity)
