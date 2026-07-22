@@ -644,6 +644,7 @@ class SinoCicatrizadoApp {
 
         if (dropBtn.disabled) return;
 
+        const intentInput = document.getElementById('input-reflector-intent');
         const intentText = intentInput ? intentInput.value.trim() || 'Somatic Memory Deposit' : 'Somatic Memory Deposit';
 
         try {
