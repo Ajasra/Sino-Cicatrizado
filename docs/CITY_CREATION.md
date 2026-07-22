@@ -116,9 +116,9 @@ When a city landmark is created:
 
 ---
 
-## 4. Frontend Map View & Tile Provider Configuration
+## 4. Frontend & Server City Configuration Parameters
 
-To make a city selectable and correctly rendered on the web interface, register its configuration in `server/config.js` and `public/js/config.js`:
+To register a city in `server/config.js` and `public/js/config.js`, configure the following fields:
 
 ```javascript
 // in server/config.js and public/js/config.js
@@ -129,33 +129,45 @@ CITIES: {
     country: 'Brazil',
     languages: ['en', 'pt'],
     defaultLang: 'en',
-    tileProvider: 'carto',  // 'carto' for global WGS84, 'autonavi' for China domestic
-    useGcj02: false,       // true only for China domestic map offset alignment
+    tileProvider: 'carto',      // 'carto' (WGS84 global tiles) or 'autonavi' (China domestic)
+    useGcj02: false,           // true ONLY for China domestic tile alignment
+    maxDistanceMeters: 500,     // Max acoustic propagation & trigger radius (500m for dense mountain town)
+    scarRadiusMeters: 50,       // Hysteretic scar mutation radius (set to ~5-10% of maxDistanceMeters)
     center: { lat: -20.3856, lng: -43.5035, zoom: 16 },
     description: 'Colonial soapstone bells & baroque valley echoes'
   },
-  shanghai: {
-    key: 'shanghai',
-    name: 'Shanghai',
-    country: 'China',
-    languages: ['en', 'cn'],
+  chicago: {
+    key: 'chicago',
+    name: 'Chicago',
+    country: 'USA',
+    languages: ['en', 'es'],
     defaultLang: 'en',
-    tileProvider: 'autonavi',
-    useGcj02: true,
-    center: { lat: 31.2304, lng: 121.4737, zoom: 14 },
-    description: 'Huangpu River ferries, Bund custom clock, temple gongs & Maglev resonance'
+    tileProvider: 'carto',
+    useGcj02: false,
+    maxDistanceMeters: 2000,    // 2.0 km max acoustic trigger radius for sprawling grid
+    scarRadiusMeters: 150,      // ~7.5% of maxDistanceMeters (150m scar radius)
+    center: { lat: 41.8818, lng: -87.6231, zoom: 14 },
+    description: 'Windy lakefront, steel bridges & industrial L-train resonance'
   }
 }
 ```
 
-Node names and descriptions support bilingual/multilingual objects (e.g. `{ en: "...", pt: "..." }`), which automatically resolve to the viewer's active language choice.
+### Parameter Guidelines:
+- **`maxDistanceMeters`**: Defines the sound trigger and inverse-square audio falloff boundary. Scale based on city density: **500m** for dense historical/mountain towns, **1,500m – 2,000m** for large metropolises.
+- **`scarRadiusMeters`**: Proximity threshold for participant-driven node scar mutations. Set to **5% – 10%** of `maxDistanceMeters`.
+- **Multilingual Support**: Landmark `name` and `description` support bilingual/multilingual objects (e.g. `{ en: "...", pt: "..." }`), resolving automatically to the active UI language.
 
 ---
 
 ## 5. Summary Checklist for Adding a City
 
-- [ ] Write prompt context file: `server/prompts/cities/<city_key>.txt`
-- [ ] Prepare list of historical landmark coordinates (`lat`, `lng`, `name` object/string, `intentText`)
-- [ ] Call `POST /api/cities/create` or run `createNewCity()`
-- [ ] Verify nodes created in database via `GET /api/nodes?city=<city_key>`
-- [ ] Register city center, `tileProvider`, `useGcj02`, and supported `languages` in `server/config.js` and `public/js/config.js`
+- [ ] Compose acoustic context prompt file: `server/prompts/cities/<city_key>.txt`
+- [ ] Prepare list of landmark coordinates (`lat`, `lng`, `name` object/string, `intentText`)
+- [ ] Call `POST /api/cities/create` or execute `createNewCity()`
+- [ ] Verify synthesized nodes via `GET /api/nodes?city=<city_key>`
+- [ ] Define city configuration in `server/config.js` and `public/js/config.js` with:
+  - [ ] `center` (`lat`, `lng`, `zoom`)
+  - [ ] `tileProvider` (`'carto'` or `'autonavi'`) & `useGcj02` (`false` or `true`)
+  - [ ] `maxDistanceMeters` (500m–2000m based on density)
+  - [ ] `scarRadiusMeters` (5%–10% of maxDistanceMeters)
+  - [ ] Supported `languages` (`['en', 'pt']`, etc.)
