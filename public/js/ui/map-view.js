@@ -198,10 +198,12 @@ export class LeafletMapView {
 
       const id = soma.somaticId;
       currentIds.add(id);
-      const { lat, lng } = soma.coordinates;
+      const pt = this._getDisplayCoords(soma.coordinates.lat, soma.coordinates.lng);
+      const lat = pt.lat;
+      const lng = pt.lng;
       const isVirtual = soma.somaticId.startsWith('vuser_');
       const label = isVirtual ? `Virtual User (${id})` : `Somatic Node (${id})`;
-      const popupText = `<b>${label}</b><br>Lat: ${lat.toFixed(5)}<br>Lng: ${lng.toFixed(5)}`;
+      const popupText = `<b>${label}</b><br>Lat: ${soma.coordinates.lat.toFixed(5)}<br>Lng: ${soma.coordinates.lng.toFixed(5)}`;
 
       const color = isVirtual ? '#ff4081' : '#ab47bc';
 
@@ -275,7 +277,8 @@ export class LeafletMapView {
 
   getContainerPoint(coords) {
     if (!this.map || !coords || coords.lat === undefined || coords.lng === undefined) return null;
-    return this.map.latLngToContainerPoint([coords.lat, coords.lng]);
+    const pt = this._getDisplayCoords(coords.lat, coords.lng);
+    return this.map.latLngToContainerPoint([pt.lat, pt.lng]);
   }
 
   pulseNodeMarker(nodeId) {

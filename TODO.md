@@ -16,3 +16,7 @@
 - [ ] ad to config all distances/parameters if there no
 - [ ] if users create nodes too close, what we do? we limit node creatin some minimum distance? like 50m? or we make them merge? 
 - [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
+- [ ] how the battery affects the sound
+- [ ] languages
+- [ ] about/description page
+- [ ] link to GIT
