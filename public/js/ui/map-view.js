@@ -28,12 +28,31 @@ export class LeafletMapView {
       bounceAtZoomLimits: false
     }).setView([center.lat, center.lng], center.zoom || 14);
 
-    // Dark Map Tiles (CartoDB Dark Matter via Fastly CDN edge for global accessibility: CN, BR, US, CA)
-    window.L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png', {
+    // Multi-source resilient tile layer (Amap / CartoDB fallback for CN and global networks)
+    const primaryTileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+    const fallbackTileUrl = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png';
+
+    const tiles = window.L.tileLayer(primaryTileUrl, {
+      subdomains: ['1', '2', '3', '4'],
       maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    }).addTo(this.map);
+      attribution: '&copy; AutoNavi &copy; OpenStreetMap'
+    });
+
+    // Fallback handler if primary fails
+    tiles.on('tileerror', () => {
+      if (!this._hasSwitchedFallback) {
+        this._hasSwitchedFallback = true;
+        console.warn('[Map] Primary tiles unreachable. Switching to global fallback tiles...');
+        this.map.removeLayer(tiles);
+        window.L.tileLayer(fallbackTileUrl, {
+          subdomains: 'abcd',
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(this.map);
+      }
+    });
+
+    tiles.addTo(this.map);
   }
 
   setCityView(centerCoords) {
