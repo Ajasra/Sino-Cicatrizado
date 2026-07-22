@@ -1,5 +1,5 @@
 import { generateEuclideanPattern, isBeatActiveForNode } from './euclidean.js';
-import { getEffectiveSpatialAudio, getNearestNodes } from '../spatial.js';
+import { getEffectiveSpatialAudio, getNearestNodes, calculateHaversineMeters } from '../spatial.js';
 import { CLIENT_CONFIG } from '../config.js';
 
 export class NodeSequencer {
@@ -62,6 +62,8 @@ export class NodeSequencer {
 
     // Polyphony & CPU Protection: Cap active audio evaluation to N=100 closest nodes
     const activeEvaluatedNodes = getNearestNodes(this.somaticCoords, this.nodes, 100);
+    const maxTriggerDist = this.activeCityConfig?.maxDistanceMeters || CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M || 1500.0;
+    const strikingCandidates = [];
 
     activeEvaluatedNodes.forEach((node) => {
       let pattern = this.nodePatterns.get(node.nodeId);
@@ -75,8 +77,23 @@ export class NodeSequencer {
       const shouldStrike = isBeatActiveForNode(pattern, currentStep, node.scarIndex || 0);
 
       if (shouldStrike) {
-        this.strikeNodeBell(node);
+        let dist = Infinity;
+        if (this.somaticCoords && node.coordinates) {
+          dist = calculateHaversineMeters(this.somaticCoords, node.coordinates);
+        }
+        if (dist <= maxTriggerDist) {
+          strikingCandidates.push({ node, dist });
+        }
       }
+    });
+
+    // Sort by proximity (closest nodes take priority) and cap polyphony to max 6 simultaneous spatial bells per step tick
+    strikingCandidates.sort((a, b) => a.dist - b.dist);
+    const maxPolyphonyBells = 6;
+    const selectedStrikes = strikingCandidates.slice(0, maxPolyphonyBells);
+
+    selectedStrikes.forEach(({ node }) => {
+      this.strikeNodeBell(node);
     });
   }
 

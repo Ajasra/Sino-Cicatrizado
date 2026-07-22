@@ -12,10 +12,11 @@ export function triggerShanghaiGlitch(engine, params, triggerTime, delaySeconds)
   const decay = params.decay || 1.2;
   const gainVal = params.gain !== undefined ? params.gain : 0.85;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.005);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, startValTime + 0.005);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'highpass';
@@ -58,10 +59,11 @@ export function triggerShanghaiHarshFeedback(engine, params, triggerTime, delayS
   const gainVal = params.gain !== undefined ? params.gain : 0.9;
   const fmIndex = params.fmIndex !== undefined ? params.fmIndex : 8.5;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGain = ctx.createGain();
-  mainGain.gain.setValueAtTime(0, ctx.currentTime);
-  mainGain.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.02);
-  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGain.gain.setValueAtTime(0, startValTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.5, startValTime + 0.02);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // FM Feedback Pair (Modulator -> Carrier)
   const carrier = ctx.createOscillator();
@@ -105,10 +107,11 @@ export function triggerShanghaiCircuitBend(engine, params, triggerTime, delaySec
   const decay = params.decay || 1.8;
   const gainVal = params.gain !== undefined ? params.gain : 0.85;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGain = ctx.createGain();
-  mainGain.gain.setValueAtTime(0, ctx.currentTime);
-  mainGain.gain.linearRampToValueAtTime(gainVal * 0.45, triggerTime + 0.01);
-  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGain.gain.setValueAtTime(0, startValTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.45, startValTime + 0.01);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Stepped LFO Modulation
   const lfo = ctx.createOscillator();
@@ -147,10 +150,11 @@ export function triggerShanghaiSubRumble(engine, params, triggerTime, delaySecon
   const decay = params.decay || 6.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.98;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGain = ctx.createGain();
-  mainGain.gain.setValueAtTime(0, ctx.currentTime);
-  mainGain.gain.linearRampToValueAtTime(gainVal * 0.7, triggerTime + 0.04);
-  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGain.gain.setValueAtTime(0, startValTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.7, startValTime + 0.04);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Sub-Bass Heavy Oscillators (Sine + Sawtooth + Detuned Sub)
   const subOsc1 = ctx.createOscillator();
@@ -366,10 +370,11 @@ export function triggerShanghaiIndustrialBurst(engine, params, triggerTime, dela
   const decay = params.decay || 1.6;
   const gainVal = params.gain !== undefined ? params.gain : 0.9;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGain = ctx.createGain();
-  mainGain.gain.setValueAtTime(0, ctx.currentTime);
-  mainGain.gain.linearRampToValueAtTime(gainVal * 0.6, triggerTime + 0.008);
-  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGain.gain.setValueAtTime(0, startValTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.6, startValTime + 0.008);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Square & Sawtooth metallic pair
   const osc1 = ctx.createOscillator();
@@ -422,10 +427,11 @@ export function triggerShanghaiRadioGlitch(engine, params, triggerTime, delaySec
   const decay = params.decay || 1.4;
   const gainVal = params.gain !== undefined ? params.gain : 0.8;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGain = ctx.createGain();
-  mainGain.gain.setValueAtTime(0, ctx.currentTime);
-  mainGain.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.01);
-  mainGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGain.gain.setValueAtTime(0, startValTime);
+  mainGain.gain.linearRampToValueAtTime(gainVal * 0.5, startValTime + 0.01);
+  mainGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const noiseBuffer = engine.createNoiseBuffer(decay * 0.8);
   const noiseSource = ctx.createBufferSource();

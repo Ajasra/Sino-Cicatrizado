@@ -378,7 +378,7 @@ export function getNodeById(nodeId) {
     nodeId: row.node_id,
     nodeType: row.node_type,
     city: row.city,
-    name: row.name,
+    name: parseName(row.name),
     description: parseDescription(row.description),
     coordinates: { lat: row.lat, lng: row.lng, alt: row.alt },
     stateVector: {
@@ -455,9 +455,11 @@ export function saveReflectorNode(node) {
 }
 
 export function updateFullNode(node) {
+  // ponytail: sanitize name/desc objects to JSON strings and ensure non-undefined binding values for SQLite
   const db = getDatabaseConnection();
   const sv = node.stateVector || {};
-  const descStr = typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description || '');
+  const nameStr = typeof node.name === 'object' ? JSON.stringify(node.name) : (node.name ?? '');
+  const descStr = typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description ?? '');
 
   const stmt = db.prepare(`
     UPDATE nodes SET
@@ -486,28 +488,28 @@ export function updateFullNode(node) {
   `);
 
   stmt.run(
-    node.name,
+    nameStr,
     descStr,
-    node.coordinates.lat,
-    node.coordinates.lng,
-    node.coordinates.alt || 0.0,
-    sv.baseFrequency,
-    sv.harmonicity,
-    sv.decay,
-    sv.gain,
-    sv.euclideanDensity,
-    sv.euclideanSteps || 8,
-    sv.echoProbability || 0.7,
+    Number(node.coordinates?.lat ?? 0),
+    Number(node.coordinates?.lng ?? 0),
+    Number(node.coordinates?.alt ?? 0.0),
+    Number(sv.baseFrequency ?? 220.0),
+    Number(sv.harmonicity ?? 1.0),
+    Number(sv.decay ?? 1.0),
+    Number(sv.gain ?? 1.0),
+    Number(sv.euclideanDensity ?? 0),
+    Number(sv.euclideanSteps ?? 8),
+    Number(sv.echoProbability ?? 0.7),
     sv.soundType || 'bell_deep',
-    sv.fmIndex || 0.0,
-    sv.filterCutoff || 1200.0,
+    Number(sv.fmIndex ?? 0.0),
+    Number(sv.filterCutoff ?? 1200.0),
     sv.filterType || 'lowpass',
-    sv.delayTimeMs !== undefined ? sv.delayTimeMs : 250.0,
-    sv.feedbackRatio !== undefined ? sv.feedbackRatio : 0.3,
-    sv.combResonance !== undefined ? sv.combResonance : 0.0,
-    sv.bitDepth || 16,
+    Number(sv.delayTimeMs ?? 250.0),
+    Number(sv.feedbackRatio ?? 0.3),
+    Number(sv.combResonance ?? 0.0),
+    Number(sv.bitDepth ?? 16),
     sv.carrierType || 'sine',
-    node.nodeId
+    node.nodeId || node.id || ''
   );
 }
 

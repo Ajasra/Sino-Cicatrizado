@@ -221,6 +221,39 @@ export class LeafletMapView {
     this.reflectorMarkers.clear();
   }
 
+  _getPopupText(node) {
+    const dist = this.somaticCoords ? calculateHaversineMeters(this.somaticCoords, node.coordinates) : null;
+    const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance:</b> ${dist.toFixed(1)}m` : '';
+    const soundType = node.stateVector?.soundType || 'bell_deep';
+
+    let nodeTitle = node.name;
+    const currentLang = (window.i18n && window.i18n.currentLang) || 'en';
+    if (typeof node.name === 'object' && node.name !== null) {
+      nodeTitle = node.name[currentLang] || (currentLang === 'zh' ? node.name.cn : null) || (currentLang === 'cn' ? node.name.zh : null) || node.name.en || Object.values(node.name)[0] || '';
+    } else if (typeof node.name === 'string' && node.name.includes(' / ')) {
+      const parts = node.name.split(' / ');
+      nodeTitle = (currentLang === 'en') ? parts[0].trim() : (parts[1] ? parts[1].trim() : parts[0].trim());
+    }
+
+    let descHtml = '';
+    if (node.description) {
+      let text = '';
+      if (typeof node.description === 'object' && node.description !== null) {
+        text = node.description[currentLang] || (currentLang === 'zh' ? node.description.cn : null) || (currentLang === 'cn' ? node.description.zh : null) || node.description.en || Object.values(node.description)[0] || '';
+      } else {
+        text = node.description;
+      }
+      if (text) {
+        descHtml = `<br><div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;"><i>${text}</i></div>`;
+      }
+    }
+
+    if (node.nodeType === 'TOWER') {
+      return `<b>${nodeTitle}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${(node.stateVector?.baseFrequency || 220).toFixed(1)}Hz | Scar: ${(node.scarIndex || 0).toFixed(2)}`;
+    }
+    return `<b>${nodeTitle}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${(node.stateVector?.baseFrequency || 220).toFixed(1)}Hz`;
+  }
+
   updateNodes(nodesList = []) {
     if (!this.map) return;
     this.lastNodesList = nodesList;
@@ -245,68 +278,29 @@ export class LeafletMapView {
       const pt = this._getDisplayCoords(node.coordinates.lat, node.coordinates.lng);
       const lat = pt.lat;
       const lng = pt.lng;
-      const dist = this.somaticCoords ? calculateHaversineMeters(this.somaticCoords, node.coordinates) : null;
-      const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance:</b> ${dist.toFixed(1)}m` : '';
-      const soundType = node.stateVector?.soundType || 'bell_deep';
+      const isTower = node.nodeType === 'TOWER';
+      const markersMap = isTower ? this.towerMarkers : this.reflectorMarkers;
 
-      // ponytail: resolve localized title if node.name is an object or slash-separated dual name
-      let nodeTitle = node.name;
-      const currentLang = (window.i18n && window.i18n.currentLang) || 'en';
-      if (typeof node.name === 'object' && node.name !== null) {
-        nodeTitle = node.name[currentLang] || (currentLang === 'zh' ? node.name.cn : null) || (currentLang === 'cn' ? node.name.zh : null) || node.name.en || Object.values(node.name)[0] || '';
-      } else if (typeof node.name === 'string' && node.name.includes(' / ')) {
-        const parts = node.name.split(' / ');
-        nodeTitle = (currentLang === 'en') ? parts[0].trim() : (parts[1] ? parts[1].trim() : parts[0].trim());
-      }
+      if (!markersMap.has(node.nodeId)) {
+        const style = this._getMarkerStyle(isTower ? 'TOWER' : 'REFLECTOR');
+        const marker = window.L.circleMarker([lat, lng], style).addTo(this.map);
 
-      let descHtml = '';
-      if (node.description) {
-        let text = '';
-        if (typeof node.description === 'object' && node.description !== null) {
-          text = node.description[currentLang] || (currentLang === 'zh' ? node.description.cn : null) || (currentLang === 'cn' ? node.description.zh : null) || node.description.en || Object.values(node.description)[0] || '';
-        } else {
-          text = node.description;
-        }
-        if (text) {
-          descHtml = `<br><div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;"><i>${text}</i></div>`;
-        }
-      }
-
-      if (node.nodeType === 'TOWER') {
-        const popupText = `<b>${nodeTitle}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
-
-        if (!this.towerMarkers.has(node.nodeId)) {
-          const style = this._getMarkerStyle('TOWER');
-          const marker = window.L.circleMarker([lat, lng], style).addTo(this.map);
-
-          marker._baseRadius = style.radius;
-          marker._baseColor = style.fillColor;
-          marker.bindPopup(popupText);
-          this.towerMarkers.set(node.nodeId, marker);
-        } else {
-          const marker = this.towerMarkers.get(node.nodeId);
-          marker.setLatLng([lat, lng]);
-          marker.setPopupContent(popupText);
-        }
-      } else if (node.nodeType === 'REFLECTOR') {
-        const popupText = `<b>${nodeTitle}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
-
-        if (!this.reflectorMarkers.has(node.nodeId)) {
-          const style = this._getMarkerStyle('REFLECTOR');
-          const marker = window.L.circleMarker([lat, lng], style).addTo(this.map);
-
-          marker._baseRadius = style.radius;
-          marker._baseColor = style.fillColor;
-          marker.bindPopup(popupText);
-          this.reflectorMarkers.set(node.nodeId, marker);
-        } else {
-          const marker = this.reflectorMarkers.get(node.nodeId);
-          marker.setPopupContent(popupText);
+        marker._baseRadius = style.radius;
+        marker._baseColor = style.fillColor;
+        marker._nodeData = node;
+        marker.bindPopup(() => this._getPopupText(node));
+        markersMap.set(node.nodeId, marker);
+      } else {
+        const marker = markersMap.get(node.nodeId);
+        marker._nodeData = node;
+        marker.setLatLng([lat, lng]);
+        // Only update popup HTML if popup is currently open
+        if (marker.isPopupOpen()) {
+          marker.setPopupContent(this._getPopupText(node));
         }
       }
     });
   }
-
 
   updateSomaticNode(coords) {
     if (!this.map || !coords) return;
@@ -327,10 +321,12 @@ export class LeafletMapView {
       this.somaticMarker.setLatLng([pt.lat, pt.lng]);
     }
 
-    // Refresh node distance popups if loaded
-    if (this.lastNodesList.length > 0) {
-      this.updateNodes(this.lastNodesList);
-    }
+    // Refresh ONLY open popups to avoid unnecessary DOM reflows
+    [...this.towerMarkers.values(), ...this.reflectorMarkers.values()].forEach((marker) => {
+      if (marker.isPopupOpen() && marker._nodeData) {
+        marker.setPopupContent(this._getPopupText(marker._nodeData));
+      }
+    });
   }
 
   updateOtherSomaticNodes(somaticNodes = [], mySomaticId = null) {

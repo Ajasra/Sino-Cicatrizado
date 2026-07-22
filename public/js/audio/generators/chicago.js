@@ -13,10 +13,11 @@ export function triggerChicagoRail(engine, params, triggerTime, delaySeconds) {
   const decay = params.decay || 1.8;
   const gainVal = params.gain !== undefined ? params.gain : 0.85;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.015);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, startValTime + 0.015);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // FM Sawtooth / Square Carrier for metallic iron rail sound
   const carrier = ctx.createOscillator();
@@ -75,10 +76,11 @@ export function triggerChicagoWind(engine, params, triggerTime, delaySeconds) {
   const decay = params.decay || 5.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.7;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.8);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, startValTime + 0.8);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Whistling Wind Resonant Sine Sweeper
   const oscA = ctx.createOscillator();
@@ -139,10 +141,11 @@ export function triggerChicagoFoghorn(engine, params, triggerTime, delaySeconds)
   const decay = params.decay || 6.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.95;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.6, triggerTime + 0.4); // Foghorn atmospheric swell
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.6, startValTime + 0.4); // Foghorn atmospheric swell
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
@@ -183,10 +186,11 @@ export function triggerChicagoBridge(engine, params, triggerTime, delaySeconds) 
   const decay = params.decay || 3.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.85;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.55, triggerTime + 0.02);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.55, startValTime + 0.02);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Sub-harmonic iron beam thud
   const subOsc = ctx.createOscillator();
@@ -233,10 +237,11 @@ export function triggerChicagoSteam(engine, params, triggerTime, delaySeconds) {
   const decay = params.decay || 1.2;
   const gainVal = params.gain !== undefined ? params.gain : 0.75;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.05);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, startValTime + 0.05);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const noiseBuffer = createNoiseBuffer(ctx, decay);
   const noiseSource = ctx.createBufferSource();

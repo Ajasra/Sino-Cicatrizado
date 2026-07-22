@@ -10,52 +10,49 @@ import { applyReflectorDSPChain, createNoiseBuffer, makeDistortionCurve } from '
 export function triggerDeepBell(engine, params, triggerTime, delaySeconds) {
   if (!engine.ctx) return;
   const ctx = engine.ctx;
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const baseFreq = params.baseFrequency || 110.0;
   const decay = params.decay || 6.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.8;
 
-  // Physical bronze modal ratios: Hum, Prime, Tierce (minor 3rd), Quint, Nominal, Supernominal
+  // Physical bronze modal ratios: Hum, Prime, Tierce (minor 3rd), Quint, Nominal, Supernominal, Octave
   const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
 
   const gainNode = ctx.createGain();
-  gainNode.gain.setValueAtTime(0, ctx.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.45, triggerTime + 0.06);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
+  gainNode.gain.setValueAtTime(0, startValTime);
+  gainNode.gain.linearRampToValueAtTime(0.45, startValTime + 0.06);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay + 0.5);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
   const cutoff = params.filterCutoff || 800.0;
-  filter.frequency.setValueAtTime(cutoff, triggerTime);
-  filter.frequency.exponentialRampToValueAtTime(140.0, triggerTime + decay);
-  filter.Q.setValueAtTime(1.8, triggerTime);
+  filter.frequency.setValueAtTime(cutoff, startValTime);
+  filter.frequency.exponentialRampToValueAtTime(140.0, startValTime + decay);
+  filter.Q.setValueAtTime(1.8, startValTime);
 
   modalRatios.forEach((ratio, idx) => {
-    const oscA = ctx.createOscillator();
-    const oscB = ctx.createOscillator();
+    const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
 
     const freq = baseFreq * ratio;
-    const detuneHz = idx === 0 ? 0.0 : 0.25 * (idx % 2 === 0 ? 1 : -1);
+    const detuneCents = idx === 0 ? 0 : (idx % 2 === 0 ? 6 : -6);
 
-    oscA.type = params.carrierType || 'sine';
-    oscB.type = params.carrierType || 'sine';
+    osc.type = params.carrierType || 'sine';
+    osc.frequency.setValueAtTime(freq, startValTime);
+    if (detuneCents !== 0) {
+      osc.detune.setValueAtTime(detuneCents, startValTime);
+    }
 
-    oscA.frequency.setValueAtTime(freq, triggerTime);
-    oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
+    const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.35;
+    oscGain.gain.setValueAtTime(0, startValTime);
+    oscGain.gain.linearRampToValueAtTime(partialAmp, startValTime + 0.05);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + (decay / (idx === 0 ? 0.75 : ratio)));
 
-    const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.25;
-    oscGain.gain.setValueAtTime(0, ctx.currentTime);
-    oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.05);
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (idx === 0 ? 0.75 : ratio)));
-
-    oscA.connect(oscGain);
-    oscB.connect(oscGain);
+    osc.connect(oscGain);
     oscGain.connect(gainNode);
 
-    oscA.start(triggerTime);
-    oscB.start(triggerTime);
-    oscA.stop(triggerTime + decay + 0.6);
-    oscB.stop(triggerTime + decay + 0.6);
+    osc.start(startValTime);
+    osc.stop(startValTime + decay + 0.6);
   });
 
   gainNode.connect(filter);
@@ -71,29 +68,30 @@ export function triggerDeepBell(engine, params, triggerTime, delaySeconds) {
 export function triggerDrone(engine, params, triggerTime, delaySeconds) {
   if (!engine.ctx) return;
   const ctx = engine.ctx;
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const baseFreq = params.baseFrequency || 65.0;
   const decay = params.decay || 8.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.6;
 
   const droneGainNode = ctx.createGain();
-  droneGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  droneGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 1.2);
-  droneGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  droneGainNode.gain.setValueAtTime(0, startValTime);
+  droneGainNode.gain.linearRampToValueAtTime(gainVal * 0.4, startValTime + 1.2);
+  droneGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
   const startCutoff = params.filterCutoff || 500.0;
-  filter.frequency.setValueAtTime(startCutoff, triggerTime);
+  filter.frequency.setValueAtTime(startCutoff, startValTime);
 
   // LFO modulation for filter cutoff
   const lfo = ctx.createOscillator();
   const lfoGain = ctx.createGain();
-  lfo.frequency.setValueAtTime(0.12, triggerTime); // 0.12 Hz slow LFO
-  lfoGain.gain.setValueAtTime(180.0, triggerTime);
+  lfo.frequency.setValueAtTime(0.12, startValTime); // 0.12 Hz slow LFO
+  lfoGain.gain.setValueAtTime(180.0, startValTime);
   lfo.connect(lfoGain);
   lfoGain.connect(filter.frequency);
-  lfo.start(triggerTime);
-  lfo.stop(triggerTime + decay + 0.5);
+  lfo.start(startValTime);
+  lfo.stop(startValTime + decay + 0.5);
 
   // Layered detuned sub-oscillators (pure sine & triangle)
   [0.997, 1.0, 1.003, 2.0].forEach((ratio) => {
@@ -101,16 +99,16 @@ export function triggerDrone(engine, params, triggerTime, delaySeconds) {
     const oscGain = ctx.createGain();
 
     osc.type = ratio > 1.5 ? 'triangle' : 'sine';
-    osc.frequency.setValueAtTime(baseFreq * ratio, triggerTime);
+    osc.frequency.setValueAtTime(baseFreq * ratio, startValTime);
 
     const amp = ratio > 1.5 ? 0.2 : 0.35;
-    oscGain.gain.setValueAtTime(amp, triggerTime);
+    oscGain.gain.setValueAtTime(amp, startValTime);
 
     osc.connect(oscGain);
     oscGain.connect(droneGainNode);
 
-    osc.start(triggerTime);
-    osc.stop(triggerTime + decay + 0.5);
+    osc.start(startValTime);
+    osc.stop(startValTime + decay + 0.5);
   });
 
   droneGainNode.connect(filter);
@@ -126,6 +124,7 @@ export function triggerDrone(engine, params, triggerTime, delaySeconds) {
 export function triggerIndustrial(engine, params, triggerTime, delaySeconds) {
   if (!engine.ctx) return;
   const ctx = engine.ctx;
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const carrierFreq = params.baseFrequency || 140.0;
   const fmRatio = params.harmonicity || 2.71;
   const modFreq = carrierFreq * fmRatio;
@@ -134,27 +133,27 @@ export function triggerIndustrial(engine, params, triggerTime, delaySeconds) {
   const gainVal = params.gain !== undefined ? params.gain : 0.6;
 
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.01);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, startValTime + 0.01);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // FM Carrier
   const carrier = ctx.createOscillator();
   carrier.type = 'triangle';
-  carrier.frequency.setValueAtTime(carrierFreq, triggerTime);
+  carrier.frequency.setValueAtTime(carrierFreq, startValTime);
 
   // FM Modulator
   const modulator = ctx.createOscillator();
   const modGain = ctx.createGain();
   modulator.type = 'sine';
-  modulator.frequency.setValueAtTime(modFreq, triggerTime);
-  modGain.gain.setValueAtTime(fmIndex * modFreq, triggerTime);
-  modGain.gain.exponentialRampToValueAtTime(0.1, triggerTime + (decay * 0.7));
+  modulator.frequency.setValueAtTime(modFreq, startValTime);
+  modGain.gain.setValueAtTime(fmIndex * modFreq, startValTime);
+  modGain.gain.exponentialRampToValueAtTime(0.1, startValTime + (decay * 0.7));
 
   modulator.connect(modGain);
   modGain.connect(carrier.frequency);
-  modulator.start(triggerTime);
-  modulator.stop(triggerTime + decay);
+  modulator.start(startValTime);
+  modulator.stop(startValTime + decay);
 
   // Subtle Metallic Pick Attack
   const noiseBuffer = createNoiseBuffer(ctx, 0.08); // 80ms click
@@ -163,16 +162,16 @@ export function triggerIndustrial(engine, params, triggerTime, delaySeconds) {
 
   const noiseFilter = ctx.createBiquadFilter();
   noiseFilter.type = 'bandpass';
-  noiseFilter.frequency.setValueAtTime(params.filterCutoff || 2200.0, triggerTime);
-  noiseFilter.Q.setValueAtTime(8.0, triggerTime);
+  noiseFilter.frequency.setValueAtTime(params.filterCutoff || 2200.0, startValTime);
+  noiseFilter.Q.setValueAtTime(8.0, startValTime);
 
   const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(gainVal * 0.15, triggerTime);
-  noiseGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + 0.08);
+  noiseGain.gain.setValueAtTime(gainVal * 0.15, startValTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + 0.08);
 
   noiseSource.connect(noiseFilter);
   noiseFilter.connect(noiseGain);
-  noiseSource.start(triggerTime);
+  noiseSource.start(startValTime);
 
   // Soft Saturation WaveShaper
   const waveShaper = ctx.createWaveShaper();
@@ -186,8 +185,8 @@ export function triggerIndustrial(engine, params, triggerTime, delaySeconds) {
     waveShaper.connect(engine.convolverMine);
   }
 
-  carrier.start(triggerTime);
-  carrier.stop(triggerTime + decay + 0.1);
+  carrier.start(startValTime);
+  carrier.stop(startValTime + decay + 0.1);
 
   engine.scheduleCleanup([mainGainNode, noiseGain, noiseFilter, waveShaper], delaySeconds + decay + 0.5);
 }
@@ -196,34 +195,35 @@ export function triggerIndustrial(engine, params, triggerTime, delaySeconds) {
 export function triggerGlitch(engine, params, triggerTime, delaySeconds) {
   if (!engine.ctx) return;
   const ctx = engine.ctx;
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const baseFreq = params.baseFrequency || 330.0;
   const decay = params.decay || 0.4;
   const gainVal = params.gain !== undefined ? params.gain : 0.5;
 
   const glitchGain = ctx.createGain();
-  glitchGain.gain.setValueAtTime(0, ctx.currentTime);
-  glitchGain.gain.linearRampToValueAtTime(gainVal * 0.4, triggerTime + 0.005);
-  glitchGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  glitchGain.gain.setValueAtTime(0, startValTime);
+  glitchGain.gain.linearRampToValueAtTime(gainVal * 0.4, startValTime + 0.005);
+  glitchGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Primary Carrier
   const carrier = ctx.createOscillator();
   carrier.type = 'square';
-  carrier.frequency.setValueAtTime(baseFreq, triggerTime);
+  carrier.frequency.setValueAtTime(baseFreq, startValTime);
 
   // Ring Modulator Multiplier
   const ringMod = ctx.createOscillator();
   const ringGain = ctx.createGain();
   ringMod.type = 'triangle';
-  ringMod.frequency.setValueAtTime(baseFreq * (params.harmonicity || 1.73), triggerTime);
+  ringMod.frequency.setValueAtTime(baseFreq * (params.harmonicity || 1.73), startValTime);
 
   ringMod.connect(ringGain.gain);
   carrier.connect(ringGain);
   ringGain.connect(glitchGain);
 
-  ringMod.start(triggerTime);
-  carrier.start(triggerTime);
-  ringMod.stop(triggerTime + decay);
-  carrier.stop(triggerTime + decay);
+  ringMod.start(startValTime);
+  carrier.start(startValTime);
+  ringMod.stop(startValTime + decay);
+  carrier.stop(startValTime + decay);
 
   glitchGain.connect(engine.masterGain);
   if (engine.convolverMine) {
@@ -237,50 +237,47 @@ export function triggerGlitch(engine, params, triggerTime, delaySeconds) {
 export function triggerSacredBell(engine, params, triggerTime, delaySeconds) {
   if (!engine.ctx) return;
   const ctx = engine.ctx;
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const baseFreq = params.baseFrequency || CLIENT_CONFIG.AUDIO.DEFAULT_FREQUENCY_HZ;
   const decay = params.decay || 1.5;
   const gainVal = params.gain !== undefined ? params.gain : 0.8;
 
-  // Physical colonial bronze bell modal ratios (Hum, Prime, Tierce minor 3rd, Quint, Nominal, Supernominal)
+  // Physical colonial bronze bell modal ratios (Hum, Prime, Tierce minor 3rd, Quint, Nominal, Supernominal, Octave)
   const modalRatios = [0.5, 1.0, 1.20, 1.50, 2.0, 2.76, 3.25];
 
   const bellGainNode = ctx.createGain();
-  bellGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  bellGainNode.gain.linearRampToValueAtTime(0.5, triggerTime + 0.04);
-  bellGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay + 0.5);
+  bellGainNode.gain.setValueAtTime(0, startValTime);
+  bellGainNode.gain.linearRampToValueAtTime(0.5, startValTime + 0.04);
+  bellGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay + 0.5);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(params.filterCutoff || 1200, triggerTime);
-  filter.Q.setValueAtTime(1.5, triggerTime);
+  filter.frequency.setValueAtTime(params.filterCutoff || 1200, startValTime);
+  filter.Q.setValueAtTime(1.5, startValTime);
 
   modalRatios.forEach((ratio, idx) => {
-    const oscA = ctx.createOscillator();
-    const oscB = ctx.createOscillator();
+    const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
 
     const freq = baseFreq * ratio;
-    const detuneHz = idx === 0 ? 0.0 : 0.25 * (idx % 2 === 0 ? 1 : -1);
+    const detuneCents = idx === 0 ? 0 : (idx % 2 === 0 ? 6 : -6);
 
-    oscA.type = params.carrierType || 'sine';
-    oscB.type = params.carrierType || 'sine';
+    osc.type = params.carrierType || 'sine';
+    osc.frequency.setValueAtTime(freq, startValTime);
+    if (detuneCents !== 0) {
+      osc.detune.setValueAtTime(detuneCents, startValTime);
+    }
 
-    oscA.frequency.setValueAtTime(freq, triggerTime);
-    oscB.frequency.setValueAtTime(freq + detuneHz, triggerTime);
+    const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.35;
+    oscGain.gain.setValueAtTime(0, startValTime);
+    oscGain.gain.linearRampToValueAtTime(partialAmp, startValTime + 0.04);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay / ratio);
 
-    const partialAmp = (1.0 / (idx * 0.9 + 1)) * gainVal * 0.25;
-    oscGain.gain.setValueAtTime(0, ctx.currentTime);
-    oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.04);
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay / ratio);
-
-    oscA.connect(oscGain);
-    oscB.connect(oscGain);
+    osc.connect(oscGain);
     oscGain.connect(bellGainNode);
 
-    oscA.start(triggerTime);
-    oscB.start(triggerTime);
-    oscA.stop(triggerTime + decay + 0.6);
-    oscB.stop(triggerTime + decay + 0.6);
+    osc.start(startValTime);
+    osc.stop(startValTime + decay + 0.6);
   });
 
   bellGainNode.connect(filter);

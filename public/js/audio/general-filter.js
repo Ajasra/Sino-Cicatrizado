@@ -162,10 +162,17 @@ export function applyReflectorDSPChain(engine, sourceNode, params = {}, triggerT
     dampFilter.type = 'lowpass';
     dampFilter.frequency.setValueAtTime(Math.min(3000.0, filterCutoff * 1.5), now);
 
+    const delayLoopSum = ctx.createGain();
+    delayLoopSum.gain.setValueAtTime(1.0, now);
+
     outputChain.connect(fdnDelay);
     fdnDelay.connect(dampFilter);
     dampFilter.connect(fdnFeedback);
-    fdnFeedback.connect(outputChain);
+    fdnFeedback.connect(fdnDelay); // Isolate feedback loop inside delay node
+    fdnDelay.connect(delayLoopSum);
+    outputChain.connect(delayLoopSum);
+
+    outputChain = delayLoopSum;
   }
 
   // 3. Scarred Timbral Degradation & SH Noise Distortion/Echo Expansion

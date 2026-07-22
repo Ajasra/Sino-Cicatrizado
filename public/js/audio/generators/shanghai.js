@@ -11,10 +11,11 @@ export function triggerShanghaiGong(engine, params, triggerTime, delaySeconds) {
   const decay = params.decay || 5.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.9;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, triggerTime + 0.03);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.5, startValTime + 0.03);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
@@ -39,9 +40,9 @@ export function triggerShanghaiGong(engine, params, triggerTime, delaySeconds) {
     }
 
     const partialAmp = (1.0 / (idx * 0.8 + 1)) * 0.25;
-    oscGain.gain.setValueAtTime(0, ctx.currentTime);
-    oscGain.gain.linearRampToValueAtTime(partialAmp, triggerTime + 0.03);
-    oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + (decay / (ratio * 0.8)));
+    oscGain.gain.setValueAtTime(0, startValTime);
+    oscGain.gain.linearRampToValueAtTime(partialAmp, startValTime + 0.03);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + (decay / (ratio * 0.8)));
 
     osc.connect(oscGain);
     oscGain.connect(filter);
@@ -67,10 +68,11 @@ export function triggerShanghaiRiver(engine, params, triggerTime, delaySeconds) 
   const decay = params.decay || 5.5;
   const gainVal = params.gain !== undefined ? params.gain : 0.9;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.55, triggerTime + 0.3); // River swell
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.55, startValTime + 0.3); // River swell
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
@@ -120,10 +122,11 @@ export function triggerShanghaiMaglev(engine, params, triggerTime, delaySeconds)
   const decay = params.decay || 3.0;
   const gainVal = params.gain !== undefined ? params.gain : 0.85;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.45, triggerTime + 0.2);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.45, startValTime + 0.2);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Electromagnetic Soaring Frequency Pitch Sweep (350Hz -> 680Hz -> 250Hz)
   const oscA = ctx.createOscillator();
@@ -169,10 +172,11 @@ export function triggerShanghaiCicadas(engine, params, triggerTime, delaySeconds
   const decay = params.decay || 2.5;
   const gainVal = params.gain !== undefined ? params.gain : 0.6;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.35, triggerTime + 0.1);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.35, startValTime + 0.1);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Tremolo Modulation (12 Hz rapid wing vibration)
   const tremoloOsc = ctx.createOscillator();
@@ -212,10 +216,11 @@ export function triggerShanghaiConstructionDrums(engine, params, triggerTime, de
   const decay = params.decay || 1.4;
   const gainVal = params.gain !== undefined ? params.gain : 0.85;
 
+  const startValTime = Math.max(ctx.currentTime, triggerTime);
   const mainGainNode = ctx.createGain();
-  mainGainNode.gain.setValueAtTime(0, ctx.currentTime);
-  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.6, triggerTime + 0.01);
-  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay);
+  mainGainNode.gain.setValueAtTime(0, startValTime);
+  mainGainNode.gain.linearRampToValueAtTime(gainVal * 0.6, startValTime + 0.01);
+  mainGainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 
   // Heavy Sub Impact Pitch Drop (180Hz -> 65Hz)
   const subOsc = ctx.createOscillator();
