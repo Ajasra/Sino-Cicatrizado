@@ -620,11 +620,11 @@ header {
 }
 
 /* Mobile Browser Safe Area & URL Bar Clearance */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .fab-settings {
-    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
   .fab-group-right {
-    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 }
