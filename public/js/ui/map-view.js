@@ -28,9 +28,10 @@ export class LeafletMapView {
       bounceAtZoomLimits: false
     }).setView([center.lat, center.lng], center.zoom || 14);
 
-    // Dark Map Tiles (CartoDB Dark Matter / OpenStreetMap)
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Dark Map Tiles (CartoDB Dark Matter via Fastly CDN edge for global accessibility: CN, BR, US, CA)
+    window.L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
+      subdomains: 'abcd',
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
     }).addTo(this.map);
   }
