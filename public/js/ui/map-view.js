@@ -68,10 +68,14 @@ export class LeafletMapView {
 
   _getMarkerStyle(type) {
     const isLight = this.currentTheme === 'light';
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 768);
+    // ponytail: scale marker radius for mobile/high-DPI touch devices to improve hit targets
+    const scale = isTouch ? 1.6 : 1.0;
+
     switch (type) {
       case 'TOWER':
         return {
-          radius: 5,
+          radius: Math.round(7 * scale),
           color: isLight ? '#000000' : '#ffffff',
           fillColor: isLight ? '#d97706' : '#f59e0b',
           weight: 1.5,
@@ -79,7 +83,7 @@ export class LeafletMapView {
         };
       case 'REFLECTOR':
         return {
-          radius: 4,
+          radius: Math.round(6 * scale),
           color: isLight ? '#000000' : '#ffffff',
           fillColor: isLight ? '#0284c7' : '#38bdf8',
           weight: 1.5,
@@ -87,7 +91,7 @@ export class LeafletMapView {
         };
       case 'SOMATIC':
         return {
-          radius: 5,
+          radius: Math.round(7 * scale),
           color: isLight ? '#000000' : '#ffffff',
           fillColor: isLight ? '#059669' : '#34d399',
           weight: 2.0,
@@ -95,7 +99,7 @@ export class LeafletMapView {
         };
       case 'VIRTUAL':
         return {
-          radius: 4,
+          radius: Math.round(6 * scale),
           color: isLight ? '#000000' : '#ffffff',
           fillColor: isLight ? '#db2777' : '#f472b6',
           weight: 1.5,
@@ -103,7 +107,7 @@ export class LeafletMapView {
         };
       case 'OTHER_USER':
         return {
-          radius: 4,
+          radius: Math.round(6 * scale),
           color: isLight ? '#000000' : '#ffffff',
           fillColor: isLight ? '#9333ea' : '#c084fc',
           weight: 1.5,
@@ -111,7 +115,7 @@ export class LeafletMapView {
         };
       default:
         return {
-          radius: 5,
+          radius: Math.round(7 * scale),
           color: isLight ? '#000000' : '#ffffff',
           fillColor: isLight ? '#d97706' : '#f59e0b',
           weight: 1.5,

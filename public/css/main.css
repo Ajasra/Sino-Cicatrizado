@@ -704,4 +704,11 @@ header {
   .fab-group-right {
     bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
+
+  /* ponytail: expand hit targets for map markers on touch screens / mobile high-DPI */
+  .leaflet-interactive {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
 }
+
