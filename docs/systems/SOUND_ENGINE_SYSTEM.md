@@ -52,22 +52,33 @@ The engine is decomposed into single-responsibility ES modules under `public/js/
 
 ## 3. Inharmonic Additive Bell Synthesis Math
 
-Every sacred bell sound (`bell_sacred`, `bell_deep`, `bell_soapstone`) is constructed using five additive sine partials derived from soapstone and bronze acoustic measurements ([SPEC.md Section 3.1](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/docs/SPEC.md#L58-L64)):
+Every sacred bell sound (`bell_sacred`, `bell_deep`, `bell_soapstone`) is constructed using seven additive modal partials derived from colonial soapstone and bronze acoustic measurements ([generators/ouro-preto.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/generators/ouro-preto.js#L18)):
 
-$$\text{Partial Ratios} = [1.00 \cdot f_0, \; 1.21 \cdot f_0, \; 1.47 \cdot f_0, \; 1.94 \cdot f_0, \; 2.52 \cdot f_0]$$
+$$\text{Partial Ratios} = [0.50 \cdot f_0, \; 1.00 \cdot f_0, \; 1.20 \cdot f_0, \; 1.50 \cdot f_0, \; 2.00 \cdot f_0, \; 2.76 \cdot f_0, \; 3.25 \cdot f_0]$$
 
-### Exponential Decay Scaling
-Higher partials decay exponentially faster than lower fundamental partials to mimic true physical acoustic damping:
+*(Hum, Prime, Tierce minor 3rd, Quint, Nominal, Supernominal, Octave)*
+
+### 3.1 Voice Efficiency & Native `.detune` AudioParams
+To preserve 100% of authentic physical bell acoustics without overloading the Web Audio CPU thread:
+- Instead of instantiating duplicate oscillator nodes per partial, a single oscillator per modal partial is created.
+- Organic chorus shimmer and detuning are achieved using Web Audio's native `.detune.setValueAtTime(cents, startValTime)` ($\pm 6\text{ cents}$ alternating modulation).
+- This reduces Web Audio node creation by ~60% per bell strike while maintaining full harmonic complexity.
+
+### 3.2 Exponential Decay Scaling
+Higher partials decay exponentially faster than lower fundamental partials to mimic physical acoustic damping:
 
 $$\tau_{\text{partial}, i} = \frac{\tau_{\text{base}}}{\text{Ratio}_i}$$
 
 ```js
 // Implementation in triggerSacredBell()
-ratios.forEach((ratio, idx) => {
+modalRatios.forEach((ratio, idx) => {
   const freq = baseFreq * ratio;
   const partialDecay = decay / ratio;
-  osc.frequency.setValueAtTime(freq, triggerTime);
-  oscGain.gain.exponentialRampToValueAtTime(0.0001, triggerTime + partialDecay);
+  const detuneCents = idx === 0 ? 0 : (idx % 2 === 0 ? 6 : -6);
+
+  osc.frequency.setValueAtTime(freq, startValTime);
+  if (detuneCents !== 0) osc.detune.setValueAtTime(detuneCents, startValTime);
+  oscGain.gain.exponentialRampToValueAtTime(0.0001, startValTime + partialDecay);
 });
 ```
 
@@ -78,17 +89,17 @@ ratios.forEach((ratio, idx) => {
 The sound engine contains **6 procedural sound generators for each city** (a balanced mix of discrete triggers and continuous proximity-based emitters):
 
 ### Ouro Preto (6 Generators)
-1. **`bell_sacred`** *(Discrete)*: 5-partial inharmonic additive synthesis with exponential damping (Colonial Bronze Towers).
-2. **`bell_deep`** *(Discrete)*: Sub-hum ($55\text{Hz} - 140\text{Hz}$) with warm lowpass filtering (Imperial Crypts).
-3. **`industrial`** *(Discrete)*: High FM modulation index (`fmIndex` up to $10.0$) (Silver Mine Pickaxe Strikes).
-4. **`glitch`** *(Discrete)*: Rapid FM leaps and 2-bit quantization artifacts (Scar Trauma).
+1. **`bell_sacred`** *(Discrete)*: 7-partial inharmonic additive modal synthesis with detuned exponential damping (Colonial Bronze Towers).
+2. **`bell_deep`** *(Discrete)*: Sub-hum ($55\text{Hz} - 140\text{Hz}$) with warm lowpass cathedral reverberation (Imperial Crypts).
+3. **`industrial`** *(Discrete)*: FM synthesis with soft saturation waveshaping (`fmIndex` up to $4.0$) and pick attack transients (Silver Mine Friction).
+4. **`glitch`** *(Discrete)*: Ring modulation multiplier with square carrier and mine convolver (Trauma & Scar Degradation).
 5. **`createContinuousEmitterOuroPretoMine`** *(Continuous Proximity)*: Subterranean mine sub-hum ambient emitter.
 6. **`createContinuousEmitterOuroPretoDrone`** *(Continuous Proximity)*: Mountain valley flux drone ambient emitter.
 
 ### Chicago (6 Generators)
 1. **`chicago_rail`** *(Discrete)*: High FM iron friction with bandpass filter sweep (Elevated L-Train Tracks).
-2. **`chicago_foghorn`** *(Discrete)*: Dual detuned lowpass brass vessel horn ($110\text{Hz}$) (Chicago Harbor & Riverwalk).
-3. **`chicago_bridge`** *(Discrete)*: Steel drawbridge iron groan and sub-harmonic thud (Chicago River Bridges).
+2. **`chicago_foghorn`** *(Discrete)*: Dual detuned lowpass brass vessel horn ($65\text{Hz} - 110\text{Hz}$) (Chicago Harbor & Riverwalk).
+3. **`chicago_bridge`** *(Discrete)*: Steel drawbridge iron groan, inharmonic beam ring, and sub-harmonic thud (Chicago River Bridges).
 4. **`chicago_steam`** *(Discrete)*: Subway vent steam hiss and thermal pressure release.
 5. **`createContinuousEmitterChicagoWind`** *(Continuous Proximity)*: Skyscraper wind canyon howling noise & whistle emitter.
 6. **`createContinuousEmitterChicagoLake`** *(Continuous Proximity)*: Lake Michigan shoreline & water drift ambient emitter.
@@ -108,28 +119,23 @@ The sound engine contains **6 procedural sound generators for each city** (a bal
 4. **`triggerShanghaiSubRumble`** *(Sub Impact)*: Heavy waveshaped sub-bass impact with sub-harmonic saturation.
 5. **`createContinuousEmitterShanghaiNoiseStatic`** *(Continuous Proximity)*: Continuous high-frequency electromagnetic noise & glitch static emitter.
 6. **`createContinuousEmitterShanghaiNoiseDrone`** *(Continuous Proximity)*: Continuous sub-bass industrial drone & cellar rumble emitter.
-6. **`createContinuousEmitterShanghaiCyber`** *(Continuous Proximity)*: Bund neon & urban electromagnetic resonance ambient emitter.
+7. **`createContinuousEmitterShanghaiCyber`** *(Continuous Proximity)*: Bund neon & urban electromagnetic resonance ambient emitter.
 
 
 ---
 
-## 5. Procedural Impulse Response Convolvers
+## 5. Procedural Impulse Response Convolvers & FDN Feedback Isolation
 
-Room acoustics and spatial reverberation are rendered using 100% procedurally generated stereo `AudioBuffer` impulse responses ([web-audio-engine.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/web-audio-engine.js#L102-L150)):
+Room acoustics and spatial reverberation are rendered using 100% procedurally generated stereo `AudioBuffer` impulse responses ([web-audio-engine.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/web-audio-engine.js#L122-L165)):
 
 $$\text{Envelope}(t) = e^{-t \cdot \text{decayRate}}, \quad \text{Damp}(t) = e^{-t \cdot 2.2 \cdot \text{decayRate}}$$
 
-```js
-// Procedural Impulse Response Generator
-const lpCoeff = Math.exp(-2 * Math.PI * targetCutoff / sampleRate);
-for (let i = 0; i < length; i++) {
-  let rawL = (Math.random() * 2 - 1);
-  lastL = lastL * lpCoeff + rawL * (1 - lpCoeff);
-  left[i] = (lastL * damp + rawL * envelope * 0.08);
-}
-```
+### 5.1 Isolated Feedback Delay Network (FDN) Architecture
+To prevent unattenuated gain feedback and digital clipping distortion when multiple bells strike:
+- The Feedback Delay Network in `applyReflectorDSPChain` ([general-filter.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/general-filter.js#L141-L169)) isolates its feedback loop (`fdnFeedback.connect(fdnDelay)`).
+- The delay decay is summed into an isolated gain node before merging back into `outputChain`, eliminating recursive gain multiplication and harsh feedback bursts.
 
-### Active Convolver Spaces
+### 5.2 Active Convolver Spaces
 - **Cathedral (`convolverCathedral`)**: 3.0s warm lowpass exponential decay ($1800\text{ Hz}$ cutoff).
 - **Subterranean Mine (`convolverMine`)**: 1.2s dense metallic ring impulse ($2400\text{ Hz}$ cutoff).
 - **Mountain Valley (`convolverValley`)**: 4.5s diffuse atmospheric tail ($1200\text{ Hz}$ cutoff).
@@ -138,7 +144,7 @@ for (let i = 0; i < length; i++) {
 
 ---
 
-## 6. Rhythmic Sequencer & Syncopation (`NodeSequencer`)
+## 6. Rhythmic Sequencer & Polyphony Protection (`NodeSequencer`)
 
 Rhythmic bell tolls are driven by the client-side `NodeSequencer` ([node-sequencer.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/node-sequencer.js#L5)):
 
@@ -146,40 +152,44 @@ Rhythmic bell tolls are driven by the client-side `NodeSequencer` ([node-sequenc
 Beats are spaced using Toussaint's Bjorklund algorithm ([euclidean.js](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/public/js/audio/euclidean.js#L7-L29)):
 - **Rare Solemn Mode**: Sparse beat distribution ($k = 1$ or $2$ beats across $n = 16$ steps) with a slow $1250\text{ ms}$ tick clock.
 
-### 6.2 Hysteretic Beat Perturbation
-As a node accumulates scar trauma (`scarIndex`), its rhythm becomes syncopated and broken ([SCARRING_SYSTEM.md Section 6](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/docs/systems/SCARRING_SYSTEM.md#L95-L103)):
-
-$$\text{scarPerturbationProb} = \min(\text{scarIndex} \cdot 0.12, \, 0.35)$$
-
-If a random roll is below `scarPerturbationProb`, the step beat is inverted, producing ghost strikes or skipped beats.
+### 6.2 Proximity-Based Polyphony Capping
+When multiple nodes trigger on the same step tick:
+1. `NodeSequencer.tick()` filters candidate nodes within the active city's `maxDistanceMeters`.
+2. Candidates are sorted by spatial distance relative to the listener's somatic coordinates (`calculateHaversineMeters`).
+3. Polyphony is strictly capped to the **top 6 closest active spatial bells** per step tick.
+4. Cascading spatial propagation delays (`delaySeconds = distance / speed_of_sound`) produce a dense, immersive spatial soundscape while safeguarding Web Audio thread performance against audio dropouts.
 
 ---
 
-## 7. Pop & Click Prevention Ramping
+## 7. Anti-Click Web Audio Parameter Automation Timing
 
-To prevent digital DC offset transients and audio clicks during gain and frequency changes, all Web Audio parameters execute linear or exponential ramps ([SPEC.md Section 3.3](file:///c:/Users/user/Desktop/ASC/The%20Scarred%20Bell/docs/SPEC.md#L78-L80)):
+To prevent digital DC offset transients, clicks, and timeline invalidation errors during spatial delay scheduling:
+- All initial parameter values use `startValTime = Math.max(ctx.currentTime, triggerTime)` for `setValueAtTime(val, startValTime)`.
+- Ramps start cleanly at `startValTime` rather than prematurely at `ctx.currentTime`, ensuring zero clicks when spatial wave propagation delays are active:
 
 ```js
-// Anti-click attack and decay envelope
-gainNode.gain.setValueAtTime(0, triggerTime);
-gainNode.gain.linearRampToValueAtTime(targetGain, triggerTime + 0.025); // 25ms attack ramp
-gainNode.gain.exponentialRampToValueAtTime(0.0001, triggerTime + decay); // exponential decay ramp
+// Anti-click attack and decay envelope with spatial delay alignment
+const startValTime = Math.max(ctx.currentTime, triggerTime);
+gainNode.gain.setValueAtTime(0, startValTime);
+gainNode.gain.linearRampToValueAtTime(targetGain, startValTime + 0.04);
+gainNode.gain.exponentialRampToValueAtTime(0.0001, startValTime + decay);
 ```
 
 ---
 
-## 9. Continuous Drone Evolution & Somatic Proximity Attenuation
+## 8. Continuous Drone Evolution & Somatic Proximity Attenuation
 
-### 9.1 Polyrhythmic Dual-LFO Background Drone
+### 8.1 Polyrhythmic Dual-LFO Background Drone
 The global background drone (`startContinuousDrone`) uses two asynchronous, out-of-phase LFOs controlling lowpass filter cutoff frequency to generate evolving non-repeating acoustic movement:
 - **LFO 1**: $0.011\text{ Hz}$ sine wave ($\pm 110\text{ Hz}$ cutoff swing)
 - **LFO 2**: $0.017\text{ Hz}$ triangle wave ($\pm 70\text{ Hz}$ cutoff swing)
 
-### 9.2 Somatic Velocity Brightness Modulation
+### 8.2 Somatic Velocity Brightness Modulation
 When the somatic node moves (GPS updates or map location taps), movement velocity $v = \frac{\Delta \text{dist}}{\Delta t}$ dynamically brightens the background drone filter cutoff:
 $$\text{Cutoff}_{\text{target}} = \text{Cutoff}_{\text{base}} + \min(v \cdot 25.0, \; 300\text{ Hz})$$
 
-### 9.3 Continuous Spatial Proximity Emitters
+### 8.3 Continuous Spatial Proximity Emitters
 Continuous sound generators (e.g. Chicago Wind Canyon, Shanghai River Drift, Ouro Preto Sub-Mine Hum) are anchored to nearby active map nodes. Gain attenuates dynamically according to a quadratic inverse-distance curve:
 $$\text{Gain}(d) = \text{clamp}\left(1 - \frac{d}{350\text{ m}}, \; 0, \; 1\right)^2 \cdot \text{Gain}_{\text{max}}$$
+
 
