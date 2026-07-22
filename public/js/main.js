@@ -320,11 +320,15 @@ class SinoCicatrizadoApp {
 
     const pillGps = document.getElementById('pill-gps');
     if (pillGps) {
-      pillGps.innerHTML = coords ? 'GPS <span class="status-sq active"></span>' : 'GPS <span class="status-sq offline"></span>';
-      if (coords) {
-        const latStr = coords.lat >= 0 ? `${coords.lat.toFixed(4)}°N` : `${Math.abs(coords.lat).toFixed(4)}°S`;
-        const lngStr = coords.lng >= 0 ? `${coords.lng.toFixed(4)}°E` : `${Math.abs(coords.lng).toFixed(4)}°W`;
-        pillGps.title = `Position: ${latStr}, ${lngStr}`;
+      if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+        const latStr = coords.lat.toFixed(2);
+        const lngStr = coords.lng.toFixed(2);
+        pillGps.innerHTML = `<span class="status-sq active"></span> GPS:${latStr}/${lngStr}`;
+        const fullLat = coords.lat >= 0 ? `${coords.lat.toFixed(4)}°N` : `${Math.abs(coords.lat).toFixed(4)}°S`;
+        const fullLng = coords.lng >= 0 ? `${coords.lng.toFixed(4)}°E` : `${Math.abs(coords.lng).toFixed(4)}°W`;
+        pillGps.title = `Position: ${fullLat}, ${fullLng}`;
+      } else {
+        pillGps.innerHTML = `<span class="status-sq offline"></span> GPS:--/--`;
       }
     }
 
