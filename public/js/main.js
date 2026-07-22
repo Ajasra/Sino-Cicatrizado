@@ -1,6 +1,5 @@
 import { WebAudioEngine } from './audio/web-audio-engine.js';
 import { NodeSequencer } from './audio/node-sequencer.js';
-import { BatterySensor } from './sensors/battery.js';
 import { GeolocationSensor } from './sensors/geolocation.js';
 import { WakeLockAdapter } from './sensors/wakelock.js';
 import { ScarredWebSocketClient } from './net/websocket-client.js';
@@ -273,35 +272,6 @@ class SinoCicatrizadoApp {
   }
 
   setupSensors() {
-    const setBatteryUI = (level) => {
-      this.batteryLevel = level;
-      if (this.audioEngine && typeof this.audioEngine.updateBatteryLevel === 'function') {
-        this.audioEngine.updateBatteryLevel(level);
-      }
-      const pill = document.getElementById('pill-battery');
-      if (pill) {
-        pill.textContent = `⚡ ${Math.round(level * 100)}%`;
-        pill.title = `Battery: ${Math.round(level * 100)}% (Click to test different levels)`;
-      }
-    };
-
-    // Battery level monitoring
-    BatterySensor.watchLevel((level) => {
-      setBatteryUI(level);
-    });
-
-    // Add click handler to battery pill to cycle test levels (100% -> 75% -> 50% -> 20% -> 5%)
-    const pill = document.getElementById('pill-battery');
-    if (pill) {
-      const testLevels = [1.0, 0.75, 0.50, 0.20, 0.05];
-      let testIdx = 0;
-      pill.style.cursor = 'pointer';
-      pill.addEventListener('click', () => {
-        testIdx = (testIdx + 1) % testLevels.length;
-        setBatteryUI(testLevels[testIdx]);
-      });
-    }
-
     // Geolocation tracking
     this.gpsSensor = new GeolocationSensor(
       (coords) => this.handlePositionUpdate(coords),
