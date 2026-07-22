@@ -124,13 +124,14 @@ export const CONFIG = {
     DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || '',
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || ''
   },
-  ADMIN_PASSWORD_GLOBAL: process.env.ADMIN_PASSWORD || 'scarred2026',
+  ADMIN_PASSWORD_GLOBAL: process.env.ADMIN_PASSWORD || '',
   ADMIN_PASSWORDS: {
-    ouro_preto: process.env.ADMIN_PASS_OURO_PRETO || 'ouro123',
-    chicago: process.env.ADMIN_PASS_CHICAGO || 'chicago123',
-    shanghai: process.env.ADMIN_PASS_SHANGHAI || 'shanghai123',
-    shanghai_noise: process.env.ADMIN_PASS_SHANGHAI_NOISE || 'noise123',
-    montreal: process.env.ADMIN_PASS_MONTREAL || 'montreal123'
+    ouro_preto: process.env.ADMIN_PASS_OURO_PRETO || '',
+    chicago: process.env.ADMIN_PASS_CHICAGO || '',
+    shanghai: process.env.ADMIN_PASS_SHANGHAI || '',
+    shanghai_noise: process.env.ADMIN_PASS_SHANGHAI_NOISE || '',
+    montreal: process.env.ADMIN_PASS_MONTREAL || '',
+    sao_paulo: process.env.ADMIN_PASS_SAO_PAULO || ''
   }
 };
 
