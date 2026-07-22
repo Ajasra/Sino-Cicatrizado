@@ -28,4 +28,4 @@
 - [ ] languages
 - [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
 - [ ] add to config all distances/parameters if there no
-- [ ] add button to center on your current locatin like on most maps
+- [x] **Center on Current Location**: Added button to center map on current location (`#fab-recenter` floating control).

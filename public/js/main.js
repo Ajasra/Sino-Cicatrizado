@@ -515,6 +515,14 @@ class SinoCicatrizadoApp {
       this.unlockAudio();
     });
 
+    // ponytail: Center on current location button
+    const recenterBtn = document.getElementById('fab-recenter');
+    if (recenterBtn) {
+      recenterBtn.addEventListener('click', () => {
+        this.mapView.centerOnSomaticLocation();
+      });
+    }
+
     // Somatic Chirp buttons (floating icon & settings modal button)
     document.querySelectorAll('#btn-chirp, .btn-chirp-trigger').forEach((btn) => {
       btn.addEventListener('click', () => {

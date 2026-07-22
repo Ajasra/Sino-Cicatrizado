@@ -170,6 +170,13 @@ export class LeafletMapView {
     this.map.setView([pt.lat, pt.lng], centerCoords.zoom || 14);
   }
 
+  /* ponytail: center map on current user location */
+  centerOnSomaticLocation(zoom = 15) {
+    if (!this.map || !this.somaticCoords) return;
+    const pt = this._getDisplayCoords(this.somaticCoords.lat, this.somaticCoords.lng);
+    this.map.setView([pt.lat, pt.lng], zoom);
+  }
+
   clearAllNodeMarkers() {
     if (!this.map) return;
     for (const [id, marker] of this.towerMarkers) {
