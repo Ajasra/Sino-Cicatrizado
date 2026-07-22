@@ -1,0 +1,368 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { getDatabaseConnection } from '../server/db/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, '..');
+
+const nodes = [
+  {
+    nodeId: 'tower_ouro_preto_1',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'IFAC - Institute of Philosophy, Arts & Culture (UFOP)',
+      pt: 'IFAC - Instituto de Filosofia, Artes e Cultura (UFOP)'
+    },
+    description: {
+      en: 'Historic headquarters hosting ASC 2026 track conversations. Pioneer Latin American unit for Baroque Art, Philosophy, and Cybernetics.',
+      pt: 'Sede histórica dos debates da conferência ASC 2026. Unidade pioneira na América Latina em Arte Barroca, Filosofia e Cibernética.'
+    },
+    coordinates: { lat: -20.3845, lng: -43.5040, alt: 1050.0 },
+    stateVector: { soundType: 'drone', carrierType: 'triangle', baseFrequency: 220.0, harmonicity: 1.414, decay: 4.0, gain: 0.85, euclideanDensity: 3, echoProbability: 0.8, filterCutoff: 1800.0, fmIndex: 2.0, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_2',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Museu da Inconfidência (Annex & Auditorium)',
+      pt: 'Museu da Inconfidência (Anexo e Auditório)'
+    },
+    description: {
+      en: '1785 former town hall and prison. Its right-wing auditorium annex hosts ASC 2026 conference sessions and temporary exhibitions.',
+      pt: 'Antiga Casa de Câmara e Cadeia de 1785. O anexo com auditório abriga sessões da conferência ASC 2026 e exposições temporárias.'
+    },
+    coordinates: { lat: -20.3856, lng: -43.5036, alt: 1055.0 },
+    stateVector: { soundType: 'bell_deep', carrierType: 'sine', baseFrequency: 180.0, harmonicity: 1.5, decay: 5.0, gain: 0.9, euclideanDensity: 2, echoProbability: 0.85, filterCutoff: 1400.0, fmIndex: 1.5, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_3',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Casa de Gonzaga (Tomás Antônio Gonzaga House)',
+      pt: 'Casa de Gonzaga (Casa de Tomás Antônio Gonzaga)'
+    },
+    description: {
+      en: 'Colonial headquarters where conspirator poet Tomás Antônio Gonzaga (Dirceu) held secret Inconfidência sessions planning an independent republic.',
+      pt: 'Sede colonial onde o poeta inconfidente Tomás Antônio Gonzaga (Dirceu) realizava reuniões secretas em prol da república.'
+    },
+    coordinates: { lat: -20.3862, lng: -43.5052, alt: 1045.0 },
+    stateVector: { soundType: 'bell_bright', carrierType: 'sine', baseFrequency: 330.0, harmonicity: 2.0, decay: 3.0, gain: 0.85, euclideanDensity: 3, echoProbability: 0.75, filterCutoff: 2400.0, fmIndex: 1.0, bitDepth: 14 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_4',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Vila Rica Opera House (Teatro Municipal)',
+      pt: 'Casa da Ópera de Vila Rica (Teatro Municipal)'
+    },
+    description: {
+      en: 'Built in 1770, the oldest operating theater in the Americas. Features a 3-tier timber acoustic vault hosting ASC 2026 performances and plenaries.',
+      pt: 'Construído em 1770, é o teatro em funcionamento mais antigo das Américas. Possui acústica de madeira de 3 pavimentos que acolhe a ASC 2026.'
+    },
+    coordinates: { lat: -20.3864, lng: -43.5047, alt: 1048.0 },
+    stateVector: { soundType: 'drone', carrierType: 'sine', baseFrequency: 140.0, harmonicity: 1.732, decay: 6.0, gain: 0.95, euclideanDensity: 2, echoProbability: 0.9, filterCutoff: 1100.0, fmIndex: 3.0, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_5',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Church of Saint Francis of Assisi',
+      pt: 'Igreja de São Francisco de Assis'
+    },
+    description: {
+      en: "Aleijadinho's architectural masterpiece (1766–1794) with cylindrical bell towers. Primary node for Toque dos Sinos bell network and HBIM 3D scanning.",
+      pt: 'Obra-prima de Aleijadinho (1766–1794) com torres cilíndricas. Nó central do Toque dos Sinos e escaneamento digital HBIM.'
+    },
+    coordinates: { lat: -20.3861, lng: -43.5028, alt: 1060.0 },
+    stateVector: { soundType: 'bell_sacred', carrierType: 'sine', baseFrequency: 261.6, harmonicity: 1.414, decay: 5.5, gain: 0.95, euclideanDensity: 3, echoProbability: 0.85, filterCutoff: 1600.0, fmIndex: 2.5, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_6',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Church of Santa Efigênia (Rosário dos Pretos)',
+      pt: 'Igreja de Santa Efigênia (Rosário dos Pretos)'
+    },
+    description: {
+      en: 'Built by Chico Rei and the Black Brotherhood with hidden gold. Enslaved sineiros infused European tolls with Afro-Brazilian syncopated polyrhythms.',
+      pt: 'Construída por Chico Rei e pela Irmandade dos Pretos com ouro oculto. Sineiros negros infundiram ritmos afro-brasileiros aos sinos.'
+    },
+    coordinates: { lat: -20.3804, lng: -43.5002, alt: 1080.0 },
+    stateVector: { soundType: 'bell_deep', carrierType: 'sawtooth', baseFrequency: 196.0, harmonicity: 2.5, decay: 4.5, gain: 0.9, euclideanDensity: 4, echoProbability: 0.8, filterCutoff: 2800.0, fmIndex: 4.0, bitDepth: 12 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_7',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Chico Rei Gold Mine (Mina da Encardideira)',
+      pt: 'Mina do Chico Rei (Mina da Encardideira)'
+    },
+    description: {
+      en: 'Subterranean gold mine (175 galleries) bought by Chico Rei to win freedom for his community—an autonomous subsystem inside colonial extraction.',
+      pt: 'Mina subterrânea (175 galerias) comprada por Chico Rei para libertar seu povo—um subsistema autônomo de resistência colonial.'
+    },
+    coordinates: { lat: -20.3812, lng: -43.4998, alt: 1070.0 },
+    stateVector: { soundType: 'glitch', carrierType: 'square', baseFrequency: 85.0, harmonicity: 3.14, decay: 2.5, gain: 0.85, euclideanDensity: 3, echoProbability: 0.9, filterCutoff: 800.0, fmIndex: 6.0, bitDepth: 8 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_8',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Praça Tiradentes & Central Matrix',
+      pt: 'Praça Tiradentes e Matriz Central'
+    },
+    description: {
+      en: "Central plaza where martyr Tiradentes' head was displayed in 1792. Forum of colonial taxation feedback and annual MARTE laser projection mapping.",
+      pt: 'Praça central onde a cabeça de Tiradentes foi exposta em 1792. Palco do feedback da Inconfidência e das projeções do Festival MARTE.'
+    },
+    coordinates: { lat: -20.3856, lng: -43.5036, alt: 1055.0 },
+    stateVector: { soundType: 'bell_bright', carrierType: 'triangle', baseFrequency: 440.0, harmonicity: 1.618, decay: 3.5, gain: 0.85, euclideanDensity: 3, echoProbability: 0.7, filterCutoff: 3200.0, fmIndex: 1.2, bitDepth: 14 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_9',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Nossa Senhora do Pilar Basilica',
+      pt: 'Basílica de Nossa Senhora do Pilar'
+    },
+    description: {
+      en: 'Contains over 400kg of gold leaf. Its massive timber ceiling acts as a natural acoustic amplifier reflecting cathedral bell tolls across the valley.',
+      pt: 'Ornamentada com mais de 400kg de ouro. O teto de madeira atua como amplificador acústico natural para o repique dos sinos.'
+    },
+    coordinates: { lat: -20.3878, lng: -43.5076, alt: 1030.0 },
+    stateVector: { soundType: 'bell_sacred', carrierType: 'sine', baseFrequency: 130.8, harmonicity: 1.414, decay: 6.5, gain: 1.0, euclideanDensity: 2, echoProbability: 0.9, filterCutoff: 1200.0, fmIndex: 2.0, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_10',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Casa dos Contos (Imperial Mint & Prison)',
+      pt: 'Casa dos Contos (Fundição Imperial e Senzala)'
+    },
+    description: {
+      en: '1782 gold weighing house, mint, conspirator prison, and subterranean holding cells for enslaved mineworkers.',
+      pt: 'Casa de fundição de ouro de 1782, prisão de inconfidentes e senzala subterrânea para os trabalhadores escravizados.'
+    },
+    coordinates: { lat: -20.3866, lng: -43.5058, alt: 1040.0 },
+    stateVector: { soundType: 'glitch', carrierType: 'sawtooth', baseFrequency: 110.0, harmonicity: 2.41, decay: 3.0, gain: 0.88, euclideanDensity: 3, echoProbability: 0.8, filterCutoff: 1500.0, fmIndex: 4.5, bitDepth: 10 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_11',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Escola de Minas (School of Mines - UFOP)',
+      pt: 'Escola de Minas (UFOP)'
+    },
+    description: {
+      en: "Founded in 1876 by Emperor Dom Pedro II in the former Governor's Palace. Shifted Vila Rica from gold extraction to knowledge production.",
+      pt: 'Fundada em 1876 pelo Imperador Dom Pedro II no antigo Palácio dos Governadores. Marcou a transição da extração de ouro para a ciência.'
+    },
+    coordinates: { lat: -20.3850, lng: -43.5042, alt: 1058.0 },
+    stateVector: { soundType: 'drone', carrierType: 'sine', baseFrequency: 165.0, harmonicity: 1.5, decay: 5.0, gain: 0.85, euclideanDensity: 2, echoProbability: 0.75, filterCutoff: 2000.0, fmIndex: 1.8, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_12',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Chafariz dos Contos (1760 Fountain)',
+      pt: 'Chafariz dos Contos (1760)'
+    },
+    description: {
+      en: 'Monumental 1760 soapstone public fountain where gold couriers, merchants, and enslaved travelers converged on the Estrada Real.',
+      pt: 'Chafariz monumental de pedra-sabão de 1760 onde tropeiros, comerciantes e trabalhadores escravizados se encontravam na Estrada Real.'
+    },
+    coordinates: { lat: -20.3869, lng: -43.5065, alt: 1038.0 },
+    stateVector: { soundType: 'bell_bright', carrierType: 'sine', baseFrequency: 523.25, harmonicity: 2.0, decay: 2.5, gain: 0.8, euclideanDensity: 4, echoProbability: 0.7, filterCutoff: 3600.0, fmIndex: 0.5, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_13',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Ponte dos Suspiros (Antônio Dias Bridge)',
+      pt: 'Ponte dos Suspiros (Ponte de Antônio Dias)'
+    },
+    description: {
+      en: 'Historic 1755 stone bridge spanning the Ouro Preto creek, linking the rival historic parishes of Pilar and Antônio Dias.',
+      pt: 'Ponte histórica de pedra de 1755 sobre o córrego de Ouro Preto, unindo as antigas freguesias de Pilar e Antônio Dias.'
+    },
+    coordinates: { lat: -20.3858, lng: -43.5008, alt: 1052.0 },
+    stateVector: { soundType: 'bell_deep', carrierType: 'triangle', baseFrequency: 220.0, harmonicity: 1.732, decay: 3.8, gain: 0.85, euclideanDensity: 3, echoProbability: 0.8, filterCutoff: 2200.0, fmIndex: 2.2, bitDepth: 14 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_14',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Capela de São João Batista (1698)',
+      pt: 'Capela de São João Batista (1698)'
+    },
+    description: {
+      en: 'Oldest chapel in Ouro Preto (1698), marking the initial gold rush discovery site along the Tripuí riverbed.',
+      pt: 'Capela mais antiga de Ouro Preto (1698), marcando o local da descoberta inicial de ouro às margens do ribeirão Tripuí.'
+    },
+    coordinates: { lat: -20.3831, lng: -43.4981, alt: 1075.0 },
+    stateVector: { soundType: 'bell_sacred', carrierType: 'sine', baseFrequency: 349.23, harmonicity: 1.414, decay: 4.2, gain: 0.9, euclideanDensity: 2, echoProbability: 0.8, filterCutoff: 1700.0, fmIndex: 1.5, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_15',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'República Pasárgada (UFOP República)',
+      pt: 'República Pasárgada (UFOP)'
+    },
+    description: {
+      en: 'Historic student-governed república operating as a self-organizing system of direct democracy and boundary-maintenance (batalha).',
+      pt: 'República estudantil autogerida que opera como sistema auto-organizado de democracia direta e rito de batalha.'
+    },
+    coordinates: { lat: -20.3842, lng: -43.5055, alt: 1046.0 },
+    stateVector: { soundType: 'drone', carrierType: 'sawtooth', baseFrequency: 175.0, harmonicity: 2.0, decay: 4.5, gain: 0.85, euclideanDensity: 3, echoProbability: 0.75, filterCutoff: 2500.0, fmIndex: 3.5, bitDepth: 12 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_16',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'São Sebastião Viewpoint (Acoustic Summit)',
+      pt: 'Mirante do Morro São Sebastião'
+    },
+    description: {
+      en: 'Mountain summit panoramic vantage point where the full cross-city matrix of Toque dos Sinos bell tolls intersects across the valleys.',
+      pt: 'Ponto panorâmico no topo do morro onde a matriz completa do Toque dos Sinos se cruza através dos vales.'
+    },
+    coordinates: { lat: -20.3810, lng: -43.5090, alt: 1150.0 },
+    stateVector: { soundType: 'bell_bright', carrierType: 'sine', baseFrequency: 587.33, harmonicity: 1.5, decay: 3.0, gain: 0.8, euclideanDensity: 4, echoProbability: 0.85, filterCutoff: 4000.0, fmIndex: 1.0, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_17',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Morro da Queimada (Quilombo Ruins)',
+      pt: 'Morro da Queimada (Ruínas do Quilombo)'
+    },
+    description: {
+      en: "Ruined 1720 burnt quilombo village representing Afro-Pindoramic resistance and Nêgo Bispo's philosophy of biointeraction & confluence.",
+      pt: 'Ruínas do quilombo queimado em 1720, símbolo de resistência afro-pindorâmica e da filosofia de confluência de Nêgo Bispo.'
+    },
+    coordinates: { lat: -20.3895, lng: -43.4955, alt: 1120.0 },
+    stateVector: { soundType: 'glitch', carrierType: 'triangle', baseFrequency: 98.0, harmonicity: 3.14, decay: 3.5, gain: 0.9, euclideanDensity: 3, echoProbability: 0.9, filterCutoff: 1000.0, fmIndex: 5.0, bitDepth: 8 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_18',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Passagem Gold Mine (Subterranean Echo)',
+      pt: 'Mina da Passagem (Eco Subterrâneo)'
+    },
+    description: {
+      en: "World's largest open subterranean gold mine with underground flooded lakes, acting as a deep low-frequency acoustic echo chamber.",
+      pt: 'Maior mina de ouro subterrânea aberta do mundo com lagos inundados, atuando como câmara de eco acústico de baixa frequência.'
+    },
+    coordinates: { lat: -20.3995, lng: -43.4475, alt: 950.0 },
+    stateVector: { soundType: 'drone', carrierType: 'sine', baseFrequency: 55.0, harmonicity: 1.0, decay: 8.0, gain: 1.0, euclideanDensity: 1, echoProbability: 0.95, filterCutoff: 400.0, fmIndex: 2.0, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_19',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Church of Nossa Senhora do Carmo',
+      pt: 'Igreja de Nossa Senhora do Carmo'
+    },
+    description: {
+      en: 'Designed by Manoel Francisco Lisboa and finished by Aleijadinho. Key HBIM digital twin node after historic fire restoration.',
+      pt: 'Projetada por Manoel Francisco Lisboa e concluída por Aleijadinho. Nó de modelo digital gêmeo HBIM pós-restauração.'
+    },
+    coordinates: { lat: -20.3853, lng: -43.5050, alt: 1050.0 },
+    stateVector: { soundType: 'bell_sacred', carrierType: 'sine', baseFrequency: 293.66, harmonicity: 1.414, decay: 5.0, gain: 0.9, euclideanDensity: 3, echoProbability: 0.85, filterCutoff: 1900.0, fmIndex: 2.0, bitDepth: 16 }
+  },
+  {
+    nodeId: 'tower_ouro_preto_20',
+    nodeType: 'TOWER',
+    city: 'ouro_preto',
+    name: {
+      en: 'Nossa Senhora da Conceição Sanctuary',
+      pt: 'Santuário de Nossa Senhora da Conceição'
+    },
+    description: {
+      en: 'Burial site of Aleijadinho and his father Manoel Francisco Lisboa, housing the Aleijadinho Museum of Sacred Art.',
+      pt: 'Local de sepultamento de Aleijadinho e seu pai Manoel Francisco Lisboa, abrigando o Museu de Arte Sacra Aleijadinho.'
+    },
+    coordinates: { lat: -20.3865, lng: -43.5012, alt: 1055.0 },
+    stateVector: { soundType: 'bell_deep', carrierType: 'triangle', baseFrequency: 220.0, harmonicity: 1.5, decay: 4.8, gain: 0.9, euclideanDensity: 2, echoProbability: 0.8, filterCutoff: 1500.0, fmIndex: 1.8, bitDepth: 16 }
+  }
+];
+
+// 1. Save snapshot to data/scarred_twin.json
+const snapshotPath = path.join(ROOT_DIR, 'data', 'scarred_twin.json');
+fs.writeFileSync(snapshotPath, JSON.stringify(nodes, null, 2), 'utf-8');
+console.log(`[Snapshot] Saved ${nodes.length} nodes to ${snapshotPath}`);
+
+// 2. Clear existing ouro_preto nodes in SQLite database and insert new nodes
+const db = getDatabaseConnection();
+const delResult = db.prepare("DELETE FROM nodes WHERE city = 'ouro_preto'").run();
+console.log(`[DB] Cleared ${delResult.changes} existing ouro_preto nodes from DB.`);
+
+const insertStmt = db.prepare(`
+  INSERT OR REPLACE INTO nodes (
+    node_id, node_type, city, name, description, lat, lng, alt,
+    base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
+    echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
+    scar_index, interaction_count
+  ) VALUES (
+    @nodeId, @nodeType, @city, @name, @description, @lat, @lng, @alt,
+    @baseFrequency, @harmonicity, @decay, @gain, @euclideanDensity, @euclideanSteps,
+    @echoProbability, @soundType, @fmIndex, @filterCutoff, @bitDepth, @carrierType,
+    @scarIndex, @interactionCount
+  )
+`);
+
+const insertMany = db.transaction((list) => {
+  for (const n of list) {
+    const sv = n.stateVector;
+    insertStmt.run({
+      nodeId: n.nodeId,
+      nodeType: n.nodeType,
+      city: n.city,
+      name: typeof n.name === 'object' ? JSON.stringify(n.name) : n.name,
+      description: typeof n.description === 'object' ? JSON.stringify(n.description) : n.description,
+      lat: n.coordinates.lat,
+      lng: n.coordinates.lng,
+      alt: n.coordinates.alt,
+      baseFrequency: sv.baseFrequency,
+      harmonicity: sv.harmonicity,
+      decay: sv.decay,
+      gain: sv.gain,
+      euclideanDensity: sv.euclideanDensity,
+      euclideanSteps: sv.euclideanSteps || 8,
+      echoProbability: sv.echoProbability || 0.7,
+      soundType: sv.soundType || 'bell_deep',
+      fmIndex: sv.fmIndex || 0.0,
+      filterCutoff: sv.filterCutoff || 1200.0,
+      bitDepth: sv.bitDepth || 16,
+      carrierType: sv.carrierType || 'sine',
+      scarIndex: 0.0,
+      interactionCount: 0
+    });
+  }
+});
+
+insertMany(nodes);
+console.log(`[DB] Successfully seeded ${nodes.length} new Ouro Preto nodes into database!`);
