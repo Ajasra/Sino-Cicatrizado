@@ -18,7 +18,6 @@
 - [ ] editing mode with the password for each city different. can manually add tower nodes for a new map. I can give access to a musician to create their own map
 - [x] **Background Audio Underrun Prevention**: Added silent WAV keep-alive anchor (`AudioContextManager.enableBackgroundKeepAlive()`) with MediaSession integration so mobile browsers retain real-time WebAudio priority during screen-off / background movement.
 - [ ] Audio distortion effect (re-evaluate trigger logic using native WebAudio nodes like WaveShaperNode instead of deprecated ScriptProcessorNode: e.g. movement speed, network latency, or node proximity)
-- [ ] how the battery affects the sound
 - [ ] languages
 - [ ] about/description page
 - [ ] link to GIT
