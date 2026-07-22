@@ -429,7 +429,9 @@ setInterval(() => {
 
       for (const dbNode of candidateDbNodes) {
         const dist = calculateHaversineMeters(item.soma.coordinates, dbNode.coordinates);
-        if (dist <= CONFIG.PROXIMITY_MUTATION_THRESHOLD_M) {
+        const cityConfig = CONFIG.CITIES[dbNode.city] || CONFIG.CITIES[CONFIG.DEFAULT_CITY];
+        const scarRadius = cityConfig?.scarRadiusMeters || CONFIG.PROXIMITY_MUTATION_THRESHOLD_M;
+        if (dist <= scarRadius) {
           const crowdMultiplier = 1.0;
           const mutationResult = evaluateSomaticProximity(item.soma.coordinates, dbNode, item.id, crowdMultiplier);
           if (mutationResult) {

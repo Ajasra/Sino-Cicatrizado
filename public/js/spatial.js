@@ -21,9 +21,12 @@ export function calculateWaveDelaySeconds(distanceMeters) {
   return distanceMeters / CLIENT_CONFIG.SPEED_OF_SOUND_MPS;
 }
 
-export function calculateInverseSquareGain(distanceMeters) {
-  const ref = CLIENT_CONFIG.ATTENUATION_REFERENCE_DISTANCE_M;
-  return Math.min(1.0, ref / (distanceMeters + 1.0));
+export function calculateInverseSquareGain(distanceMeters, maxDistance = 1500.0) {
+  const ref = CLIENT_CONFIG.ATTENUATION_REFERENCE_DISTANCE_M || 50.0;
+  if (distanceMeters >= maxDistance) return 0.0;
+  const normalized = Math.min(1.0, ref / (distanceMeters + 1.0));
+  const falloff = Math.max(0.0, 1.0 - (distanceMeters / maxDistance));
+  return normalized * falloff;
 }
 
 export function calculateDensityImpedanceFactor(targetNode, allReflectors = []) {
@@ -43,7 +46,7 @@ export function calculateDensityImpedanceFactor(targetNode, allReflectors = []) 
   return 1.0 / (1.0 + impedance);
 }
 
-export function getEffectiveSpatialAudio(listenerCoords, nodeCoords, activeCityCenter = null) {
+export function getEffectiveSpatialAudio(listenerCoords, nodeCoords, activeCityCenter = null, maxDistance = 1500.0) {
   const effectiveCoords = listenerCoords || activeCityCenter;
 
   if (!effectiveCoords || !Number.isFinite(effectiveCoords.lat) || !Number.isFinite(effectiveCoords.lng)) {
@@ -53,7 +56,7 @@ export function getEffectiveSpatialAudio(listenerCoords, nodeCoords, activeCityC
   const distanceMeters = calculateHaversineMeters(effectiveCoords, nodeCoords);
   const rawDelay = calculateWaveDelaySeconds(distanceMeters);
   const delaySeconds = Math.min(rawDelay, 2.0);
-  const gain = Math.max(0.02, calculateInverseSquareGain(distanceMeters));
+  const gain = Math.max(0.02, calculateInverseSquareGain(distanceMeters, maxDistance));
   const hasGpsFix = !!(listenerCoords && Number.isFinite(listenerCoords.lat) && Number.isFinite(listenerCoords.lng));
 
   return { distanceMeters, delaySeconds, gain, hasGpsFix };

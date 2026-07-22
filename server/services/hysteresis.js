@@ -39,9 +39,12 @@ export function getSomaticSignature(somaticId) {
 
 export function evaluateSomaticProximity(somaticPosition, targetNode, somaticSignature = null, crowdMultiplier = 1.0) {
   const distanceMeters = calculateHaversineMeters(somaticPosition, targetNode.coordinates);
+  const cityKey = targetNode.city || CONFIG.DEFAULT_CITY;
+  const cityConfig = CONFIG.CITIES[cityKey] || CONFIG.CITIES[CONFIG.DEFAULT_CITY];
+  const scarRadius = cityConfig?.scarRadiusMeters || CONFIG.PROXIMITY_MUTATION_THRESHOLD_M;
 
-  if (distanceMeters > CONFIG.PROXIMITY_MUTATION_THRESHOLD_M) {
-    return null; // Outside proximity interaction zone
+  if (distanceMeters > scarRadius) {
+    return null; // Outside city-specific proximity scar interaction zone
   }
 
   const signature = (typeof somaticSignature === 'object' && somaticSignature !== null)

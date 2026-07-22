@@ -80,14 +80,19 @@ export class NodeSequencer {
     });
   }
 
+  setActiveCityConfig(cityConfig) {
+    this.activeCityConfig = cityConfig;
+  }
+
   strikeNodeBell(node) {
     if (!this.somaticCoords) return;
 
+    const maxTriggerDist = this.activeCityConfig?.maxDistanceMeters || CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M || 1500.0;
     // Compute effective spatial audio gain & delay for listener position
-    const spatialAudio = getEffectiveSpatialAudio(this.somaticCoords, node.coordinates);
+    const spatialAudio = getEffectiveSpatialAudio(this.somaticCoords, node.coordinates, null, maxTriggerDist);
 
-    // Proximity gate: only trigger nodes within SOUND_TRIGGER_RADIUS_M
-    if (spatialAudio.distanceMeters > CLIENT_CONFIG.SOUND_TRIGGER_RADIUS_M) {
+    // Proximity gate: only trigger nodes within city maxDistanceMeters
+    if (spatialAudio.distanceMeters > maxTriggerDist) {
       return; // Listener is too far from this node — stay silent
     }
 

@@ -81,6 +81,10 @@ class SinoCicatrizadoApp {
       this.audioEngine.setCityAcousticProfile(this.currentCity);
     }
 
+    if (this.nodeSequencer) {
+      this.nodeSequencer.setActiveCityConfig(cityObj);
+    }
+
     // 3. Initialize Map View centered on active city
     this.mapView.init(cityObj);
     this.applyTheme(this.currentTheme);
@@ -180,6 +184,7 @@ class SinoCicatrizadoApp {
     };
     if (this.nodeSequencer) {
       this.nodeSequencer.setSomaticCoords(this.currentSomaticCoords);
+      this.nodeSequencer.setActiveCityConfig(cityObj);
     }
 
     if (updateUrl && window.history && window.history.pushState) {

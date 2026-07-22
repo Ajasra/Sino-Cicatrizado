@@ -84,6 +84,8 @@ export const CLIENT_CONFIG = {
       defaultLang: 'en',
       tileProvider: 'carto',
       useGcj02: false,
+      maxDistanceMeters: 500,     // 500m max trigger radius for dense mountain town
+      scarRadiusMeters: 50,       // 10% of max distance (50m scar mutation radius)
       center: { lat: -20.3856, lng: -43.5035, zoom: 16 },
       description: 'Colonial soapstone bells & baroque valley echoes'
     },
@@ -95,6 +97,8 @@ export const CLIENT_CONFIG = {
       defaultLang: 'en',
       tileProvider: 'carto',
       useGcj02: false,
+      maxDistanceMeters: 2000,    // 2 km max trigger radius for metropolitan grid
+      scarRadiusMeters: 150,      // ~7.5% of max distance (150m scar mutation radius)
       center: { lat: 41.8818, lng: -87.6231, zoom: 14 },
       description: 'Windy lakefront, steel bridges & industrial L-train resonance'
     },
@@ -106,6 +110,8 @@ export const CLIENT_CONFIG = {
       defaultLang: 'en',
       tileProvider: 'autonavi',
       useGcj02: true,
+      maxDistanceMeters: 2000,    // 2 km max trigger radius
+      scarRadiusMeters: 150,      // ~7.5% of max distance (150m scar mutation radius)
       center: { lat: 31.2304, lng: 121.4737, zoom: 14 },
       description: 'Huangpu River ferries, Bund custom clock, temple gongs & Maglev resonance'
     },
@@ -117,6 +123,8 @@ export const CLIENT_CONFIG = {
       defaultLang: 'en',
       tileProvider: 'autonavi',
       useGcj02: true,
+      maxDistanceMeters: 1500,    // 1.5 km max trigger radius
+      scarRadiusMeters: 100,      // ~6.7% of max distance (100m scar mutation radius)
       center: { lat: 31.2290, lng: 121.4420, zoom: 14 },
       description: 'Underground noise clubs, circuit bends, digital glitches & harsh industrial feedback'
     },
@@ -128,6 +136,8 @@ export const CLIENT_CONFIG = {
       defaultLang: 'en',
       tileProvider: 'carto',
       useGcj02: false,
+      maxDistanceMeters: 1800,    // 1.8 km max trigger radius
+      scarRadiusMeters: 120,      // ~6.7% of max distance (120m scar mutation radius)
       center: { lat: 45.5017, lng: -73.5673, zoom: 14 },
       description: 'Mount Royal steeples, Saint Lawrence port reverberations & underground city acoustic reflections'
     }
