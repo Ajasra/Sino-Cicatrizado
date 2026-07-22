@@ -1,5 +1,5 @@
 import { CLIENT_CONFIG } from '../config.js';
-import { calculateHaversineMeters } from '../spatial.js';
+import { calculateHaversineMeters, wgs84ToGcj02 } from '../spatial.js';
 
 export class LeafletMapView {
   constructor(elementId = 'map') {
@@ -32,6 +32,8 @@ export class LeafletMapView {
     const primaryTileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
     const fallbackTileUrl = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png';
 
+    this._isGcj02Provider = true;
+
     const tiles = window.L.tileLayer(primaryTileUrl, {
       subdomains: ['1', '2', '3', '4'],
       maxZoom: 19,
@@ -42,6 +44,7 @@ export class LeafletMapView {
     tiles.on('tileerror', () => {
       if (!this._hasSwitchedFallback) {
         this._hasSwitchedFallback = true;
+        this._isGcj02Provider = false;
         console.warn('[Map] Primary tiles unreachable. Switching to global fallback tiles...');
         this.map.removeLayer(tiles);
         window.L.tileLayer(fallbackTileUrl, {
@@ -49,15 +52,26 @@ export class LeafletMapView {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(this.map);
+        if (this.lastNodesList.length > 0) {
+          this.updateNodes(this.lastNodesList);
+        }
       }
     });
 
     tiles.addTo(this.map);
   }
 
+  _getDisplayCoords(lat, lng) {
+    if (this._isGcj02Provider) {
+      return wgs84ToGcj02(lat, lng);
+    }
+    return { lat, lng };
+  }
+
   setCityView(centerCoords) {
     if (!this.map || !centerCoords) return;
-    this.map.setView([centerCoords.lat, centerCoords.lng], centerCoords.zoom || 14);
+    const pt = this._getDisplayCoords(centerCoords.lat, centerCoords.lng);
+    this.map.setView([pt.lat, pt.lng], centerCoords.zoom || 14);
   }
 
   clearAllNodeMarkers() {
@@ -94,7 +108,9 @@ export class LeafletMapView {
     }
 
     nodesList.forEach((node) => {
-      const { lat, lng } = node.coordinates;
+      const pt = this._getDisplayCoords(node.coordinates.lat, node.coordinates.lng);
+      const lat = pt.lat;
+      const lng = pt.lng;
       const dist = this.somaticCoords ? calculateHaversineMeters(this.somaticCoords, node.coordinates) : null;
       const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance:</b> ${dist.toFixed(1)}m` : '';
       const soundType = node.stateVector?.soundType || 'bell_deep';
@@ -146,9 +162,10 @@ export class LeafletMapView {
   updateSomaticNode(coords) {
     if (!this.map || !coords) return;
     this.somaticCoords = coords;
+    const pt = this._getDisplayCoords(coords.lat, coords.lng);
 
     if (!this.somaticMarker) {
-      this.somaticMarker = window.L.circleMarker([coords.lat, coords.lng], {
+      this.somaticMarker = window.L.circleMarker([pt.lat, pt.lng], {
         radius: 4,
         color: '#00e676',
         fillColor: '#00e676',
@@ -160,9 +177,9 @@ export class LeafletMapView {
       this.somaticMarker.bindPopup('<b>Your Somatic Node</b>');
 
       // Center map on user's initial real-time location fix
-      this.map.setView([coords.lat, coords.lng], this.map.getZoom() || 15);
+      this.map.setView([pt.lat, pt.lng], this.map.getZoom() || 15);
     } else {
-      this.somaticMarker.setLatLng([coords.lat, coords.lng]);
+      this.somaticMarker.setLatLng([pt.lat, pt.lng]);
     }
 
     // Refresh node distance popups if loaded

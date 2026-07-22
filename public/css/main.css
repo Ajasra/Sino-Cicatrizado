@@ -244,10 +244,10 @@ header {
   background-color: #08090d !important;
 }
 
-/* Dark mode filter with reduced brightness, saturation, and contrast for high node pop */
+/* Dark mode filter: ultra-subtle dark background (minimal brightness & saturation) */
 .leaflet-tile-pane {
-  filter: invert(100%) hue-rotate(180deg) brightness(50%) saturate(35%) contrast(85%);
-  -webkit-filter: invert(100%) hue-rotate(180deg) brightness(50%) saturate(35%) contrast(85%);
+  filter: invert(100%) hue-rotate(180deg) brightness(35%) saturate(15%) contrast(90%);
+  -webkit-filter: invert(100%) hue-rotate(180deg) brightness(35%) saturate(15%) contrast(90%);
 }
 
 /* Leaflet Map Controls Custom Positioning (Left Center) */
