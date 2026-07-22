@@ -30,23 +30,23 @@ export class LeafletMapView {
       bounceAtZoomLimits: false
     }).setView([center.lat, center.lng], center.zoom || 14);
 
-    // Multi-source resilient tile layer (Amap / CartoDB fallback for CN and global networks)
-    const primaryTileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
-    this._isGcj02Provider = true;
+    // ponytail: global resilient CartoDB tile layer for dark/light themes across all global cities
+    const tileStyle = this.currentTheme === 'light' ? 'light_all' : 'dark_all';
+    const primaryTileUrl = `https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`;
+    this._isGcj02Provider = false;
 
-    const tiles = window.L.tileLayer(primaryTileUrl, {
-      subdomains: ['1', '2', '3', '4'],
+    this._tileLayer = window.L.tileLayer(primaryTileUrl, {
+      subdomains: 'abcd',
       maxZoom: 19,
-      attribution: '&copy; AutoNavi &copy; OpenStreetMap'
+      attribution: '&copy; OpenStreetMap &copy; CARTO'
     });
 
-    // Fallback handler if primary fails
-    tiles.on('tileerror', () => {
+    // Fallback to OpenStreetMap standard if CARTO is unreachable
+    this._tileLayer.on('tileerror', () => {
       if (!this._hasSwitchedFallback) {
         this._hasSwitchedFallback = true;
-        this._isGcj02Provider = false;
-        console.warn('[Map] Primary tiles unreachable. Switching to global fallback tiles...');
-        this.map.removeLayer(tiles);
+        console.warn('[Map] Primary tiles unreachable. Switching to OpenStreetMap fallback...');
+        this.map.removeLayer(this._tileLayer);
         this._loadFallbackTiles();
         if (this.lastNodesList.length > 0) {
           this.updateNodes(this.lastNodesList);
@@ -54,13 +54,16 @@ export class LeafletMapView {
       }
     });
 
-    tiles.addTo(this.map);
+    this._tileLayer.addTo(this.map);
   }
 
   /* ponytail: dynamic map theme switching (dark/light tiles & markers) */
   setTheme(theme) {
     this.currentTheme = theme;
-    if (this._hasSwitchedFallback && this.map) {
+    const tileStyle = theme === 'light' ? 'light_all' : 'dark_all';
+    if (this._tileLayer && this.map && !this._hasSwitchedFallback) {
+      this._tileLayer.setUrl(`https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`);
+    } else if (this._hasSwitchedFallback && this.map) {
       this._loadFallbackTiles();
     }
     this._refreshAllMarkerStyles();
@@ -152,17 +155,16 @@ export class LeafletMapView {
     if (this._fallbackTileLayer && this.map) {
       this.map.removeLayer(this._fallbackTileLayer);
     }
-    const tileStyle = this.currentTheme === 'light' ? 'light_all' : 'dark_all';
-    const fallbackTileUrl = `https://cartodb-basemaps-{s}.global.ssl.fastly.net/${tileStyle}/{z}/{x}/{y}{r}.png`;
+    const fallbackTileUrl = `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`;
     this._fallbackTileLayer = window.L.tileLayer(fallbackTileUrl, {
-      subdomains: 'abcd',
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(this.map);
   }
 
   _getDisplayCoords(lat, lng) {
-    if (this._isGcj02Provider) {
+    // Only apply GCJ-02 offset if provider demands it AND coordinates are within China bounds
+    if (this._isGcj02Provider && lat >= 18 && lat <= 54 && lng >= 73 && lng <= 135) {
       return wgs84ToGcj02(lat, lng);
     }
     return { lat, lng };
