@@ -449,7 +449,8 @@ class SinoCicatrizadoApp {
     const waveX = screenPoint ? screenPoint.x : window.innerWidth / 2;
     const waveY = screenPoint ? screenPoint.y : window.innerHeight / 2;
 
-    this.radar.emitWave(waveX, waveY);
+    const waveColor = this.currentTheme === 'light' ? 'rgba(180, 83, 9, 0.65)' : 'rgba(251, 191, 36, 0.6)';
+    this.radar.emitWave(waveX, waveY, waveColor);
     this.mapView.pulseSomaticNode();
 
     // 2. Synthesize primary chirp sound at listener location

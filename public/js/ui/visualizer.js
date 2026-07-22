@@ -15,13 +15,13 @@ export class SpatialWaveRadar {
     }
   }
 
-  emitWave(screenX, screenY, color = 'rgba(245, 158, 11, 0.35)') {
+  emitWave(screenX, screenY, color = 'rgba(245, 158, 11, 0.6)') {
     this.waves.push({
       x: screenX,
       y: screenY,
       radius: 4,
-      maxRadius: Math.max(this.canvas.width, this.canvas.height) * 0.35,
-      alpha: 0.35,
+      maxRadius: Math.max(this.canvas.width, this.canvas.height) * 0.38,
+      alpha: 0.6,
       color
     });
 
@@ -37,8 +37,8 @@ export class SpatialWaveRadar {
 
     for (let i = this.waves.length - 1; i >= 0; i--) {
       const wave = this.waves[i];
-      wave.radius += 2.5;
-      wave.alpha -= 0.008;
+      wave.radius += 2.8;
+      wave.alpha -= 0.007;
 
       if (wave.alpha <= 0 || wave.radius >= wave.maxRadius) {
         this.waves.splice(i, 1);
@@ -49,7 +49,7 @@ export class SpatialWaveRadar {
       this.ctx.beginPath();
       this.ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
       this.ctx.strokeStyle = wave.color.replace(/[\d\.]+\)$/, `${wave.alpha.toFixed(2)})`);
-      this.ctx.lineWidth = 0.8;
+      this.ctx.lineWidth = 1.4;
       this.ctx.stroke();
       this.ctx.restore();
     }
