@@ -129,6 +129,27 @@ export async function generateReflectorPresetFromPrompt(userIntentText = '', cit
       baseFrequency = 146.8 + (hash % 100);
       filterCutoff = 1400.0;
     }
+  } else if (cityKey === 'sao_paulo') {
+    // São Paulo Acoustic Archetypes: Brutalist Concrete, Metrô Rail, Atabaque Bell, Skyline Chopper
+    if (lowerIntent.includes('concrete') || lowerIntent.includes('masp') || lowerIntent.includes('viaduct') || lowerIntent.includes('brutalist')) {
+      soundType = 'sp_brutalist';
+      baseFrequency = 65.0 + (hash % 40);
+      filterCutoff = 280.0;
+    } else if (lowerIntent.includes('subway') || lowerIntent.includes('metro') || lowerIntent.includes('tunnel') || lowerIntent.includes('rail')) {
+      soundType = 'sp_subway';
+      baseFrequency = 135.0 + (hash % 80);
+      fmIndex = 5.5 + (hash % 4);
+      filterCutoff = 2400.0;
+    } else if (lowerIntent.includes('copter') || lowerIntent.includes('chopper') || lowerIntent.includes('flight') || lowerIntent.includes('sky')) {
+      soundType = 'sp_chopper';
+      baseFrequency = 85.0 + (hash % 30);
+      filterCutoff = 850.0;
+    } else {
+      soundType = 'sp_atabaque_bell';
+      baseFrequency = 220.0 + (hash % 180);
+      decay = 4.5;
+      filterCutoff = 2200.0;
+    }
   } else {
     // Ouro Preto & Default Colonial Archetypes: Soapstone Drone, Mine Strikes, Baroque Church Bells
     if (lowerIntent.includes('mine') || lowerIntent.includes('metal') || lowerIntent.includes('iron') || lowerIntent.includes('pickaxe')) {

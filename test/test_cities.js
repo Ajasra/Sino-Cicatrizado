@@ -29,8 +29,16 @@ shanghaiNoiseNodes.forEach((n, idx) => {
   console.log(`  ${idx + 1}. [${n.nodeType}] ${n.name} - Sound: ${n.stateVector.soundType}, Freq: ${n.stateVector.baseFrequency}Hz`);
 });
 
-if (ouroNodes.length >= 1 && chicagoNodes.length >= 6 && shanghaiNodes.length >= 6 && shanghaiNoiseNodes.length >= 6) {
-  console.log('\n[SUCCESS] Ouro Preto, Chicago, Shanghai, and SH Noise towers verified!');
+console.log('\n--- SÃO PAULO ---');
+const saoPauloNodes = getAllNodes('sao_paulo');
+console.log(`São Paulo nodes count: ${saoPauloNodes.length}`);
+saoPauloNodes.forEach((n, idx) => {
+  const nameStr = typeof n.name === 'object' ? (n.name.en || n.name.pt || '') : n.name;
+  console.log(`  ${idx + 1}. [${n.nodeType}] ${nameStr} - Sound: ${n.stateVector.soundType}, Freq: ${n.stateVector.baseFrequency}Hz`);
+});
+
+if (ouroNodes.length >= 1 && chicagoNodes.length >= 6 && shanghaiNodes.length >= 6 && shanghaiNoiseNodes.length >= 6 && saoPauloNodes.length >= 6) {
+  console.log('\n[SUCCESS] Ouro Preto, Chicago, Shanghai, SH Noise, and São Paulo towers verified!');
 } else {
   console.error('\n[FAIL] Node count mismatch');
   process.exit(1);

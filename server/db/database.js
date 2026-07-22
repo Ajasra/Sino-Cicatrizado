@@ -83,12 +83,12 @@ function seedInitialTowers(db) {
 
   const insertStmt = db.prepare(`
     INSERT OR REPLACE INTO nodes (
-      node_id, node_type, city, name, lat, lng, alt,
+      node_id, node_type, city, name, description, lat, lng, alt,
       base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
       echo_probability, sound_type, fm_index, filter_cutoff, bit_depth, carrier_type,
       scar_index, interaction_count
     ) VALUES (
-      @nodeId, @nodeType, @city, @name, @lat, @lng, @alt,
+      @nodeId, @nodeType, @city, @name, @description, @lat, @lng, @alt,
       @baseFrequency, @harmonicity, @decay, @gain, @euclideanDensity, @euclideanSteps,
       @echoProbability, @soundType, @fmIndex, @filterCutoff, @bitDepth, @carrierType,
       @scarIndex, @interactionCount
@@ -102,7 +102,8 @@ function seedInitialTowers(db) {
         nodeId: node.nodeId,
         nodeType: node.nodeType,
         city: node.city || 'ouro_preto',
-        name: node.name,
+        name: typeof node.name === 'object' ? JSON.stringify(node.name) : (node.name || ''),
+        description: typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description || ''),
         lat: node.coordinates.lat,
         lng: node.coordinates.lng,
         alt: node.coordinates.alt || 0.0,
@@ -300,6 +301,70 @@ function seedInitialTowers(db) {
     insertMany(SHANGHAI_NOISE_INITIAL_NODES);
     console.log(`[DB] Successfully seeded ${SHANGHAI_NOISE_INITIAL_NODES.length} SH Noise landmark towers.`);
   }
+
+  // Seed São Paulo Landmark Nodes if missing
+  const saoPauloResult = countStmt.get('sao_paulo');
+  if (saoPauloResult.count === 0) {
+    const SAO_PAULO_INITIAL_NODES = [
+      {
+        nodeId: 'tower_sao_paulo_1',
+        nodeType: 'TOWER',
+        city: 'sao_paulo',
+        name: { en: 'Metropolitan Cathedral of Sé', pt: 'Catedral Metropolitana da Sé' },
+        description: { en: 'Neo-Gothic cathedral bronze bell tolls interweaving with subterranean Metrô station air pressure bursts.', pt: 'Sinos de bronze da Catedral Neogótica entrelaçados aos pulsares de ar do Metrô subterrâneo na Praça da Sé.' },
+        coordinates: { lat: -23.55052, lng: -46.63331, alt: 760.0 },
+        stateVector: { soundType: 'sp_atabaque_bell', carrierType: 'triangle', baseFrequency: 220.0, harmonicity: 1.48, decay: 4.5, gain: 0.9, filterCutoff: 2200.0, euclideanDensity: 3, echoProbability: 0.85, bitDepth: 16 }
+      },
+      {
+        nodeId: 'tower_sao_paulo_2',
+        nodeType: 'TOWER',
+        city: 'sao_paulo',
+        name: { en: 'MASP - São Paulo Museum of Art', pt: 'MASP - Museu de Arte de São Paulo' },
+        description: { en: 'Massive suspended concrete span low-frequency resonance and wet asphalt traffic rumble along Paulista canyon.', pt: 'Ressonância de baixa frequência do vão livre de concreto do MASP e o rugido do tráfego na Av. Paulista.' },
+        coordinates: { lat: -23.56141, lng: -46.65588, alt: 825.0 },
+        stateVector: { soundType: 'sp_brutalist', carrierType: 'sine', baseFrequency: 65.0, harmonicity: 1.0, decay: 3.2, gain: 0.85, filterCutoff: 280.0, euclideanDensity: 2, echoProbability: 0.8, bitDepth: 16 }
+      },
+      {
+        nodeId: 'tower_sao_paulo_3',
+        nodeType: 'TOWER',
+        city: 'sao_paulo',
+        name: { en: 'Minhocão Elevated Highway', pt: 'Elevado Presidente João Goulart (Minhocão)' },
+        description: { en: '3.4km elevated concrete highway underpass reverberation and distant subway track screeching.', pt: 'Reverberação sob a estrutura de concreto do Minhocão e o estridular metálico dos trilhos urbanos.' },
+        coordinates: { lat: -23.53812, lng: -46.64893, alt: 745.0 },
+        stateVector: { soundType: 'sp_subway', carrierType: 'sawtooth', baseFrequency: 135.0, harmonicity: 2.41, decay: 2.4, gain: 0.8, fmIndex: 6.5, filterCutoff: 2400.0, euclideanDensity: 3, echoProbability: 0.75, bitDepth: 12 }
+      },
+      {
+        nodeId: 'tower_sao_paulo_4',
+        nodeType: 'TOWER',
+        city: 'sao_paulo',
+        name: { en: 'Copan Building', pt: 'Edifício Copan' },
+        description: { en: 'Oscar Niemeyer sinuous concrete wave facade capturing skyward helicopter rotor blade Doppler modulation.', pt: 'Ondulações de concreto do Edifício Copan refletindo o ruído doppler das pás de helicópteros no céu.' },
+        coordinates: { lat: -23.54639, lng: -46.64412, alt: 810.0 },
+        stateVector: { soundType: 'sp_chopper', carrierType: 'sawtooth', baseFrequency: 85.0, harmonicity: 1.2, decay: 3.8, gain: 0.75, filterCutoff: 850.0, euclideanDensity: 2, echoProbability: 0.7, bitDepth: 14 }
+      },
+      {
+        nodeId: 'tower_sao_paulo_5',
+        nodeType: 'TOWER',
+        city: 'sao_paulo',
+        name: { en: 'Luz Railway Station', pt: 'Estação da Luz' },
+        description: { en: '19th-century British ironwork station hall reverberating with steel rail friction and commuter echoes.', pt: 'Estrutura britânica de ferro do século XIX ecoando a fricção de freios e passos na Estação da Luz.' },
+        coordinates: { lat: -23.53489, lng: -46.63534, alt: 730.0 },
+        stateVector: { soundType: 'sp_subway', carrierType: 'sawtooth', baseFrequency: 140.0, harmonicity: 2.1, decay: 2.2, gain: 0.85, fmIndex: 5.5, filterCutoff: 2800.0, euclideanDensity: 3, echoProbability: 0.7, bitDepth: 10 }
+      },
+      {
+        nodeId: 'tower_sao_paulo_6',
+        nodeType: 'TOWER',
+        city: 'sao_paulo',
+        name: { en: 'Ibirapuera Park (Marquise & Oca)', pt: 'Parque Ibirapuera (Marquise e Oca)' },
+        description: { en: 'Convex concrete dome spatial decay and subtropical rain shimmer under the vast park marquise.', pt: 'Eco na cúpula de concreto da Oca e o sussurro da chuva tropical sob a Marquise do Ibirapuera.' },
+        coordinates: { lat: -23.58742, lng: -46.65763, alt: 750.0 },
+        stateVector: { soundType: 'drone', carrierType: 'sine', baseFrequency: 220.0, harmonicity: 1.5, decay: 5.0, gain: 0.75, filterCutoff: 1200.0, euclideanDensity: 2, echoProbability: 0.8, bitDepth: 16 }
+      }
+    ];
+    console.log('[DB] Seeding database with initial São Paulo landmark towers...');
+    insertMany(SAO_PAULO_INITIAL_NODES);
+    console.log(`[DB] Successfully seeded ${SAO_PAULO_INITIAL_NODES.length} São Paulo landmark towers.`);
+  }
 }
 
 
@@ -409,6 +474,7 @@ export function getNodeById(nodeId) {
 export function saveReflectorNode(node) {
   const db = getDatabaseConnection();
   const sv = node.stateVector || {};
+  const nameStr = typeof node.name === 'object' ? JSON.stringify(node.name) : (node.name || 'Static Reflector Deposit');
   const descStr = typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description || '');
   const stmt = db.prepare(`
     INSERT INTO nodes (
@@ -428,7 +494,7 @@ export function saveReflectorNode(node) {
     node.nodeId,
     node.nodeType || 'REFLECTOR',
     node.city || CONFIG.DEFAULT_CITY,
-    node.name || 'Static Reflector Deposit',
+    nameStr,
     descStr,
     node.coordinates.lat,
     node.coordinates.lng,

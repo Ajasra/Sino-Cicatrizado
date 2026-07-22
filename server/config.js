@@ -73,6 +73,19 @@ export const CITIES = {
     scarRadiusMeters: 120,      // ~6.7% of max distance (120m scar mutation radius)
     center: { lat: 45.5017, lng: -73.5673, zoom: 14 },
     description: 'Mount Royal steeples, Saint Lawrence port reverberations & underground city acoustic reflections'
+  },
+  sao_paulo: {
+    key: 'sao_paulo',
+    name: 'São Paulo',
+    country: 'Brazil',
+    languages: ['en', 'pt'],
+    defaultLang: 'en',
+    tileProvider: 'carto',
+    useGcj02: false,
+    maxDistanceMeters: 2000,    // 2 km max trigger radius for megalopolis
+    scarRadiusMeters: 150,      // ~7.5% of max distance (150m scar mutation radius)
+    center: { lat: -23.5505, lng: -46.6333, zoom: 14 },
+    description: 'Concrete brutalism, subterranean Metrô friction, cathedral bells & skyline chopper Doppler'
   }
 };
 

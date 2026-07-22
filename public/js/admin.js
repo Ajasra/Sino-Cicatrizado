@@ -58,6 +58,14 @@ const CITY_SOUND_TYPES = {
     { key: 'bell_deep', label: 'Steeple Echo' },
     { key: 'drone', label: 'Underground Reverberation' },
     { key: 'glitch', label: 'Glitch Echo' }
+  ],
+  sao_paulo: [
+    { key: 'sp_brutalist', label: 'Brutalist Concrete Slab (MASP)' },
+    { key: 'sp_subway', label: 'Metrô Iron Rail Friction' },
+    { key: 'sp_atabaque_bell', label: 'Cathedral Bell & Berimbau Ring' },
+    { key: 'sp_chopper', label: 'Skyline Rotor Blade FM' },
+    { key: 'drone', label: 'Avenida Paulista Traffic Rain' },
+    { key: 'glitch', label: 'Urban Scar Glitch' }
   ]
 };
 

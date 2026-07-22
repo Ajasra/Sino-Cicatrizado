@@ -159,7 +159,7 @@ class SinoCicatrizadoApp {
     this.updateLanguagePill();
     // ponytail: re-render map markers so popups use the updated active language
     if (this.mapView && this.nodesList) {
-      this.mapView.updateMarkers(this.nodesList);
+      this.mapView.updateNodes(this.nodesList);
     }
   }
 

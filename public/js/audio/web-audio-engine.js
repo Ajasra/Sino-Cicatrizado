@@ -41,6 +41,14 @@ import {
   createContinuousEmitterShanghaiNoiseDrone,
   createContinuousEmitterShanghaiNoiseSubRumble
 } from './generators/shanghai-noise.js';
+import {
+  triggerSaoPauloBrutalist,
+  triggerSaoPauloSubway,
+  triggerSaoPauloAtabaqueBell,
+  triggerSaoPauloChopper,
+  createContinuousEmitterSaoPauloTraffic,
+  createContinuousEmitterSaoPauloSubway
+} from './generators/sao-paulo.js';
 
 import { calculateHaversineMeters } from '../spatial.js';
 
@@ -359,6 +367,10 @@ export class WebAudioEngine extends AbstractAudioEngine {
         }
       } else if (this.currentCityProfile === 'shanghai') {
         emitterInstance = createContinuousEmitterShanghai(this, { baseFrequency: 65 + idx * 10 });
+      } else if (this.currentCityProfile === 'sao_paulo') {
+        emitterInstance = idx % 2 === 0
+          ? createContinuousEmitterSaoPauloTraffic(this, { baseFrequency: 220 + idx * 30 })
+          : createContinuousEmitterSaoPauloSubway(this, { baseFrequency: 55 + idx * 5 });
       } else {
         emitterInstance = createContinuousEmitterOuroPreto(this, { baseFrequency: 55 + idx * 15 });
       }
@@ -499,6 +511,21 @@ export class WebAudioEngine extends AbstractAudioEngine {
       case 'chicago_steam':
       case 'steam':
         triggerChicagoSteam(this, params, triggerTime, delaySeconds);
+        break;
+      case 'sp_brutalist':
+      case 'brutalist':
+        triggerSaoPauloBrutalist(this, params, triggerTime, delaySeconds);
+        break;
+      case 'sp_subway':
+        triggerSaoPauloSubway(this, params, triggerTime, delaySeconds);
+        break;
+      case 'sp_atabaque_bell':
+      case 'atabaque_bell':
+        triggerSaoPauloAtabaqueBell(this, params, triggerTime, delaySeconds);
+        break;
+      case 'sp_chopper':
+      case 'chopper':
+        triggerSaoPauloChopper(this, params, triggerTime, delaySeconds);
         break;
 
       case 'bell_deep':

@@ -294,12 +294,13 @@ export class LeafletMapView {
         const marker = markersMap.get(node.nodeId);
         marker._nodeData = node;
         marker.setLatLng([lat, lng]);
-        // Only update popup HTML if popup is currently open
-        if (marker.isPopupOpen()) {
-          marker.setPopupContent(this._getPopupText(node));
-        }
+        marker.setPopupContent(this._getPopupText(node));
       }
     });
+  }
+
+  updateMarkers(nodesList = []) {
+    return this.updateNodes(nodesList);
   }
 
   updateSomaticNode(coords) {
