@@ -222,12 +222,21 @@ export class LeafletMapView {
       const distStr = dist !== null && Number.isFinite(dist) ? `<br><b>Distance:</b> ${dist.toFixed(1)}m` : '';
       const soundType = node.stateVector?.soundType || 'bell_deep';
 
+      // ponytail: resolve localized title if node.name is an object or slash-separated dual name
+      let nodeTitle = node.name;
+      const currentLang = (window.i18n && window.i18n.currentLang) || 'en';
+      if (typeof node.name === 'object' && node.name !== null) {
+        nodeTitle = node.name[currentLang] || (currentLang === 'zh' ? node.name.cn : null) || (currentLang === 'cn' ? node.name.zh : null) || node.name.en || Object.values(node.name)[0] || '';
+      } else if (typeof node.name === 'string' && node.name.includes(' / ')) {
+        const parts = node.name.split(' / ');
+        nodeTitle = (currentLang === 'en') ? parts[0].trim() : (parts[1] ? parts[1].trim() : parts[0].trim());
+      }
+
       let descHtml = '';
       if (node.description) {
         let text = '';
         if (typeof node.description === 'object' && node.description !== null) {
-          const currentLang = (window.i18n && window.i18n.currentLang) || 'en';
-          text = node.description[currentLang] || node.description.en || Object.values(node.description)[0] || '';
+          text = node.description[currentLang] || (currentLang === 'zh' ? node.description.cn : null) || (currentLang === 'cn' ? node.description.zh : null) || node.description.en || Object.values(node.description)[0] || '';
         } else {
           text = node.description;
         }
@@ -237,7 +246,7 @@ export class LeafletMapView {
       }
 
       if (node.nodeType === 'TOWER') {
-        const popupText = `<b>${node.name}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
+        const popupText = `<b>${nodeTitle}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz | Scar: ${node.scarIndex.toFixed(2)}`;
 
         if (!this.towerMarkers.has(node.nodeId)) {
           const style = this._getMarkerStyle('TOWER');
@@ -253,7 +262,7 @@ export class LeafletMapView {
           marker.setPopupContent(popupText);
         }
       } else if (node.nodeType === 'REFLECTOR') {
-        const popupText = `<b>${node.name}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
+        const popupText = `<b>${nodeTitle}</b>${descHtml}${distStr}<br><b>Sound Type:</b> <i>${soundType}</i><br>Freq: ${node.stateVector.baseFrequency.toFixed(1)}Hz`;
 
         if (!this.reflectorMarkers.has(node.nodeId)) {
           const style = this._getMarkerStyle('REFLECTOR');

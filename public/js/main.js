@@ -153,6 +153,10 @@ class SinoCicatrizadoApp {
 
     setLanguage(nextLang);
     this.updateLanguagePill();
+    // ponytail: re-render map markers so popups use the updated active language
+    if (this.mapView && this.nodesList) {
+      this.mapView.updateMarkers(this.nodesList);
+    }
   }
 
   async selectCity(cityKey, updateUrl = true) {

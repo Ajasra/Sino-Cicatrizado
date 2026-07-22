@@ -305,6 +305,16 @@ function seedInitialTowers(db) {
 
 
 
+function parseName(nameStr) {
+  if (!nameStr) return '';
+  if (typeof nameStr === 'object') return nameStr;
+  try {
+    return JSON.parse(nameStr);
+  } catch (e) {
+    return nameStr;
+  }
+}
+
 function parseDescription(descStr) {
   if (!descStr) return {};
   if (typeof descStr === 'object') return descStr;
@@ -326,7 +336,7 @@ export function getAllNodes(city = null) {
     nodeId: row.node_id,
     nodeType: row.node_type,
     city: row.city,
-    name: row.name,
+    name: parseName(row.name),
     description: parseDescription(row.description),
     coordinates: {
       lat: row.lat,

@@ -204,6 +204,8 @@ export function setLanguage(lang) {
   if (!TRANSLATIONS[lang]) lang = 'en';
   currentLang = lang;
   document.documentElement.lang = lang;
+  // ponytail: sync global i18n object for map popups and other dynamic views
+  window.i18n = { currentLang: lang };
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');

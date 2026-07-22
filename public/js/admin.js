@@ -13,6 +13,7 @@ let isSoloActive = false;
 let activeTower = null; // currently selected tower object
 let cityLanguages = ['en'];
 let activeLang = 'en';
+let nameMap = {}; // { en: "...", pt: "..." }
 let descriptionMap = {}; // { en: "...", pt: "..." }
 let citiesList = [];
 
@@ -351,9 +352,11 @@ function renderLangTabs() {
     chip.textContent = lang.toUpperCase();
     chip.addEventListener('click', () => {
       // Save text for current active lang before switching
+      nameMap[activeLang] = document.getElementById('edit-name').value;
       descriptionMap[activeLang] = document.getElementById('edit-desc').value;
       activeLang = lang;
       renderLangTabs();
+      document.getElementById('edit-name').value = nameMap[activeLang] || '';
       document.getElementById('edit-desc').value = descriptionMap[activeLang] || '';
     });
     container.appendChild(chip);
@@ -374,13 +377,22 @@ async function loadTowersList() {
     markersMap.clear();
 
     nodes.forEach((node) => {
+      // ponytail: extract localized name for display
+      let displayName = node.name;
+      if (typeof node.name === 'object' && node.name !== null) {
+        displayName = node.name[activeLang] || node.name.en || Object.values(node.name)[0] || '';
+      } else if (typeof node.name === 'string' && node.name.includes(' / ')) {
+        const parts = node.name.split(' / ');
+        displayName = (activeLang === 'en') ? parts[0].trim() : (parts[1] ? parts[1].trim() : parts[0].trim());
+      }
+
       // Add list item
       const item = document.createElement('div');
       item.dataset.nodeId = node.nodeId;
       item.className = `tower-item ${activeTower && activeTower.nodeId === node.nodeId ? 'active' : ''}`;
       item.innerHTML = `
         <div>
-          <div style="font-weight: 600; font-size: 0.9rem; color: #f8fafc;">${node.name}</div>
+          <div style="font-weight: 600; font-size: 0.9rem; color: #f8fafc;">${displayName}</div>
           <div style="font-size: 0.75rem; color: #94a3b8;">${node.nodeType} • ${node.stateVector.soundType}</div>
         </div>
         <span style="font-size: 0.75rem; color: #38bdf8; font-family: monospace;">${node.stateVector.baseFrequency}Hz</span>
@@ -402,7 +414,7 @@ async function loadTowersList() {
 
         const marker = L.marker([node.coordinates.lat, node.coordinates.lng], {
           icon: customIcon,
-          title: `${node.name} (Drag to move)`,
+          title: `${displayName} (Drag to move)`,
           draggable: true
         }).addTo(map);
 
@@ -463,8 +475,20 @@ async function loadTowersList() {
 function selectTower(node, options = {}) {
   activeTower = JSON.parse(JSON.stringify(node));
   document.getElementById('editor-form-title').textContent = `Edit Tower (${node.nodeId})`;
-  document.getElementById('edit-name').value = node.name || '';
   
+  // ponytail: parse multilingual name object or dual-language slash string into nameMap
+  if (typeof node.name === 'object' && node.name !== null) {
+    nameMap = { ...node.name };
+  } else if (typeof node.name === 'string' && node.name.includes(' / ')) {
+    const parts = node.name.split(' / ');
+    nameMap = { en: parts[0].trim() };
+    const secondLang = cityLanguages[1] || 'pt';
+    nameMap[secondLang] = parts[1].trim();
+  } else {
+    nameMap = typeof node.name === 'string' ? { [activeLang]: node.name } : { en: '' };
+  }
+  document.getElementById('edit-name').value = nameMap[activeLang] || nameMap.en || Object.values(nameMap)[0] || '';
+
   descriptionMap = typeof node.description === 'object' ? { ...node.description } : { en: node.description || '' };
   document.getElementById('edit-desc').value = descriptionMap[activeLang] || '';
 
@@ -541,6 +565,8 @@ function selectTower(node, options = {}) {
 
 function prepareNewTower() {
   const center = map.getCenter();
+  nameMap = {};
+  descriptionMap = {};
   activeTower = {
     nodeId: null, // new tower
     nodeType: 'TOWER',
@@ -569,16 +595,16 @@ function prepareNewTower() {
 async function saveTower() {
   if (!activeTower) return;
 
-  // Save active description field value
+  // Save active name and description field values
+  nameMap[activeLang] = document.getElementById('edit-name').value;
   descriptionMap[activeLang] = document.getElementById('edit-desc').value;
 
-  const name = document.getElementById('edit-name').value;
   const lat = Number(document.getElementById('edit-lat').value);
   const lng = Number(document.getElementById('edit-lng').value);
 
   const payload = {
     nodeId: activeTower.nodeId,
-    name: name || 'Acoustic Tower',
+    name: nameMap,
     city: currentCityKey,
     description: descriptionMap,
     coordinates: { lat, lng, alt: 0 },
