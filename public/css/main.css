@@ -244,6 +244,12 @@ header {
   background-color: #08090d !important;
 }
 
+/* Dark mode filter for AutoNavi / standard bright tiles */
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%);
+  -webkit-filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(90%);
+}
+
 /* Leaflet Map Controls Custom Positioning (Left Center) */
 .leaflet-top.leaflet-left {
   top: 50% !important;

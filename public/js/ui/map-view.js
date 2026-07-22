@@ -29,7 +29,7 @@ export class LeafletMapView {
     }).setView([center.lat, center.lng], center.zoom || 14);
 
     // Multi-source resilient tile layer (Amap / CartoDB fallback for CN and global networks)
-    const primaryTileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+    const primaryTileUrl = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
     const fallbackTileUrl = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}{r}.png';
 
     const tiles = window.L.tileLayer(primaryTileUrl, {
