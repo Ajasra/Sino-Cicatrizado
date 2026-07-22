@@ -21,7 +21,8 @@ export class LeafletMapView {
       return;
     }
 
-    const center = initialCenter || CLIENT_CONFIG.OURO_PRETO_CENTER;
+    const cityConfig = initialCenter || CLIENT_CONFIG.CITIES.ouro_preto;
+    const center = cityConfig.center || cityConfig;
     this.map = window.L.map(this.elementId, {
       zoomControl: true,
       tap: true,
@@ -30,25 +31,42 @@ export class LeafletMapView {
       bounceAtZoomLimits: false
     }).setView([center.lat, center.lng], center.zoom || 14);
 
-    // ponytail: global resilient CartoDB tile layer for dark/light themes across all global cities
-    const tileStyle = this.currentTheme === 'light' ? 'light_all' : 'dark_all';
-    const primaryTileUrl = `https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`;
-    this._isGcj02Provider = false;
+    // ponytail: set tile provider & GCJ-02 offset dynamically based on city configuration
+    const provider = cityConfig.tileProvider || 'carto';
+    const useGcj02 = cityConfig.useGcj02 !== undefined ? cityConfig.useGcj02 : false;
+    this.setTileProvider(provider, useGcj02);
+  }
 
-    this._tileLayer = window.L.tileLayer(primaryTileUrl, {
-      subdomains: 'abcd',
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
-    });
+  setTileProvider(providerName = 'carto', useGcj02 = false) {
+    this._isGcj02Provider = !!useGcj02;
+    this._tileProviderName = providerName;
+    this._hasSwitchedFallback = false;
 
-    // Fallback to OpenStreetMap standard if CARTO is unreachable
+    if (this._tileLayer && this.map) {
+      this.map.removeLayer(this._tileLayer);
+    }
+
+    let url = '';
+    let options = {};
+
+    if (providerName === 'autonavi' || providerName === 'amap') {
+      url = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+      options = { subdomains: ['1', '2', '3', '4'], maxZoom: 19, attribution: '&copy; AutoNavi &copy; OpenStreetMap' };
+    } else {
+      const tileStyle = this.currentTheme === 'light' ? 'light_all' : 'dark_all';
+      url = `https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`;
+      options = { subdomains: 'abcd', maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' };
+    }
+
+    this._tileLayer = window.L.tileLayer(url, options);
+
     this._tileLayer.on('tileerror', () => {
       if (!this._hasSwitchedFallback) {
         this._hasSwitchedFallback = true;
-        console.warn('[Map] Primary tiles unreachable. Switching to OpenStreetMap fallback...');
+        console.warn(`[Map] Tile provider ${providerName} unreachable. Switching to OpenStreetMap fallback...`);
         this.map.removeLayer(this._tileLayer);
         this._loadFallbackTiles();
-        if (this.lastNodesList.length > 0) {
+        if (this.lastNodesList && this.lastNodesList.length > 0) {
           this.updateNodes(this.lastNodesList);
         }
       }
@@ -60,8 +78,8 @@ export class LeafletMapView {
   /* ponytail: dynamic map theme switching (dark/light tiles & markers) */
   setTheme(theme) {
     this.currentTheme = theme;
-    const tileStyle = theme === 'light' ? 'light_all' : 'dark_all';
-    if (this._tileLayer && this.map && !this._hasSwitchedFallback) {
+    if (this._tileProviderName === 'carto' && this._tileLayer && this.map && !this._hasSwitchedFallback) {
+      const tileStyle = theme === 'light' ? 'light_all' : 'dark_all';
       this._tileLayer.setUrl(`https://{s}.basemaps.cartocdn.com/${tileStyle}/{z}/{x}/{y}{r}.png`);
     } else if (this._hasSwitchedFallback && this.map) {
       this._loadFallbackTiles();
@@ -170,8 +188,15 @@ export class LeafletMapView {
     return { lat, lng };
   }
 
-  setCityView(centerCoords) {
-    if (!this.map || !centerCoords) return;
+  setCityView(cityConfig) {
+    if (!this.map || !cityConfig) return;
+    const centerCoords = cityConfig.center || cityConfig;
+
+    // ponytail: dynamic tile provider switching when switching cities
+    if (cityConfig.tileProvider !== undefined) {
+      this.setTileProvider(cityConfig.tileProvider, cityConfig.useGcj02);
+    }
+
     const pt = this._getDisplayCoords(centerCoords.lat, centerCoords.lng);
     this.map.setView([pt.lat, pt.lng], centerCoords.zoom || 14);
   }

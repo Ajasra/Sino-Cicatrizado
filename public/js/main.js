@@ -82,7 +82,7 @@ class SinoCicatrizadoApp {
     }
 
     // 3. Initialize Map View centered on active city
-    this.mapView.init(cityObj.center);
+    this.mapView.init(cityObj);
     this.applyTheme(this.currentTheme);
     this.updateCityPill();
     this.updateLanguagePill();
@@ -196,7 +196,7 @@ class SinoCicatrizadoApp {
 
     this.updateCityPill();
     this.updateLanguagePill();
-    this.mapView.setCityView(cityObj.center);
+    this.mapView.setCityView(cityObj);
     this.mapView.clearAllNodeMarkers();
 
     if (this.gpsSensor) {
