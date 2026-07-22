@@ -477,7 +477,7 @@ export function saveReflectorNode(node) {
   const nameStr = typeof node.name === 'object' ? JSON.stringify(node.name) : (node.name || 'Static Reflector Deposit');
   const descStr = typeof node.description === 'object' ? JSON.stringify(node.description) : (node.description || '');
   const stmt = db.prepare(`
-    INSERT INTO nodes (
+    INSERT OR REPLACE INTO nodes (
       node_id, node_type, city, name, description, lat, lng, alt,
       base_frequency, harmonicity, decay, gain, euclidean_density, euclidean_steps,
       echo_probability, sound_type, fm_index, filter_cutoff, filter_type, delay_time_ms, feedback_ratio, comb_resonance, bit_depth, carrier_type,
