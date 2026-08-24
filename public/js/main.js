@@ -490,7 +490,7 @@ class SinoCicatrizadoApp {
     this.radar.emitWave(waveX, waveY, waveColor);
     this.mapView.pulseSomaticNode();
 
-    // 2. Synthesize primary chirp sound at listener location
+    // 2. Synthesize primary chirp sound at listener location (attenuated by 50% so reflective echoes dominate)
     let distanceMeters = 0;
     if (this.currentSomaticCoords && sourceCoords) {
       distanceMeters = calculateHaversineMeters(this.currentSomaticCoords, sourceCoords);
@@ -499,8 +499,8 @@ class SinoCicatrizadoApp {
     const rawDelay = calculateWaveDelaySeconds(distanceMeters);
     const primaryDelay = Number.isFinite(rawDelay) ? Math.min(rawDelay, 0.3) : 0;
     const rawGain = calculateInverseSquareGain(distanceMeters);
-    // No minimum floor — sound genuinely fades at distance
-    const primaryGain = Number.isFinite(rawGain) ? rawGain : 1.0;
+    // ponytail: scale primary chirp down by 50% (0.5x) so reflective echoes from towers and nodes are clearly heard
+    const primaryGain = (Number.isFinite(rawGain) ? rawGain : 1.0) * 0.5;
 
     this.audioEngine.triggerBell(
       {
@@ -545,15 +545,21 @@ class SinoCicatrizadoApp {
 
       const returnDelaySeconds = Math.min(arrivalDelay + calculateWaveDelaySeconds(distListenerToNode), 2.5);
       const rawNodeGain = calculateInverseSquareGain(distListenerToNode);
-      // No minimum floor — let real inverse-square attenuation apply
+      // Let real inverse-square attenuation apply for distant nodes
       const nodeGain = (node.stateVector?.gain || 0.8) * (Number.isFinite(rawNodeGain) ? rawNodeGain : 0.0);
 
       const nodeParams = {
+        nodeId: node.nodeId,
+        soundType: node.stateVector?.soundType,
         baseFrequency: node.stateVector?.baseFrequency || 220.0,
         harmonicity: node.stateVector?.harmonicity || 1.414,
         decay: node.stateVector?.decay || 2.0,
         gain: nodeGain,
-        carrierType: node.stateVector?.carrierType || 'sine'
+        carrierType: node.stateVector?.carrierType || 'sine',
+        fmIndex: node.stateVector?.fmIndex || 0.0,
+        filterCutoff: node.stateVector?.filterCutoff || 1200.0,
+        filterType: node.stateVector?.filterType || 'lowpass',
+        bitDepth: node.stateVector?.bitDepth || 16
       };
 
       // Trigger node echo bell response
