@@ -61,6 +61,16 @@ import {
   createContinuousEmitterEdmontonRiver,
   createContinuousEmitterEdmontonLRT
 } from './generators/edmonton.js';
+import {
+  triggerMontrealSatGeodetic,
+  triggerMontrealMicroGlitch,
+  triggerMontrealSubTactile,
+  triggerMontrealSpectralBell,
+  triggerMontrealHydroOptic,
+  createContinuousEmitterMontrealModularDrone,
+  createContinuousEmitterMontrealGranularCloud,
+  createContinuousEmitterMontrealFarineHum
+} from './generators/montreal.js';
 
 import { calculateHaversineMeters } from '../spatial.js';
 
@@ -286,8 +296,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
   morphContinuousDrone(cityKey) {
     if (!this.ctx || !this.continuousDrone) return;
     const now = this.ctx.currentTime;
-    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'edmonton' ? 42.0 : (cityKey === 'shanghai_noise' ? 48.0 : (cityKey === 'shanghai' ? 65.0 : 55.0)));
-    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'edmonton' ? 450.0 : (cityKey === 'shanghai_noise' ? 650.0 : (cityKey === 'shanghai' ? 420.0 : 380.0)));
+    const baseFreq = cityKey === 'chicago' ? 45.0 : (cityKey === 'edmonton' ? 42.0 : (cityKey === 'montreal' ? 46.0 : (cityKey === 'shanghai_noise' ? 48.0 : (cityKey === 'shanghai' ? 65.0 : 55.0))));
+    const targetCutoff = cityKey === 'chicago' ? 550.0 : (cityKey === 'edmonton' ? 450.0 : (cityKey === 'montreal' ? 480.0 : (cityKey === 'shanghai_noise' ? 650.0 : (cityKey === 'shanghai' ? 420.0 : 380.0))));
 
     const d = this.continuousDrone;
     d.targetCutoff = targetCutoff;
@@ -387,6 +397,14 @@ export class WebAudioEngine extends AbstractAudioEngine {
         emitterInstance = idx % 2 === 0
           ? createContinuousEmitterEdmontonRiver(this, { baseFrequency: 50 + idx * 8 })
           : createContinuousEmitterEdmontonLRT(this, { baseFrequency: 220 + idx * 15 });
+      } else if (this.currentCityProfile === 'montreal') {
+        if (idx % 3 === 0) {
+          emitterInstance = createContinuousEmitterMontrealModularDrone(this, { baseFrequency: 45 + idx * 5 });
+        } else if (idx % 3 === 1) {
+          emitterInstance = createContinuousEmitterMontrealGranularCloud(this, { baseFrequency: 480 + idx * 60 });
+        } else {
+          emitterInstance = createContinuousEmitterMontrealFarineHum(this, { baseFrequency: 60 });
+        }
       } else {
         emitterInstance = createContinuousEmitterOuroPreto(this, { baseFrequency: 55 + idx * 15 });
       }
@@ -572,6 +590,27 @@ export class WebAudioEngine extends AbstractAudioEngine {
         triggerEdmontonCoyote(this, params, triggerTime, delaySeconds);
         break;
 
+      case 'montreal_sat_geodetic':
+      case 'sat_geodetic':
+        triggerMontrealSatGeodetic(this, params, triggerTime, delaySeconds);
+        break;
+      case 'montreal_micro_glitch':
+      case 'micro_glitch':
+        triggerMontrealMicroGlitch(this, params, triggerTime, delaySeconds);
+        break;
+      case 'montreal_sub_tactile':
+      case 'sub_tactile':
+        triggerMontrealSubTactile(this, params, triggerTime, delaySeconds);
+        break;
+      case 'montreal_spectral_bell':
+      case 'spectral_bell':
+        triggerMontrealSpectralBell(this, params, triggerTime, delaySeconds);
+        break;
+      case 'montreal_hydro_optic':
+      case 'hydro_optic':
+        triggerMontrealHydroOptic(this, params, triggerTime, delaySeconds);
+        break;
+
       case 'bell_deep':
         triggerDeepBell(this, params, triggerTime, delaySeconds);
         break;
@@ -590,6 +629,8 @@ export class WebAudioEngine extends AbstractAudioEngine {
           triggerShanghaiGong(this, params, triggerTime, delaySeconds);
         } else if (this.currentCityProfile === 'chicago') {
           triggerChicagoFoghorn(this, params, triggerTime, delaySeconds);
+        } else if (this.currentCityProfile === 'montreal') {
+          triggerMontrealSatGeodetic(this, params, triggerTime, delaySeconds);
         } else {
           triggerSacredBell(this, params, triggerTime, delaySeconds);
         }

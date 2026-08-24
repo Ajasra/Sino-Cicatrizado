@@ -78,9 +78,7 @@ async function requestChatCompletion(provider, apiKey, model, systemPrompt, user
       payload.thinking = { type: 'enabled', budget_tokens: level === 'low' ? 1024 : 2048 };
     }
   } else if (provider === 'openrouter') {
-    if (level === 'none') {
-      payload.reasoning = { effort: 'none' };
-    } else {
+    if (level && level !== 'none') {
       payload.reasoning = { effort: level };
     }
   }

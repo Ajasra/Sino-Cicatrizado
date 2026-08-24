@@ -72,7 +72,10 @@ export const CITIES = {
     maxDistanceMeters: 1800,    // 1.8 km max trigger radius
     scarRadiusMeters: 120,      // ~6.7% of max distance (120m scar mutation radius)
     center: { lat: 45.5017, lng: -73.5673, zoom: 14 },
-    description: 'Mount Royal steeples, Saint Lawrence port reverberations & underground city acoustic reflections'
+    description: {
+      en: 'MUTEK electronic soundscapes, SAT Satosphère dome clusters, modular micro-glitches & RÉSO pedway acoustics',
+      fr: 'Paysages électroniques MUTEK, clusters de la Satosphère (SAT), micro-glitches modulaires et acoustique souterraine du RÉSO'
+    }
   },
   sao_paulo: {
     key: 'sao_paulo',

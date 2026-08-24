@@ -55,9 +55,13 @@ const CITY_SOUND_TYPES = {
     { key: 'shanghai_radio_glitch', label: 'Radio Interference & Resonance Sweep' }
   ],
   montreal: [
-    { key: 'bell_deep', label: 'Steeple Echo' },
-    { key: 'drone', label: 'Underground Reverberation' },
-    { key: 'glitch', label: 'Glitch Echo' }
+    { key: 'montreal_sat_geodetic', label: 'SAT Satosphère 360° Dome Spatial Cluster' },
+    { key: 'montreal_micro_glitch', label: 'Mile End Modular Micro-Glitch' },
+    { key: 'montreal_sub_tactile', label: 'MUTEK Nocturne Sub-Tactile Impact' },
+    { key: 'montreal_spectral_bell', label: 'Algorithmic Spectral Resonator Bell' },
+    { key: 'montreal_hydro_optic', label: 'St. Lawrence Hydrophone & Optical Pulse' },
+    { key: 'drone', label: 'Bain Mathieu Modular Drone' },
+    { key: 'glitch', label: 'RÉSO Pedway Glitch' }
   ],
   sao_paulo: [
     { key: 'sp_brutalist', label: 'Brutalist Concrete Slab (MASP)' },

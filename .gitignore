@@ -25,3 +25,4 @@ certs/*.key
 Thumbs.db
 .vscode/
 .idea/
+.opencode

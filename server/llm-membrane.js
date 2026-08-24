@@ -150,6 +150,64 @@ export async function generateReflectorPresetFromPrompt(userIntentText = '', cit
       decay = 4.5;
       filterCutoff = 2200.0;
     }
+  } else if (cityKey === 'montreal') {
+    // Montreal MUTEK / New Media Archetypes: SAT Dome, Modular Glitch, Sub-Bass Drop, Spectral Bell, Hydrophone
+    if (lowerIntent.includes('sat') || lowerIntent.includes('dome') || lowerIntent.includes('sphere') || lowerIntent.includes('spatial') || lowerIntent.includes('cluster')) {
+      soundType = 'montreal_sat_geodetic';
+      carrierType = 'sine';
+      baseFrequency = 440.0 + (hash % 120);
+      decay = 2.4;
+      filterCutoff = 1200.0;
+    } else if (lowerIntent.includes('glitch') || lowerIntent.includes('mile') || lowerIntent.includes('modular') || lowerIntent.includes('jitter') || lowerIntent.includes('circuit')) {
+      soundType = 'montreal_micro_glitch';
+      carrierType = 'square';
+      baseFrequency = 580.0 + (hash % 240);
+      bitDepth = 4 + (hash % 4);
+      decay = 0.8;
+      filterCutoff = 3600.0;
+    } else if (lowerIntent.includes('sub') || lowerIntent.includes('bass') || lowerIntent.includes('nocturne') || lowerIntent.includes('club') || lowerIntent.includes('impact')) {
+      soundType = 'montreal_sub_tactile';
+      carrierType = 'sine';
+      baseFrequency = 85.0 + (hash % 25);
+      decay = 1.8;
+      filterCutoff = 160.0;
+    } else if (lowerIntent.includes('hydro') || lowerIntent.includes('ice') || lowerIntent.includes('laser') || lowerIntent.includes('river') || lowerIntent.includes('optic')) {
+      soundType = 'montreal_hydro_optic';
+      carrierType = 'sine';
+      baseFrequency = 1200.0 + (hash % 400);
+      fmIndex = 6.0 + (hash % 3);
+      filterCutoff = 1100.0;
+    } else {
+      // Default Montreal: Algorithmic Spectral Bell
+      soundType = 'montreal_spectral_bell';
+      carrierType = 'sine';
+      baseFrequency = 260.0 + (hash % 160);
+      harmonicity = 1.618;
+      decay = 4.2 + ((hash % 30) / 10.0);
+      filterCutoff = 2200.0;
+    }
+  } else if (cityKey === 'edmonton') {
+    // Edmonton Acoustic Archetypes: River Frost Wind, LRT Motor, Glass Pyramid, Indigenous Drum
+    if (lowerIntent.includes('wind') || lowerIntent.includes('frost') || lowerIntent.includes('river') || lowerIntent.includes('valley')) {
+      soundType = 'edmonton_wind';
+      baseFrequency = 180.0 + (hash % 80);
+      decay = 3.5;
+    } else if (lowerIntent.includes('lrt') || lowerIntent.includes('train') || lowerIntent.includes('transit')) {
+      soundType = 'edmonton_lrt';
+      baseFrequency = 210.0 + (hash % 100);
+      fmIndex = 3.5 + (hash % 3);
+    } else if (lowerIntent.includes('pyramid') || lowerIntent.includes('glass') || lowerIntent.includes('muttart')) {
+      soundType = 'edmonton_pyramid';
+      baseFrequency = 640.0 + (hash % 300);
+    } else if (lowerIntent.includes('drum') || lowerIntent.includes('cree') || lowerIntent.includes('ceremony')) {
+      soundType = 'edmonton_drum';
+      baseFrequency = 110.0 + (hash % 50);
+      decay = 2.0;
+    } else {
+      soundType = 'edmonton_bridge';
+      baseFrequency = 95.0 + (hash % 40);
+      filterCutoff = 350.0;
+    }
   } else {
     // Ouro Preto & Default Colonial Archetypes: Soapstone Drone, Mine Strikes, Baroque Church Bells
     if (lowerIntent.includes('mine') || lowerIntent.includes('metal') || lowerIntent.includes('iron') || lowerIntent.includes('pickaxe')) {

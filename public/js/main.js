@@ -245,12 +245,17 @@ class SinoCicatrizadoApp {
       const isActive = c.key === this.currentCity;
       card.className = `city-card-item ${isActive ? 'active' : ''}`;
       const prefix = isActive ? '>> ' : '';
+      const activeLang = getCurrentLanguage();
+      const desc = (typeof c.description === 'object' && c.description !== null)
+        ? (c.description[activeLang] || c.description.en || Object.values(c.description)[0] || '')
+        : (c.description || '');
+
       card.innerHTML = `
         <div class="city-card-header">
           <span class="city-name">${prefix}${c.name}</span>
           <span class="city-country">${c.country || ''}</span>
         </div>
-        <div class="city-desc">${c.description || ''}</div>
+        <div class="city-desc">${desc}</div>
       `;
       card.addEventListener('click', () => {
         this.selectCity(c.key);
