@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node --watch server/server.js",
     "dev": "node --watch server/server.js",
-    "test": "node test/verification.js",
+    "test": "node test/verification.js && node test/security-verification.js",
+    "test:security": "node test/security-verification.js",
     "seed:sp": "node scripts/seed-sao-paulo-reflectors.js",
     "seed:montreal": "node scripts/seed-montreal-30-towers.js"
   },

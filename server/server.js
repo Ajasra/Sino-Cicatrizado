@@ -4,21 +4,50 @@ import https from 'https';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { CONFIG } from './config.js';
 import { getAllNodes, saveReflectorNode, updateFullNode, deleteNode, getNodeById, getDatabaseConnection } from './db/database.js';
 
-// ... (keep previous middleware)
-// Helper middleware to verify per-city admin password
-function verifyAdminAuth(req, res, next) {
-  const city = req.body?.city || req.query?.city || req.headers['x-city'] || CONFIG.DEFAULT_CITY;
-  const authPass = req.headers['x-admin-password'] || req.body?.adminPassword;
-  const expectedPass = CONFIG.ADMIN_PASSWORDS[city] || CONFIG.ADMIN_PASSWORD_GLOBAL;
+function safeTimingCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
-  if (!authPass || (authPass !== expectedPass && authPass !== CONFIG.ADMIN_PASSWORD_GLOBAL)) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid city admin password.' });
+// Helper middleware to verify per-city admin password with timing attack protection & fail-closed defaults
+function verifyAdminAuth(req, res, next) {
+  const city = (typeof req.body?.city === 'string' ? req.body.city : null)
+    || (typeof req.query?.city === 'string' ? req.query.city : null)
+    || req.headers['x-city']
+    || CONFIG.DEFAULT_CITY;
+
+  const authPass = req.headers['x-admin-password'] || req.body?.adminPassword;
+  const cityExpected = CONFIG.ADMIN_PASSWORDS[city];
+  const globalExpected = CONFIG.ADMIN_PASSWORD_GLOBAL;
+
+  // Fail closed: if no password configured for this city and no global pass, reject access
+  const hasExpectedPass = (typeof cityExpected === 'string' && cityExpected.length > 0)
+    || (typeof globalExpected === 'string' && globalExpected.length > 0);
+
+  if (!hasExpectedPass) {
+    return res.status(403).json({ error: 'Forbidden: Admin access disabled (no admin password configured).' });
   }
+
+  if (typeof authPass !== 'string' || !authPass) {
+    return res.status(401).json({ error: 'Unauthorized: Admin password required.' });
+  }
+
+  const isCityValid = cityExpected ? safeTimingCompare(authPass, cityExpected) : false;
+  const isGlobalValid = globalExpected ? safeTimingCompare(authPass, globalExpected) : false;
+
+  if (!isCityValid && !isGlobalValid) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid admin password.' });
+  }
+
   req.targetCity = city;
   next();
 }
@@ -34,7 +63,18 @@ const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 const app = express();
-app.use(express.json());
+
+// Security Headers: prevent MIME-sniffing execution, frame clickjacking, and referrer leaks
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '0');
+  next();
+});
+
+// Explicit JSON request body size limit to prevent memory exhaustion DoS
+app.use(express.json({ limit: '100kb' }));
 
 // Disable JS caching so browser always fetches fresh modules
 app.use((req, res, next) => {
@@ -55,34 +95,49 @@ app.get('/api/cities', (req, res) => {
 });
 
 app.get('/api/nodes', (req, res) => {
-  const city = req.query.city || CONFIG.DEFAULT_CITY;
+  const cityParam = req.query.city;
+  const city = (typeof cityParam === 'string' && /^[a-z0-9_]{1,64}$/.test(cityParam))
+    ? cityParam
+    : CONFIG.DEFAULT_CITY;
   const nodes = getAllNodes(city);
   return res.json({ mode: 'LIVING', debugMode: CONFIG.DEBUG, showUsers: CONFIG.SHOW_USERS, city, nodes });
 });
 
 app.post('/api/reflectors', async (req, res) => {
   try {
-    const { coordinates, intentText, name, city } = req.body;
-    if (!coordinates || coordinates.lat === undefined || coordinates.lng === undefined) {
+    const { coordinates, intentText, name, city } = req.body || {};
+    if (!coordinates) {
       return res.status(400).json({ error: 'Coordinates lat and lng are required.' });
     }
 
-    // ponytail: input protection — limit text to 200 chars & strip basic HTML tags
+    const lat = Number(coordinates.lat);
+    const lng = Number(coordinates.lng);
+    const alt = Number(coordinates.alt || 0.0);
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ error: 'Valid finite coordinates (lat: -90..90, lng: -180..180) are required.' });
+    }
+
+    // Input protection — limit text to 200 chars & strip basic HTML tags
     const sanitizedIntent = String(intentText || '').trim().slice(0, 200).replace(/[<>/]/g, '');
 
-    const targetCity = city || CONFIG.DEFAULT_CITY;
+    const targetCity = (typeof city === 'string' && /^[a-z0-9_]{1,64}$/.test(city))
+      ? city
+      : CONFIG.DEFAULT_CITY;
+
     const preset = await generateReflectorPresetFromPrompt(sanitizedIntent, targetCity);
     const displayName = preset.displayTitle || cicatrizeText(sanitizedIntent);
+    const sanitizedName = typeof name === 'string' ? name.trim().slice(0, 100).replace(/[<>/]/g, '') : null;
 
     const newNode = {
       nodeId: `reflector_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       nodeType: 'REFLECTOR',
       city: targetCity,
-      name: name || `Reflector: "${displayName}"`,
+      name: sanitizedName || `Reflector: "${displayName}"`,
       coordinates: {
-        lat: Number(coordinates.lat),
-        lng: Number(coordinates.lng),
-        alt: Number(coordinates.alt || 0.0)
+        lat,
+        lng,
+        alt: Number.isFinite(alt) ? alt : 0.0
       },
       stateVector: preset,
       scarIndex: 0.0,
@@ -105,14 +160,14 @@ app.post('/api/reflectors', async (req, res) => {
   }
 });
 
-app.post('/api/cities/create', async (req, res) => {
+app.post('/api/cities/create', verifyAdminAuth, async (req, res) => {
   try {
-    const { key, name, contextText, landmarks } = req.body;
+    const { key, name, contextText, landmarks } = req.body || {};
     const result = await createNewCity({ key, name, contextText, landmarks });
     return res.status(201).json({ success: true, city: result });
   } catch (err) {
     console.error('[API] Error creating new city:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(400).json({ error: err.message });
   }
 });
 
@@ -123,38 +178,60 @@ app.post('/api/admin/verify', verifyAdminAuth, (req, res) => {
 
 app.post('/api/admin/nodes', verifyAdminAuth, (req, res) => {
   try {
-    const { nodeId, name, description, city, coordinates, stateVector } = req.body;
-    const targetCity = city || req.targetCity || CONFIG.DEFAULT_CITY;
+    const { nodeId, name, description, city, coordinates, stateVector } = req.body || {};
+    const targetCity = (typeof city === 'string' && /^[a-z0-9_]{1,64}$/.test(city))
+      ? city
+      : (req.targetCity || CONFIG.DEFAULT_CITY);
+
+    if (nodeId && !/^[a-zA-Z0-9_-]{1,64}$/.test(nodeId)) {
+      return res.status(400).json({ error: 'Invalid nodeId format. Must be 1-64 alphanumeric, dash, or underscore characters.' });
+    }
+
     const id = nodeId || `tower_${targetCity}_${Date.now()}`;
+
+    if (!coordinates || typeof coordinates !== 'object') {
+      return res.status(400).json({ error: 'Valid coordinates object with lat and lng is required.' });
+    }
+
+    const lat = Number(coordinates.lat);
+    const lng = Number(coordinates.lng);
+    const alt = Number(coordinates.alt || 0.0);
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ error: 'Coordinates lat (-90..90) and lng (-180..180) must be finite numbers within valid ranges.' });
+    }
+
+    const sv = (stateVector && typeof stateVector === 'object') ? stateVector : {};
+    const safeName = typeof name === 'string' ? name.slice(0, 150) : (typeof name === 'object' ? name : `Tower: ${id}`);
 
     const newNode = {
       nodeId: id,
       nodeType: 'TOWER',
       city: targetCity,
-      name: name || `Tower: ${id}`,
-      description: description || {},
+      name: safeName,
+      description: (description && typeof description === 'object') ? description : (typeof description === 'string' ? description.slice(0, 1000) : {}),
       coordinates: {
-        lat: Number(coordinates.lat),
-        lng: Number(coordinates.lng),
-        alt: Number(coordinates.alt || 0.0)
+        lat,
+        lng,
+        alt: Number.isFinite(alt) ? alt : 0.0
       },
       stateVector: {
-        soundType: stateVector.soundType || 'bell_deep',
-        carrierType: stateVector.carrierType || 'sine',
-        baseFrequency: Number(stateVector.baseFrequency || 220.0),
-        harmonicity: Number(stateVector.harmonicity || 1.414),
-        decay: Number(stateVector.decay || 1.5),
-        gain: Number(stateVector.gain || 1.0),
-        euclideanDensity: Number(stateVector.euclideanDensity || 3),
-        euclideanSteps: Number(stateVector.euclideanSteps || 8),
-        echoProbability: Number(stateVector.echoProbability || 0.7),
-        fmIndex: Number(stateVector.fmIndex || 0.0),
-        filterCutoff: Number(stateVector.filterCutoff || 1200.0),
-        filterType: stateVector.filterType || 'lowpass',
-        delayTimeMs: Number(stateVector.delayTimeMs || 250.0),
-        feedbackRatio: Number(stateVector.feedbackRatio || 0.3),
-        combResonance: Number(stateVector.combResonance || 0.0),
-        bitDepth: Number(stateVector.bitDepth || 16)
+        soundType: sv.soundType || 'bell_deep',
+        carrierType: sv.carrierType || 'sine',
+        baseFrequency: Number(sv.baseFrequency || 220.0),
+        harmonicity: Number(sv.harmonicity || 1.414),
+        decay: Number(sv.decay || 1.5),
+        gain: Number(sv.gain || 1.0),
+        euclideanDensity: Number(sv.euclideanDensity || 3),
+        euclideanSteps: Number(sv.euclideanSteps || 8),
+        echoProbability: Number(sv.echoProbability || 0.7),
+        fmIndex: Number(sv.fmIndex || 0.0),
+        filterCutoff: Number(sv.filterCutoff || 1200.0),
+        filterType: sv.filterType || 'lowpass',
+        delayTimeMs: Number(sv.delayTimeMs || 250.0),
+        feedbackRatio: Number(sv.feedbackRatio || 0.3),
+        combResonance: Number(sv.combResonance || 0.0),
+        bitDepth: Number(sv.bitDepth || 16)
       },
       scarIndex: 0.0,
       interactionCount: 0
@@ -178,25 +255,39 @@ app.post('/api/admin/nodes', verifyAdminAuth, (req, res) => {
 app.put('/api/admin/nodes/:id', verifyAdminAuth, (req, res) => {
   try {
     const nodeId = req.params.id;
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(nodeId)) {
+      return res.status(400).json({ error: 'Invalid nodeId format.' });
+    }
+
     const existing = getNodeById(nodeId);
     if (!existing) {
       return res.status(404).json({ error: 'Node not found' });
     }
 
-    const { name, description, coordinates, stateVector } = req.body;
+    const { name, description, coordinates, stateVector } = req.body || {};
+
+    let safeCoordinates = existing.coordinates;
+    if (coordinates && typeof coordinates === 'object') {
+      const lat = Number(coordinates.lat !== undefined ? coordinates.lat : existing.coordinates.lat);
+      const lng = Number(coordinates.lng !== undefined ? coordinates.lng : existing.coordinates.lng);
+      const alt = Number(coordinates.alt !== undefined ? coordinates.alt : existing.coordinates.alt);
+
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+        return res.status(400).json({ error: 'Invalid coordinates range.' });
+      }
+      safeCoordinates = { lat, lng, alt: Number.isFinite(alt) ? alt : 0.0 };
+    }
+
+    const safeSv = (stateVector && typeof stateVector === 'object')
+      ? { ...existing.stateVector, ...stateVector }
+      : existing.stateVector;
+
     const updatedNode = {
       ...existing,
-      name: name !== undefined ? name : existing.name,
+      name: name !== undefined ? (typeof name === 'string' ? name.slice(0, 150) : name) : existing.name,
       description: description !== undefined ? description : existing.description,
-      coordinates: coordinates ? {
-        lat: Number(coordinates.lat !== undefined ? coordinates.lat : existing.coordinates.lat),
-        lng: Number(coordinates.lng !== undefined ? coordinates.lng : existing.coordinates.lng),
-        alt: Number(coordinates.alt !== undefined ? coordinates.alt : existing.coordinates.alt)
-      } : existing.coordinates,
-      stateVector: stateVector ? {
-        ...existing.stateVector,
-        ...stateVector
-      } : existing.stateVector
+      coordinates: safeCoordinates,
+      stateVector: safeSv
     };
 
     updateFullNode(updatedNode);
@@ -217,6 +308,10 @@ app.put('/api/admin/nodes/:id', verifyAdminAuth, (req, res) => {
 app.delete('/api/admin/nodes/:id', verifyAdminAuth, (req, res) => {
   try {
     const nodeId = req.params.id;
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(nodeId)) {
+      return res.status(400).json({ error: 'Invalid nodeId format.' });
+    }
+
     const existing = getNodeById(nodeId);
     if (!existing) {
       return res.status(404).json({ error: 'Node not found' });
@@ -248,10 +343,9 @@ app.get('*', (req, res, next) => {
   return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-
-// Initialize HTTP & WebSocket Server
+// Initialize HTTP & WebSocket Server (with 64KB maxPayload to mitigate DoS)
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
 
 wss.on('connection', (ws) => {
   const clientSomaticId = `soma_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
@@ -491,7 +585,7 @@ if (fs.existsSync(PFX_PATH)) {
   try {
     const pfxBuffer = fs.readFileSync(PFX_PATH);
     httpsServer = https.createServer({ pfx: pfxBuffer, passphrase: 'scarred' }, app);
-    const wssHttps = new WebSocketServer({ server: httpsServer });
+    const wssHttps = new WebSocketServer({ server: httpsServer, maxPayload: 64 * 1024 });
     wssHttps.on('connection', (ws) => {
       // Reuse same websocket connection handler logic
       wss.emit('connection', ws);

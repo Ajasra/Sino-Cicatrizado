@@ -10,13 +10,27 @@ const PROMPT_PATH = path.join(__dirname, 'prompts', 'reflector_preset_system.txt
 const CITIES_DIR = path.join(__dirname, 'prompts', 'cities');
 
 export function getCityAcousticContext(cityName = 'ouro_preto') {
-  const key = String(cityName).toLowerCase().trim().replace(/[\s-]/g, '_');
-  const cityPath = path.join(CITIES_DIR, `${key}.txt`);
-  const defaultPath = path.join(CITIES_DIR, 'default.txt');
+  const rawKey = String(cityName || '').toLowerCase().trim().replace(/[\s-]/g, '_');
+  
+  // Guard against path traversal sequences, null bytes, or dangerous characters
+  if (!/^[a-z0-9_]{1,64}$/.test(rawKey) || rawKey.includes('..')) {
+    const defaultPath = path.join(CITIES_DIR, 'default.txt');
+    if (fs.existsSync(defaultPath)) {
+      return fs.readFileSync(defaultPath, 'utf-8').trim();
+    }
+    return 'Default: Urban acoustic landscape with mixed industrial, atmospheric, and architectural reverberations.';
+  }
 
-  if (fs.existsSync(cityPath)) {
+  const cityPath = path.join(CITIES_DIR, `${rawKey}.txt`);
+  const resolvedCityPath = path.resolve(cityPath);
+  const resolvedCitiesDir = path.resolve(CITIES_DIR);
+
+  // Ensure resolved path is strictly within CITIES_DIR
+  if (resolvedCityPath.startsWith(resolvedCitiesDir + path.sep) && fs.existsSync(cityPath)) {
     return fs.readFileSync(cityPath, 'utf-8').trim();
   }
+
+  const defaultPath = path.join(CITIES_DIR, 'default.txt');
   if (fs.existsSync(defaultPath)) {
     return fs.readFileSync(defaultPath, 'utf-8').trim();
   }
